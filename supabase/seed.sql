@@ -1,0 +1,2 @@
+-- PawMatch local development seed data.
+-- Populated in Phase 1+ as the schema is built. Intentionally empty in Phase 0.
