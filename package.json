@@ -2,6 +2,8 @@
   "name": "trainer-marketplace",
   "version": "0.1.0",
   "private": true,
+  "//": "packageManager is pinned to pnpm@10.33.2 (Shane's local version as of 2026-04-24). Keeping local, CI, and Vercel on the exact same pnpm avoids lockfile drift and 'works on my machine' surprises. Bump deliberately when you upgrade locally — don't let a newer version sneak in through auto-updates.",
+  "packageManager": "pnpm@10.33.2",
   "scripts": {
     "dev": "next dev",
     "build": "next build",
