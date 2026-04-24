@@ -1,0 +1,59 @@
+# ============================================================================
+# PawMatch — Continuous Integration
+# ============================================================================
+# Runs on every pull request targeting main, and on pushes to main itself.
+# Blocks merges if typecheck, lint, tests, or build fails.
+#
+# E2E (Playwright) runs nightly against main, not here — too slow for PR gating.
+# That workflow arrives in a later phase.
+# ============================================================================
+
+name: CI
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+
+# Cancel in-progress runs for the same branch when a new commit lands.
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  ci:
+    name: Typecheck / Lint / Test / Build
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      # Install pnpm BEFORE Node so setup-node can wire up pnpm's cache.
+      # Version must match `packageManager` in package.json and Shane's local.
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10.33.2
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Typecheck
+        run: pnpm typecheck
+
+      - name: Lint
+        run: pnpm lint
+
+      - name: Test (unit + integration)
+        run: pnpm test
+
+      - name: Build
+        run: pnpm build
