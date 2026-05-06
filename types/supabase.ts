@@ -116,6 +116,117 @@ export type Database = {
         }
         Relationships: []
       }
+      trainer_certifications: {
+        Row: {
+          created_at: string
+          expires_at: string | null
+          id: string
+          issued_at: string | null
+          issuer: string | null
+          name: string
+          trainer_id: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          expires_at?: string | null
+          id?: string
+          issued_at?: string | null
+          issuer?: string | null
+          name: string
+          trainer_id: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          expires_at?: string | null
+          id?: string
+          issued_at?: string | null
+          issuer?: string | null
+          name?: string
+          trainer_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "trainer_certifications_trainer_id_fkey"
+            columns: ["trainer_id"]
+            isOneToOne: false
+            referencedRelation: "trainers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      trainer_specialty_assignments: {
+        Row: {
+          created_at: string
+          id: string
+          specialty: Database["public"]["Enums"]["trainer_specialty"]
+          trainer_id: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          specialty: Database["public"]["Enums"]["trainer_specialty"]
+          trainer_id: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          specialty?: Database["public"]["Enums"]["trainer_specialty"]
+          trainer_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "trainer_specialty_assignments_trainer_id_fkey"
+            columns: ["trainer_id"]
+            isOneToOne: false
+            referencedRelation: "trainers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      trainers: {
+        Row: {
+          bio: string | null
+          created_at: string
+          id: string
+          service_point: unknown
+          service_radius_meters: number | null
+          updated_at: string
+          years_experience: number | null
+        }
+        Insert: {
+          bio?: string | null
+          created_at?: string
+          id: string
+          service_point?: unknown
+          service_radius_meters?: number | null
+          updated_at?: string
+          years_experience?: number | null
+        }
+        Update: {
+          bio?: string | null
+          created_at?: string
+          id?: string
+          service_point?: unknown
+          service_radius_meters?: number | null
+          updated_at?: string
+          years_experience?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "trainers_id_fkey"
+            columns: ["id"]
+            isOneToOne: true
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
@@ -124,6 +235,24 @@ export type Database = {
       [_ in never]: never
     }
     Enums: {
+      trainer_specialty:
+        | "puppy"
+        | "basic_obedience"
+        | "competition_obedience"
+        | "behavioral"
+        | "reactivity"
+        | "aggression"
+        | "service_dog"
+        | "protection_sport_psa"
+        | "protection_sport_schutzhund_igp"
+        | "protection_sport_french_ring"
+        | "protection_sport_mondio_ring"
+        | "personal_protection"
+        | "decoy_work"
+        | "agility"
+        | "scent_work"
+        | "tracking"
+        | "gun_dog"
       user_role: "owner" | "trainer" | "admin"
     }
     CompositeTypes: {
@@ -255,6 +384,25 @@ export const Constants = {
   },
   public: {
     Enums: {
+      trainer_specialty: [
+        "puppy",
+        "basic_obedience",
+        "competition_obedience",
+        "behavioral",
+        "reactivity",
+        "aggression",
+        "service_dog",
+        "protection_sport_psa",
+        "protection_sport_schutzhund_igp",
+        "protection_sport_french_ring",
+        "protection_sport_mondio_ring",
+        "personal_protection",
+        "decoy_work",
+        "agility",
+        "scent_work",
+        "tracking",
+        "gun_dog",
+      ],
       user_role: ["owner", "trainer", "admin"],
     },
   },
