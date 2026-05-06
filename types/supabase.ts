@@ -39,6 +39,53 @@ export type Database = {
   }
   public: {
     Tables: {
+      dogs: {
+        Row: {
+          breed: string | null
+          created_at: string
+          date_of_birth: string | null
+          deleted_at: string | null
+          id: string
+          name: string
+          owner_id: string
+          photo_url: string | null
+          temperament_notes: string | null
+          updated_at: string
+        }
+        Insert: {
+          breed?: string | null
+          created_at?: string
+          date_of_birth?: string | null
+          deleted_at?: string | null
+          id?: string
+          name: string
+          owner_id: string
+          photo_url?: string | null
+          temperament_notes?: string | null
+          updated_at?: string
+        }
+        Update: {
+          breed?: string | null
+          created_at?: string
+          date_of_birth?: string | null
+          deleted_at?: string | null
+          id?: string
+          name?: string
+          owner_id?: string
+          photo_url?: string | null
+          temperament_notes?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "dogs_owner_id_fkey"
+            columns: ["owner_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       profiles: {
         Row: {
           avatar_url: string | null
