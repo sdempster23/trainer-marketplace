@@ -1,3 +1,4 @@
+Initialising login role...
 export type Json =
   | string
   | number
@@ -116,6 +117,88 @@ export type Database = {
         }
         Relationships: []
       }
+      trainer_availability: {
+        Row: {
+          created_at: string
+          day_of_week: number
+          end_time: string
+          id: string
+          start_time: string
+          trainer_id: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          day_of_week: number
+          end_time: string
+          id?: string
+          start_time: string
+          trainer_id: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          day_of_week?: number
+          end_time?: string
+          id?: string
+          start_time?: string
+          trainer_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "trainer_availability_trainer_id_fkey"
+            columns: ["trainer_id"]
+            isOneToOne: false
+            referencedRelation: "trainers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      trainer_availability_exceptions: {
+        Row: {
+          created_at: string
+          end_time: string | null
+          exception_date: string
+          id: string
+          is_blocked: boolean
+          reason: string | null
+          start_time: string | null
+          trainer_id: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          end_time?: string | null
+          exception_date: string
+          id?: string
+          is_blocked?: boolean
+          reason?: string | null
+          start_time?: string | null
+          trainer_id: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          end_time?: string | null
+          exception_date?: string
+          id?: string
+          is_blocked?: boolean
+          reason?: string | null
+          start_time?: string | null
+          trainer_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "trainer_availability_exceptions_trainer_id_fkey"
+            columns: ["trainer_id"]
+            isOneToOne: false
+            referencedRelation: "trainers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       trainer_certifications: {
         Row: {
           created_at: string
@@ -150,6 +233,53 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "trainer_certifications_trainer_id_fkey"
+            columns: ["trainer_id"]
+            isOneToOne: false
+            referencedRelation: "trainers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      trainer_services: {
+        Row: {
+          created_at: string
+          deleted_at: string | null
+          description: string | null
+          duration_minutes: number
+          id: string
+          name: string
+          price_cents: number
+          session_type: Database["public"]["Enums"]["session_type"]
+          trainer_id: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          deleted_at?: string | null
+          description?: string | null
+          duration_minutes: number
+          id?: string
+          name: string
+          price_cents: number
+          session_type: Database["public"]["Enums"]["session_type"]
+          trainer_id: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          deleted_at?: string | null
+          description?: string | null
+          duration_minutes?: number
+          id?: string
+          name?: string
+          price_cents?: number
+          session_type?: Database["public"]["Enums"]["session_type"]
+          trainer_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "trainer_services_trainer_id_fkey"
             columns: ["trainer_id"]
             isOneToOne: false
             referencedRelation: "trainers"
@@ -196,6 +326,7 @@ export type Database = {
           id: string
           service_point: unknown
           service_radius_meters: number | null
+          timezone: string
           updated_at: string
           years_experience: number | null
         }
@@ -205,6 +336,7 @@ export type Database = {
           id: string
           service_point?: unknown
           service_radius_meters?: number | null
+          timezone?: string
           updated_at?: string
           years_experience?: number | null
         }
@@ -214,6 +346,7 @@ export type Database = {
           id?: string
           service_point?: unknown
           service_radius_meters?: number | null
+          timezone?: string
           updated_at?: string
           years_experience?: number | null
         }
@@ -235,6 +368,7 @@ export type Database = {
       [_ in never]: never
     }
     Enums: {
+      session_type: "in_home" | "at_trainer_location" | "virtual"
       trainer_specialty:
         | "puppy"
         | "basic_obedience"
@@ -384,6 +518,7 @@ export const Constants = {
   },
   public: {
     Enums: {
+      session_type: ["in_home", "at_trainer_location", "virtual"],
       trainer_specialty: [
         "puppy",
         "basic_obedience",
@@ -407,3 +542,5 @@ export const Constants = {
     },
   },
 } as const
+A new version of Supabase CLI is available: v2.98.2 (currently installed v2.90.0)
+We recommend updating regularly for new features and bug fixes: https://supabase.com/docs/guides/cli/getting-started#updating-the-supabase-cli
