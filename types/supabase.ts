@@ -318,6 +318,56 @@ export type Database = {
           },
         ]
       }
+      trainer_stripe_accounts: {
+        Row: {
+          business_type: string | null
+          charges_enabled: boolean
+          country: string | null
+          created_at: string
+          default_currency: string | null
+          details_submitted: boolean
+          id: string
+          payouts_enabled: boolean
+          requirements_due: Json | null
+          stripe_account_id: string
+          updated_at: string
+        }
+        Insert: {
+          business_type?: string | null
+          charges_enabled?: boolean
+          country?: string | null
+          created_at?: string
+          default_currency?: string | null
+          details_submitted?: boolean
+          id: string
+          payouts_enabled?: boolean
+          requirements_due?: Json | null
+          stripe_account_id: string
+          updated_at?: string
+        }
+        Update: {
+          business_type?: string | null
+          charges_enabled?: boolean
+          country?: string | null
+          created_at?: string
+          default_currency?: string | null
+          details_submitted?: boolean
+          id?: string
+          payouts_enabled?: boolean
+          requirements_due?: Json | null
+          stripe_account_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "trainer_stripe_accounts_id_fkey"
+            columns: ["id"]
+            isOneToOne: true
+            referencedRelation: "trainers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       trainers: {
         Row: {
           bio: string | null
