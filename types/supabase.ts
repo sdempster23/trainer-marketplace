@@ -7,11 +7,6 @@ export type Json =
   | Json[]
 
 export type Database = {
-  // Allows to automatically instantiate createClient with right options
-  // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
-  __InternalSupabase: {
-    PostgrestVersion: "14.5"
-  }
   graphql_public: {
     Tables: {
       [_ in never]: never
@@ -39,6 +34,92 @@ export type Database = {
   }
   public: {
     Tables: {
+      bookings: {
+        Row: {
+          cancelled_at: string | null
+          cancelled_by: Database["public"]["Enums"]["cancelled_by"] | null
+          completed_at: string | null
+          created_at: string
+          dog_id: string
+          duration_minutes: number
+          ends_at: string | null
+          id: string
+          owner_id: string
+          price_cents: number
+          service_id: string
+          starts_at: string
+          status: Database["public"]["Enums"]["booking_status"]
+          stripe_payment_intent_id: string
+          trainer_id: string
+          updated_at: string
+        }
+        Insert: {
+          cancelled_at?: string | null
+          cancelled_by?: Database["public"]["Enums"]["cancelled_by"] | null
+          completed_at?: string | null
+          created_at?: string
+          dog_id: string
+          duration_minutes: number
+          ends_at?: string | null
+          id?: string
+          owner_id: string
+          price_cents: number
+          service_id: string
+          starts_at: string
+          status?: Database["public"]["Enums"]["booking_status"]
+          stripe_payment_intent_id: string
+          trainer_id: string
+          updated_at?: string
+        }
+        Update: {
+          cancelled_at?: string | null
+          cancelled_by?: Database["public"]["Enums"]["cancelled_by"] | null
+          completed_at?: string | null
+          created_at?: string
+          dog_id?: string
+          duration_minutes?: number
+          ends_at?: string | null
+          id?: string
+          owner_id?: string
+          price_cents?: number
+          service_id?: string
+          starts_at?: string
+          status?: Database["public"]["Enums"]["booking_status"]
+          stripe_payment_intent_id?: string
+          trainer_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "bookings_dog_id_fkey"
+            columns: ["dog_id"]
+            isOneToOne: false
+            referencedRelation: "dogs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "bookings_owner_id_fkey"
+            columns: ["owner_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "bookings_service_id_fkey"
+            columns: ["service_id"]
+            isOneToOne: false
+            referencedRelation: "trainer_services"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "bookings_trainer_id_fkey"
+            columns: ["trainer_id"]
+            isOneToOne: false
+            referencedRelation: "trainers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       dogs: {
         Row: {
           breed: string | null
@@ -414,9 +495,14 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      _bookings_ends_at: {
+        Args: { p_duration_minutes: number; p_starts_at: string }
+        Returns: string
+      }
     }
     Enums: {
+      booking_status: "PENDING" | "CONFIRMED" | "COMPLETED" | "CANCELLED"
+      cancelled_by: "owner" | "trainer" | "system"
       session_type: "in_home" | "at_trainer_location" | "virtual"
       trainer_specialty:
         | "puppy"
@@ -567,6 +653,8 @@ export const Constants = {
   },
   public: {
     Enums: {
+      booking_status: ["PENDING", "CONFIRMED", "COMPLETED", "CANCELLED"],
+      cancelled_by: ["owner", "trainer", "system"],
       session_type: ["in_home", "at_trainer_location", "virtual"],
       trainer_specialty: [
         "puppy",
@@ -591,3 +679,4 @@ export const Constants = {
     },
   },
 } as const
+
