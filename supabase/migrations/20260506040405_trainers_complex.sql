@@ -29,6 +29,19 @@
 -- ============================================================================
 
 
+-- ============================================================================
+-- M3 §1: Extensions
+-- ============================================================================
+-- PostGIS provides the geography type used for service_point. Per project
+-- convention (lodged in M1 with pgcrypto, restated in M6 with btree_gist),
+-- extensions live in the migration where first needed.
+--
+-- with schema extensions: keeps the global namespace clean; references
+-- elsewhere use extensions.geography(...) explicitly.
+-- ============================================================================
+create extension if not exists postgis with schema extensions;
+
+
 -- ----------------------------------------------------------------------------
 -- 1. trainer_specialty enum (must exist before the assignments table)
 -- ----------------------------------------------------------------------------
