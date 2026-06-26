@@ -21,7 +21,7 @@ introduced in the M6 header:
 | H — §11 RLS policies | 9 | Owner/trainer SELECT/INSERT/UPDATE gates + SECURITY INVOKER finding | ✓ |
 | I — §12 dogs RLS | 5 | Trainer dog visibility via bookings (dog-level) + non-party UPDATE gate ordering (B-deferred) | ✓ |
 | J — §13 GRANTs | 4 | Grant layer in isolation; surfaced + verified the platform-default-ACL over-grant fix (REVOKE) | ✓ |
-| K — time-gate boundaries | 4-6 | Exact-second boundary on all four time gates | pending |
+| K — time-gate boundaries | 6 | Exact-second boundary on all four time gates (transaction-stable now()) | ✓ |
 
 (Category G — snapshot ⇔ status — is merged into E. The §7 CHECKs *are* the
 snapshot ⇔ status invariants, so splitting them would have been double-coverage.)
@@ -102,6 +102,7 @@ forgets to re-enable, `ROLLBACK` cleans it up regardless.
 | H | Two modes: silent RLS (SELECT `count(*)` / UPDATE `ROW_COUNT`) for USING filtering; `SQLSTATE='42501'` for WITH CHECK denial; `'23503'`/`'P0001'` where §9/§10 triggers pre-empt RLS (gate ordering) |
 | I | Silent RLS (SELECT `count(*)`, dog-level visibility / UPDATE `ROW_COUNT`); I5 additionally asserts no `'P0001'` 'not a party' fired (RLS USING hides the row before §10) |
 | J | `has_table_privilege(role, table, priv)` boolean assertions — grant layer in isolation (no rows, no JWT, no transaction) |
+| K | Exact-boundary: success path (row-state SELECT) for accept/inclusive cases; `SQLSTATE` + message (`23514`/`P0001`) for reject cases; transaction-stable `now()` makes the boundary deterministic |
 
 ### Acceptance criterion
 
@@ -148,5 +149,5 @@ supabase/tests/m6_bookings/
   category_h_rls_policies.sql        — 9 cases
   category_i_dogs_rls.sql            — 5 cases
   category_j_grants.sql              — 4 cases
-  category_k_*.sql                   — TODO (time-gate boundaries)
+  category_k_time_boundaries.sql     — 6 cases
 ```
