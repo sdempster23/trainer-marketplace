@@ -521,6 +521,21 @@ create policy "Trainers read dogs they have any booking for"
 -- ----------------------------------------------------------------------------
 grant select, insert, update on public.bookings to authenticated;
 
+-- Supabase's platform default (pg_default_acl) auto-grants ALL privileges to
+-- anon AND authenticated on every public-schema table. The GRANT above is
+-- therefore redundant for addition — those privileges already exist. Worse,
+-- anon and authenticated also hold DELETE/TRUNCATE/REFERENCES/TRIGGER that §13
+-- never intended. The REVOKEs below make the GRANT layer actually restrictive:
+-- anon gets nothing, authenticated gets exactly the three DML operations
+-- bookings needs. This restores the GRANT layer as a real second gate beneath
+-- RLS — without it, the four-layer defense-in-depth claim in the M6 header is
+-- false at the privilege layer (RLS would be the SOLE gate, and a disabled/
+-- misconfigured RLS policy would expose full CRUD to anon).
+revoke all on public.bookings from anon;
+revoke delete, truncate, references, trigger
+  on public.bookings from authenticated;
+-- authenticated retains exactly: select, insert, update
+
 
 -- ----------------------------------------------------------------------------
 -- 14. Column + table documentation
