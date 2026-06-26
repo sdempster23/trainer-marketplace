@@ -19,7 +19,7 @@ introduced in the M6 header:
 | E — CHECK constraints | 10 | §7 snapshot ⇔ status iff-CHECKs + §5 column bounds | ✓ |
 | F — immutability | 8 | §10a I1 immutable columns + stripe gate ordering | ✓ |
 | H — §11 RLS policies | 9 | Owner/trainer SELECT/INSERT/UPDATE gates + SECURITY INVOKER finding | ✓ |
-| I — §12 dogs RLS | 5 | Trainer dog visibility via bookings + non-party caller (deferred from B) | pending |
+| I — §12 dogs RLS | 5 | Trainer dog visibility via bookings (dog-level) + non-party UPDATE gate ordering (B-deferred) | ✓ |
 | J — §13 GRANTs | 3-4 | `authenticated` DML privileges + `anon` denial | pending |
 | K — time-gate boundaries | 4-6 | Exact-second boundary on all four time gates | pending |
 
@@ -100,6 +100,7 @@ forgets to re-enable, `ROLLBACK` cleans it up regardless.
 | E | `SQLSTATE='23514'` + `constraint_name=<specific named constraint>` |
 | F | `SQLSTATE='P0001'` + message substring `'<col> is immutable'` (empty `constraint_name`); F8 additionally traps `23505` as a gate-ordering regression |
 | H | Two modes: silent RLS (SELECT `count(*)` / UPDATE `ROW_COUNT`) for USING filtering; `SQLSTATE='42501'` for WITH CHECK denial; `'23503'`/`'P0001'` where §9/§10 triggers pre-empt RLS (gate ordering) |
+| I | Silent RLS (SELECT `count(*)`, dog-level visibility / UPDATE `ROW_COUNT`); I5 additionally asserts no `'P0001'` 'not a party' fired (RLS USING hides the row before §10) |
 
 ### Acceptance criterion
 
@@ -144,7 +145,7 @@ supabase/tests/m6_bookings/
   category_e_check_constraints.sql   — 10 cases
   category_f_immutability.sql        — 8 cases
   category_h_rls_policies.sql        — 9 cases
-  category_i_*.sql                   — TODO (dogs RLS)
+  category_i_dogs_rls.sql            — 5 cases
   category_j_*.sql                   — TODO (GRANTs)
   category_k_*.sql                   — TODO (time-gate boundaries)
 ```
