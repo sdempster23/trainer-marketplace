@@ -172,8 +172,92 @@ These findings are also captured as durable agent-memory for future sessions
 
 ### Forward items
 
-- **M7 — grant-hardening (immediate next migration).** Project-wide REVOKE
-  sweep of the permissive platform-default ACL on all existing public tables,
-  plus `ALTER DEFAULT PRIVILEGES` to stop future auto-grants, with its own
-  Category-J-style `has_table_privilege` test pass. Sequenced before
-  `message_threads`.
+- **M7 — grant-hardening sweep.** ✅ DONE — delivered by M7 (commits `410ec6a`
+  migration, `5d6a38c` tests). Project-wide REVOKE-then-GRANT of the permissive
+  platform-default ACL plus an `ALTER DEFAULT PRIVILEGES` forward-guard. See the
+  M7 entry below.
+
+---
+
+## M7 — grant-hardening sweep (commits `410ec6a` + `5d6a38c`)
+
+The project-wide generalization of M6's finding #4. The platform-default ACL
+(`pg_default_acl`, grantor postgres) auto-grants all 7 table privileges to both
+`anon` and `authenticated` on every public-schema table; M6 hardened `bookings`,
+M7 sweeps the rest and stops the recurrence.
+
+**Outcome:** policy-matched REVOKE-then-GRANT across the 9 remaining Phase-1
+tables, plus an `ALTER DEFAULT PRIVILEGES FOR ROLE postgres … REVOKE` forward-
+guard so future tables start from zero. A 3-check / 126-assertion test suite
+(`supabase/tests/m7_grant_hardening/`). Verified in a 75/75 full-suite run
+(M6's 72 + M7's 3) from a clean `db reset` — which also proved M7's tightened
+`authenticated` grants did not break M6's authenticated-path tests (H bookings,
+I dogs, K trainer-UPDATE). The full-suite-run gate caught the cross-migration
+interaction *before* commit, not after.
+
+### Pre-investigation findings (the "query reality" pass reshaped the migration)
+
+The memory note carried a "blanket revoke" sketch. A J-style catalog
+investigation before drafting reshaped it into a policy-matched sweep and
+surfaced three findings:
+
+**1. Scope was 9 tables, not the 4 the note sketched.** The note was a sketch,
+not an inventory — querying the catalog surfaced the full set (it had missed
+`trainer_availability`, `trainer_availability_exceptions`,
+`trainer_certifications`, `trainer_specialty_assignments`). *Lesson:* a
+memory-note scope is a starting hypothesis; verify the actual object inventory
+before acting.
+
+**2. anon SELECT is intentional on the 7 public-read tables (the production-break
+this caught).** The M1–M5 policies were written without a `TO` clause, so they
+default to `PUBLIC` (includes `anon`), with `USING` quals that don't depend on
+`auth.uid()` — that *is* the logged-out marketplace browse (M3's public-read
+RLS). A blanket revoke-all-from-anon would have broken it. So grants are matched
+to each table's actual RLS access model, not blanket-applied. *Lesson:*
+hardening ≠ product change — gating browse behind login is a separate policy
+decision, out of scope for a grant sweep.
+
+**3. REVOKE grantor must be verified or the REVOKE can silently no-op.** The
+migration role `postgres` is non-superuser here, and REVOKE only removes grants
+made by the current role (or a superuser). Confirmed grantor = `postgres` via
+catalog query *and* a dry REVOKE (dogs anon 7→0, rolled back) before relying on
+it. A postgres-run REVOKE against `supabase_admin`-granted privileges would
+silently no-op — the dangerous-direction failure (looks applied, isn't).
+*Lesson:* for REVOKE migrations, verify the grantor first.
+
+### Conventions established
+
+- **Policy-matched grants.** Derive each table's grant set from its actual RLS
+  policies (which roles, which operations), table by table. Never blanket-grant
+  or blanket-revoke across tables with differing access models.
+- **REVOKE-then-GRANT, explicit.** Every table REVOKEs all from
+  anon+authenticated, then GRANTs back exactly the intended set. With §2's
+  default-privilege baseline, future tables start from zero and must GRANT
+  explicitly — a forgotten grant fails loud (table-inaccessible) instead of
+  silently over-exposing.
+- **`ALTER DEFAULT PRIVILEGES` explicit `FOR ROLE`.** State `FOR ROLE postgres`
+  explicitly rather than relying on the `current_user` default — self-
+  documenting scope, robust to role context. Same principle as naming
+  constraints and documenting DEFINER.
+- **DELETE grant only where a hard-delete policy exists.** Verified against the
+  `deleted_at` column: soft-delete tables (dogs, profiles, trainer_services)
+  get no DELETE grant even where authenticated otherwise self-manages.
+- **zsh word-splitting in test-runner loops.** zsh does not word-split an
+  unquoted `$files`, so a newline-joined file list becomes one bad filename.
+  Glob directly in the `for`-loop (zsh-safe) rather than expanding an unquoted
+  variable. Same class of environment-gotcha as the `\echo` ASCII-only rule.
+
+### Persisted agent memory (cross-references)
+
+- `project-grant-revoke-sweep-next-migration` — **delivered by M7.** The
+  follow-on it flagged is now complete; M7 is the migration it described.
+- (M6's `project-security-invoker-trigger-rls`, `project-gate-ordering-paired-
+  tests`, `feedback-psql-echo-ascii-only` remain the standing conventions M7
+  built on.)
+
+### Forward items
+
+- **message_threads** — the in-app owner↔trainer messaging table (the work M7
+  was sequenced ahead of). It inherits the M7 baseline: the platform default no
+  longer auto-grants, so its migration must REVOKE-then-GRANT explicitly per the
+  convention above.
