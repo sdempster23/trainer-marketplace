@@ -257,7 +257,97 @@ silently no-op — the dangerous-direction failure (looks applied, isn't).
 
 ### Forward items
 
-- **message_threads** — the in-app owner↔trainer messaging table (the work M7
-  was sequenced ahead of). It inherits the M7 baseline: the platform default no
-  longer auto-grants, so its migration must REVOKE-then-GRANT explicitly per the
-  convention above.
+- **message_threads** — ✅ DONE, delivered by M8 (commits `e7c428a` migration,
+  `2353f1d` tests). It landed under the M7 baseline exactly as intended — the
+  first tables to auto-grant nothing, REVOKE-then-GRANT explicit. See the M8
+  entry below.
+
+---
+
+## M8 — `message_threads` + `messages` (commits `e7c428a` + `2353f1d`)
+
+Owner↔trainer in-app messaging: two tables, freestanding (any owner↔trainer
+pair, not booking-gated) with an optional booking association. The first
+feature table since bookings, and the first built under the M7 grant
+convention.
+
+**Outcome:** `message_threads` (participants-only, identity columns immutable)
++ `messages` (immutable append-only record). A 26-case suite, verified in a
+101-case full-chain run (M6's 72 + M7's 3 + M8's 26) proving composition across
+the complete M1→M8 schema.
+
+**Notable — the security thinking moved as early as it can go.** All four
+findings were caught in the *design conversation*, before any SQL was written.
+The trend across the phase: M6 surfaced its findings during test design, M7
+during pre-investigation catalog queries, M8 during design review itself. Each
+migration pushed the discovery point earlier.
+
+### Findings (all surfaced pre-draft)
+
+**1. (4b) sender forgery.** The initial "sender ∈ thread participants" design
+let a participant post a message attributed to the *other* party, corrupting
+the permanent record. Fixed: `sender_id = auth.uid()` (§6, INVOKER, no
+cross-table read). *Lesson:* for an append-only record, "is the actor a valid
+party" is weaker than "is the actor THIS actor" — author-as-self is the
+anti-forgery invariant.
+
+**2. (4c) owner-role validation is integrity, not access (the headline).** An
+INVOKER trigger would have silently forced owner-only thread initiation: a
+trainer cannot see the owner's profile under their own RLS, so the role-EXISTS
+would wrongly reject trainer-initiated threads. Made SECURITY DEFINER
+(search_path pinned empty, all refs schema-qualified, documented in COMMENT) so
+the integrity check sees true global state. C1 pins the contract empirically —
+a trainer creates a thread while the owner is provably invisible to them
+(`count=0`) — with a DEFINER-regression trap that fires if the function is ever
+flipped to INVOKER.
+
+**3. (4d) thread reassignment exposure.** `authenticated` UPDATE (needed for the
+updated_at bump) with a participation-only WITH CHECK let a participant
+`SET owner_id = another_owner`, stay a participant, and expose the *entire
+message history* to a stranger. Worse than 4b — it leaks an existing record,
+not just corrupts a new one. Fixed: §5 BEFORE UPDATE trigger freezes
+owner_id/trainer_id/booking_id/created_at; only updated_at may change. The M6
+§10a immutability pattern generalizing.
+
+**4. (4a) updated_at bump.** AFTER INSERT trigger on messages (INVOKER) bumps
+the parent thread; trigger graph confirmed acyclic.
+
+### Conventions established
+
+- **Integrity-vs-access trigger security context (the M8 headline).**
+  Integrity-validating triggers ("does this reference a valid X?") use SECURITY
+  DEFINER, documented in COMMENT ON FUNCTION with the reason + search-path
+  hardening. Access-gating logic uses INVOKER + RLS. M6 conflated these (its
+  INVOKER trigger did integrity + cross-tenant isolation as an incidental side
+  effect — it worked, but by accident); M8 separates them deliberately. A
+  DEFINER function MUST pin search_path empty and schema-qualify every reference
+  (prevents search-path hijacking of the elevated context).
+- **Author-as-self for append-only records.** Enforce `actor = auth.uid()`
+  rather than `actor ∈ valid-set` — forgery is impossible and no cross-table
+  read is needed.
+- **Column-immutability guard on participant-updatable rows.** When
+  `authenticated` holds UPDATE and the WITH CHECK only verifies participation,
+  freeze the identity columns with a BEFORE UPDATE trigger — or the row can be
+  reassigned out from under its data.
+- **Per-migration fixtures with shared UUID anchors can't co-load** if one's
+  teardown removes rows another depends on (M6's `service_b` hangs off a trainer
+  M8's teardown deletes). Run each suite against its own fresh reset;
+  composition is proven by the shared full schema, not a combined fixture load.
+  Same class of environment gotcha as the zsh word-splitting and `\echo`
+  ASCII-only rules.
+
+### Forward items
+
+- **Account deletion / profile erasure (Phase 13).** M8's `sender_id ON DELETE
+  RESTRICT` blocks deleting any profile that has sent a message; combined with
+  M6's R3 trainer-soft-delete note, erasure needs a deliberate design
+  (soft-delete + anonymize, or reassign authored messages to a tombstone
+  sender). Cross-references the same concern from two tables now.
+- **Read-state / unread counts** — deferred from M8 by design (a later
+  migration); message_threads.updated_at already supports thread-list ordering.
+- **Phase-1 schema status.** With messaging in, the Phase-1 data model
+  (identity, dogs, trainers, services/availability, stripe accounts, bookings,
+  grant-hardening, messaging) is approaching complete. Remaining Phase-1 work is
+  primarily application-layer (the Next.js surfaces over these tables) plus the
+  deferred read-state migration; confirm the build board for the next table, if
+  any, before starting M9.
