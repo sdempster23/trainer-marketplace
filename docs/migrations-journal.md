@@ -343,11 +343,75 @@ the parent thread; trigger graph confirmed acyclic.
   M6's R3 trainer-soft-delete note, erasure needs a deliberate design
   (soft-delete + anonymize, or reassign authored messages to a tombstone
   sender). Cross-references the same concern from two tables now.
-- **Read-state / unread counts** — deferred from M8 by design (a later
-  migration); message_threads.updated_at already supports thread-list ordering.
+- **Read-state / unread counts** — ✅ DELIVERED in M9 (below).
 - **Phase-1 schema status.** With messaging in, the Phase-1 data model
   (identity, dogs, trainers, services/availability, stripe accounts, bookings,
   grant-hardening, messaging) is approaching complete. Remaining Phase-1 work is
   primarily application-layer (the Next.js surfaces over these tables) plus the
   deferred read-state migration; confirm the build board for the next table, if
   any, before starting M9.
+
+
+## M9 — `message_threads` read-state (unread tracking)
+
+The "A" in the A-then-C plan: a small schema close-out finishing the messaging
+feature, before the pivot to the application layer. Adds per-participant
+last-read timestamps to `message_threads` — the lightweight approach (unread
+badges + per-thread unread counts, which is what the messaging UI renders), NOT
+per-message receipts (a future migration if ever needed).
+
+**Outcome:** two nullable columns (`owner_last_read_at`, `trainer_last_read_at`;
+NULL = never read) + an IN-PLACE amendment to the M8 §5 immutability trigger.
+Unread is computed at query time (`any message with created_at > my
+last_read_at`) — no stored counter to drift. No grant/RLS/index change (all
+verified, not assumed). A 9-case suite; the amendment re-verified by re-running
+M8's full 26-case suite unchanged (35 green total).
+
+**The whole migration is one amendment.** Like the M3 PostGIS edit, M9
+deliberately edits prior-migration work: `message_threads_validate_update()`
+gains the read-state authorship rule in the same BEFORE UPDATE function that
+holds the M8 identity freeze. No new trigger, no new policy, no new grant.
+
+### Findings / decisions (all surfaced in pre-investigation)
+
+**1. Denylist semantics make the amendment safe by construction.** The M8
+trigger *rejects* four named identity columns and permits everything else by
+omission — that is why `updated_at` was always allowed. The two new columns are
+therefore permitted with zero new "allow" logic; the amendment only ADDS reject
+clauses (author-as-self), leaving the four identity-freeze checks byte-for-byte
+untouched. The 4d thread-hijack guard is preserved without being retested by
+M9 — M8 category D now runs against the amended function and is that guard.
+
+**2. Author-as-self MUST be a trigger, not RLS (the load-bearing structural
+fact).** A participant may write only their OWN last_read column. RLS `WITH
+CHECK` sees only the NEW row, never OLD, so it cannot detect that
+`trainer_last_read_at` *changed* — the OLD-vs-NEW comparison is a trigger's job.
+This is the read-state analog of M8's `sender_id = auth.uid()` anti-forgery
+rule; without it a participant could mark the OTHER party's messages read.
+
+**3. Gate ordering — freeze above author-as-self.** The freeze checks run first,
+so by the time the author clauses evaluate, `OLD.owner_id`/`OLD.trainer_id` are
+proven to equal NEW and are trustworthy as the true participant identities. A
+combined `owner_id`-change + wrong-`last_read` UPDATE is rejected by the freeze,
+not the author clause (A6 asserts this ordering and fails if it inverts).
+
+**4. Marking-as-read does NOT bump updated_at.** `updated_at` is "last activity"
+for thread-list ordering; reading is not activity and must not reorder the list.
+The denylist trigger allows `updated_at` to change but never requires it, so a
+read that touches only `*_last_read_at` leaves ordering intact (B1). The M8 §7
+message-insert bump still composes with the amended trigger (B2).
+
+### Error taxonomy pinned
+
+Author-as-self raises **P0001** (trigger business rule), matching the identity
+freeze it sits beside — deliberately NOT **42501**, which is reserved for
+grant/RLS privilege denial (M8 category F). The outsider case is neither: RLS
+`USING` makes the row invisible, so an outsider's mark-as-read is a silent
+0-row no-op (C1). Three distinct rejection signatures, one per layer.
+
+### Forward items
+
+- **Regenerate `types/supabase.ts`.** Stale since before M8 (it predates
+  `message_threads` entirely) — this schema-only phase doesn't regenerate types
+  per migration. Regenerate at the start of the application layer (the "C"
+  step), which sweeps in M8 + M9 together.
