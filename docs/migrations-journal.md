@@ -415,3 +415,111 @@ grant/RLS privilege denial (M8 category F). The outsider case is neither: RLS
   `message_threads` entirely) — this schema-only phase doesn't regenerate types
   per migration. Regenerate at the start of the application layer (the "C"
   step), which sweeps in M8 + M9 together.
+  *(Resolved before M10: the app-layer PR #12 regenerated types through M9.
+  M10's RPC makes them stale again — regenerate during the directory build.)*
+
+---
+
+## M10 — `nearby_trainers` RPC + function-grant hardening
+
+The project's first **function-as-API**: `nearby_trainers(search_lat,
+search_lng, radius_miles)` — the trainer directory's proximity search
+("trainers within X miles of a point, nearest first"). SQL, STABLE, SECURITY
+INVOKER, `search_path` pinned empty with every PostGIS reference
+schema-qualified (`extensions.*`), wide return (directory-card fields +
+specialties array + lat/lng doubles + `distance_meters`).
+
+**Why an RPC at all:** PostgREST's filter grammar has no PostGIS operators —
+proven empirically with a curl against `/rest/v1/trainers` using an
+`st_dwithin`-shaped filter, which fails to parse (`PGRST100`). Proximity math
+must live in a database function exposed at `/rest/v1/rpc/nearby_trainers`.
+
+**Outcome:** a 19-case suite (categories A–E), verified green from a clean
+`db reset`, followed by the FULL M6–M9 suites as regression (72 + 3 + 26 + 9 =
+110) — **129/129 total**, across four clean resets that each re-proved the
+M1→M10 syntax gate.
+
+### Security model — access-gating → INVOKER (the M8 convention, applied)
+
+The function is pure access (reading rows on behalf of a caller), so it runs
+under the CALLER's RLS. The `profiles` INNER join (for `display_name`) carries
+soft-delete + trainer-role gating through RLS composition: a trainers row is
+only policy-visible when its profile is live, so the join cannot drop rows the
+caller could otherwise see. D1 proves the gate live — anon sees a trainer
+through the RPC, postgres soft-deletes its profile in-transaction, anon's next
+call excludes it while the table row provably still exists underneath. D1
+doubles as the DEFINER-regression trap: postgres owns both tables, so a
+DEFINER flip would bypass RLS inside the body and leak the soft-deleted row.
+D2 pins the catalog (`prosecdef=false`, `provolatile='s'`, empty search_path).
+
+### Wide return, deliberately
+
+Thin `(id, distance)` would force a second PostgREST query whose `id=in.(…)`
+results come back unordered — client re-sort plus N+1 specialty stitching. The
+hybrid ("thin + resource embedding") is *impossible*: PostgREST embeds only on
+functions returning `SETOF <table>`, and the computed distance column forces
+`RETURNS TABLE(...)`. INVOKER makes wide RLS-safe by construction — every
+joined table is read under the caller's own policies, so the function can
+never return a field the caller couldn't SELECT directly. Accepted cost:
+`RETURNS TABLE` cannot be reshaped by `CREATE OR REPLACE`; adding fields later
+(pricing, ratings) is a DROP+CREATE in a future migration.
+
+### Empirical findings (both caught before or by the first apply)
+
+**1. Functions are born PUBLIC-executable, and per-schema default-privilege
+entries CANNOT mask that.** Unlike tables, functions carry a built-in
+EXECUTE-to-PUBLIC grant. Per-schema `ALTER DEFAULT PRIVILEGES` entries compose
+*additively* with the global defaults — a per-schema REVOKE only undoes
+per-schema GRANTs; only the **global (schema-less) form** overrides the
+built-in default. §3's first draft used the per-schema form alone (mirroring
+M7) and was **half-taken**: the platform ACL's explicit anon/authenticated
+auto-grants were stripped, but new functions still arrived with `=X` (PUBLIC),
+which anon/authenticated inherit. Caught by test E3 on the first apply — 
+15 other cases were already green. This is precisely why M7's per-schema-only
+TABLE guard was clean (tables have no built-in PUBLIC default) while the same
+shape failed for functions. Fix: the global + per-schema pair, both kept,
+gotcha documented in the migration.
+
+**2. GENERATED-column/EXCLUDE evaluation checks the DML caller's EXECUTE;
+trigger firing does not.** Two rolled-back pre-draft probes: (a) an
+authenticated INSERT into a probe table failed with `permission denied for
+function` when the GENERATED-column/EXCLUDE function had its EXECUTE revoked —
+so a blind sweep of `_bookings_ends_at` would have broken every authenticated
+bookings INSERT/UPDATE; (b) the same INSERT through a BEFORE trigger whose
+function had ZERO grants succeeded — trigger EXECUTE is checked against the
+trigger creator at `CREATE TRIGGER` time, never the DML caller. Hence §4's
+shape: the 8 RETURNS-trigger functions swept bare (inert grants, hygiene);
+`_bookings_ends_at` policy-matched (authenticated keeps EXECUTE — it IS the
+bookings DML audience). Proven at scale by the full M6–M9 regression
+post-apply (M6's H/I/K exercise real bookings DML through both mechanisms).
+
+### Conventions established
+
+- **Function grants are explicit from M10** — M7's REVOKE-then-GRANT extended
+  to functions. Every future function carries its own explicit EXECUTE block;
+  the §3 forward guard (global + per-schema default-privilege pair) makes a
+  forgotten grant fail loud (uncallable by API roles) instead of silently
+  PUBLIC-callable. Existing functions swept in-band (§4), so the convention
+  holds with no asterisk.
+- **Specialties return in enum-declaration order** — the project-wide
+  canonical order. The app's SPECIALTIES const derives from the enum in
+  declaration order and the onboarding form displays in it; directory cards
+  must match the form. (`array_agg(order by specialty)` on an enum sorts by
+  ordinal — the first test draft wrongly expected alphabetical; the migration
+  was right, the test was fixed.)
+- **Boundary tests on float geodesics use a ± band, not exact equality.**
+  ST_DWithin and ST_Distance take different code paths, so the M6
+  transaction-stable-`now()` trick has no float analog; B5 pins inclusive `<=`
+  at D ± 0.5 m.
+
+### Forward items
+
+- **Regenerate `types/supabase.ts`** during the directory build — picks up the
+  RPC under `Functions` (typed `supabase.rpc('nearby_trainers', …)`).
+- **The listable floor stays app-level** (e.g. `display_name is not null`) —
+  supabase-js can chain filters on `rpc()` results; verify that chaining
+  empirically when the directory surface is built.
+- **Directory data gaps** (from the pre-build investigation): nothing
+  populates `profiles.display_name` (owner: the onboarding display_name step),
+  `trainer_services` / pricing has no write surface, and the dev DB needs the
+  trainer-population seed. All queued in the directory build plan, after M10.
