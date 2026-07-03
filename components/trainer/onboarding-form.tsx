@@ -16,10 +16,10 @@ import {
 } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { DISPLAY_NAME_MAX_LENGTH } from "@/lib/validators/profile";
 import {
   BIO_MAX_LENGTH,
   DEFAULT_TIMEZONE,
-  DISPLAY_NAME_MAX_LENGTH,
   SERVICE_RADIUS_MILES,
   SPECIALTIES,
   SPECIALTY_LABELS,

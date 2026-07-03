@@ -1,5 +1,6 @@
 import { z } from "zod";
 
+import { displayNameSchema } from "@/lib/validators/profile";
 import { Constants } from "@/types/supabase";
 
 /**
@@ -20,11 +21,8 @@ export type Specialty = (typeof SPECIALTIES)[number];
 export const BIO_MIN_LENGTH = 20;
 export const BIO_MAX_LENGTH = 2000;
 
-/** Display-name bounds — the directory card's headline. Floor of 2 rejects
- * single-character noise; cap defends the unbounded `profiles.display_name`
- * text column (no DB CHECK), same discipline as the bio bounds. */
-export const DISPLAY_NAME_MIN_LENGTH = 2;
-export const DISPLAY_NAME_MAX_LENGTH = 80;
+// Display-name bounds + schema now live in ./profile (role-universal since
+// the /account name section); onboardingSchema composes displayNameSchema.
 
 /**
  * The 7 US IANA timezones offered at onboarding. `timezone` interprets the
@@ -75,14 +73,7 @@ export const DEFAULT_DIRECTORY_RADIUS: DirectoryRadiusMiles = 25;
  * access to the lookup table.
  */
 export const onboardingSchema = z.object({
-  displayName: z
-    .string()
-    .trim()
-    .min(DISPLAY_NAME_MIN_LENGTH, "Enter the name owners should see.")
-    .max(
-      DISPLAY_NAME_MAX_LENGTH,
-      `Keep your name under ${DISPLAY_NAME_MAX_LENGTH} characters.`,
-    ),
+  displayName: displayNameSchema,
   bio: z
     .string()
     .trim()

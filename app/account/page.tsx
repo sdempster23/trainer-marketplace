@@ -2,6 +2,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 
 import { signOut } from "@/app/(auth)/actions";
+import { DisplayNameEditor } from "@/components/account/display-name-editor";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -11,6 +12,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { createClient } from "@/lib/supabase/server";
+import { getActiveDogs } from "@/lib/owner/dogs";
 import {
   getOnboardingState,
   type OnboardingState,
@@ -102,11 +104,22 @@ export default async function AccountPage() {
     );
   }
 
-  // Trainers get a contextual onboarding CTA; owners see none of this. Computed
-  // only for trainers, so an owner never pays for the extra queries.
+  // /account is the role-forked hub — the fork, kept legible: trainers get
+  // the onboarding-state CTA, owners get the dogs CTA, each computed ONLY for
+  // its role so neither pays for the other's queries. The name section below
+  // is the role-universal part.
   const trainerCta =
     profile.role === "trainer"
       ? TRAINER_CTA[await getOnboardingState(supabase, claims.sub)]
+      : null;
+
+  // Dog count via getActiveDogs (not a bare head-count query): the count must
+  // respect the same deleted_at view spec as every dogs read, and the helper
+  // is the single place that rule lives — a separate count query would be a
+  // second, forgettable query site.
+  const ownerDogs =
+    profile.role === "owner"
+      ? (await getActiveDogs(supabase, claims.sub)).dogs
       : null;
 
   return (
@@ -126,6 +139,26 @@ export default async function AccountPage() {
           </Card>
         ) : null}
 
+        {ownerDogs !== null ? (
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-xl">Your dogs</CardTitle>
+              <CardDescription>
+                {ownerDogs.length === 0
+                  ? "Add your dog's profile to get ready for booking."
+                  : `${ownerDogs.length} ${ownerDogs.length === 1 ? "dog" : "dogs"} on your profile.`}
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <Button asChild className="w-full">
+                <Link href="/owner/dogs">
+                  {ownerDogs.length === 0 ? "Add your dog" : "Manage dogs"}
+                </Link>
+              </Button>
+            </CardContent>
+          </Card>
+        ) : null}
+
         <Card>
           <CardHeader>
             <CardTitle className="text-2xl">You&apos;re signed in</CardTitle>
@@ -135,6 +168,8 @@ export default async function AccountPage() {
             </CardDescription>
           </CardHeader>
           <CardContent className="flex flex-col gap-4">
+            <DisplayNameEditor displayName={profile.display_name} />
+
             <dl className="grid grid-cols-[auto_1fr] gap-x-4 gap-y-2 text-sm">
               <dt className="text-muted-foreground">Role</dt>
               <dd className="font-medium capitalize">{profile.role}</dd>
