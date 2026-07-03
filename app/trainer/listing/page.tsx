@@ -38,7 +38,7 @@ export default async function TrainerListingPage() {
 
   const { data: profile } = await supabase
     .from("profiles")
-    .select("role")
+    .select("role, display_name")
     .eq("id", claims.sub)
     .maybeSingle();
   if (profile?.role !== "trainer") {
@@ -74,6 +74,17 @@ export default async function TrainerListingPage() {
           </CardDescription>
         </CardHeader>
         <CardContent className="flex flex-col gap-6">
+          {/* Listed name — falls back visibly rather than rendering an empty
+              headline, so a pre-name account notices and re-onboards. */}
+          <div className="grid gap-1">
+            <span className="text-muted-foreground text-xs font-medium">
+              Listed as
+            </span>
+            <p className="text-sm font-medium">
+              {profile.display_name ?? "No name yet — edit your listing to add one"}
+            </p>
+          </div>
+
           <div className="grid gap-1">
             <span className="text-muted-foreground text-xs font-medium">About</span>
             <p className="text-sm whitespace-pre-line">{trainer.bio}</p>

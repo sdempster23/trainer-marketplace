@@ -19,6 +19,7 @@ import { Label } from "@/components/ui/label";
 import {
   BIO_MAX_LENGTH,
   DEFAULT_TIMEZONE,
+  DISPLAY_NAME_MAX_LENGTH,
   SERVICE_RADIUS_MILES,
   SPECIALTIES,
   SPECIALTY_LABELS,
@@ -46,6 +47,18 @@ export function OnboardingForm() {
         </CardHeader>
         <CardContent>
           <form action={formAction} className="flex flex-col gap-6">
+            {/* Display name — the directory card's headline */}
+            <div className="grid gap-2">
+              <Label htmlFor="displayName">Your name</Label>
+              <Input
+                id="displayName"
+                name="displayName"
+                required
+                maxLength={DISPLAY_NAME_MAX_LENGTH}
+                placeholder="How owners should see you, e.g. Dana Cortez"
+              />
+            </div>
+
             {/* Bio */}
             <div className="grid gap-2">
               <Label htmlFor="bio">About you</Label>

@@ -20,6 +20,12 @@ export type Specialty = (typeof SPECIALTIES)[number];
 export const BIO_MIN_LENGTH = 20;
 export const BIO_MAX_LENGTH = 2000;
 
+/** Display-name bounds — the directory card's headline. Floor of 2 rejects
+ * single-character noise; cap defends the unbounded `profiles.display_name`
+ * text column (no DB CHECK), same discipline as the bio bounds. */
+export const DISPLAY_NAME_MIN_LENGTH = 2;
+export const DISPLAY_NAME_MAX_LENGTH = 80;
+
 /**
  * The 7 US IANA timezones offered at onboarding. `timezone` interprets the
  * trainer's availability hours, so a wrong zone breaks booking times — hence a
@@ -51,6 +57,14 @@ export type ServiceRadiusMiles = (typeof SERVICE_RADIUS_MILES)[number];
  * access to the lookup table.
  */
 export const onboardingSchema = z.object({
+  displayName: z
+    .string()
+    .trim()
+    .min(DISPLAY_NAME_MIN_LENGTH, "Enter the name owners should see.")
+    .max(
+      DISPLAY_NAME_MAX_LENGTH,
+      `Keep your name under ${DISPLAY_NAME_MAX_LENGTH} characters.`,
+    ),
   bio: z
     .string()
     .trim()

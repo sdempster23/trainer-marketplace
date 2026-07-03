@@ -75,12 +75,22 @@ middleware default.
 ## Environment / database
 
 - **Hosted dev Supabase project** (`trainer-marketplace-dev`, ref
-  `iomaiasjqozunjbvsdsk`) is at **migration M9** — the full M1→M9 schema was
+  `iomaiasjqozunjbvsdsk`) is at **migration M10** — the full M1→M10 schema was
   pushed (`supabase db push`) so the deployed app has every table the code
   expects (identity, dogs, trainers, services/availability, stripe accounts,
-  bookings, messaging + read-state). Anyone pointing the app at hosted dev has a
-  complete, grant-hardened schema.
-- `.env.local` targets the hosted dev project (`NEXT_PUBLIC_SUPABASE_URL` +
-  `NEXT_PUBLIC_SUPABASE_ANON_KEY`). For a fully local stack instead, run
-  `supabase start` and swap in the local URL/anon key (commented hints in
-  `.env.local`).
+  bookings, messaging + read-state, the nearby_trainers RPC). Anyone pointing
+  the app at hosted dev has a complete, grant-hardened schema.
+- **Local dev runs against the LOCAL stack by default** (decided 2026-07-02).
+  `.env.local` points `NEXT_PUBLIC_SUPABASE_URL` / anon key / service-role key
+  at `supabase start`'s stack; the hosted values live in `.env.local` as
+  labeled comments and in **Vercel env settings** (Preview + Production), which
+  is the only place deployments read them from. Why: pointing `pnpm dev` at
+  hosted makes every local manual test write real rows to the shared hosted
+  project — and hosted GoTrue's default SMTP cap (2 emails/hour) rate-limits
+  signup testing almost immediately. Discovered during the Group-C live proof.
+- **If you ever need local-against-hosted** (rare — e.g. reproducing a
+  hosted-only bug), do it with an explicit shell override and say why in the
+  session/PR notes, e.g.:
+  `NEXT_PUBLIC_SUPABASE_URL=https://iomaiasjqozunjbvsdsk.supabase.co NEXT_PUBLIC_SUPABASE_ANON_KEY=<hosted-anon-key> pnpm dev`
+  — never by editing `.env.local` back. The override dies with the shell; an
+  edit silently persists for every future session.
