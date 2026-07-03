@@ -42,8 +42,16 @@ begin;
   declare v_owner_visible int; v_thread uuid; v_count int; v_sqlstate text; v_message text;
   begin
     -- Precondition: under trainer_a's RLS the owner's profile is NOT visible.
+    -- REPOINTED AT owner_c WITH M11 (20260703160000): the counterparty policy
+    -- makes BOOKED owners visible to their trainers by design, so owner_a
+    -- (who shares the fixture booking with trainer_a) no longer demonstrates
+    -- the INVOKER-would-fail premise. owner_c has NO booking with trainer_a —
+    -- still invisible — so the DEFINER contract stays provable, and this case
+    -- now also documents the M11 visibility boundary: with-booking pairs are
+    -- policy-visible, without-booking pairs are not, and threads (which are
+    -- freestanding, not booking-gated) must work for BOTH.
     select count(*) into v_owner_visible from public.profiles
-      where id = '11111111-1111-1111-1111-111111111111' and role = 'owner';
+      where id = '88888888-8888-8888-8888-888888888888' and role = 'owner';
     if v_owner_visible <> 0 then
       raise exception 'C1 PREMISE BROKEN: trainer can see owner profile (count=%) — the INVOKER-would-fail premise no longer holds', v_owner_visible;
     end if;
@@ -51,7 +59,7 @@ begin;
     -- The INSERT: succeeds only under DEFINER (global state).
     begin
       insert into public.message_threads (owner_id, trainer_id)
-        values ('11111111-1111-1111-1111-111111111111','22222222-2222-2222-2222-222222222222')
+        values ('88888888-8888-8888-8888-888888888888','22222222-2222-2222-2222-222222222222')
         returning id into v_thread;
     exception when others then
       get stacked diagnostics v_sqlstate = returned_sqlstate, v_message = message_text;

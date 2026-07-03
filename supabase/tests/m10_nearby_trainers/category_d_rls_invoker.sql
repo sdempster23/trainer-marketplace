@@ -85,7 +85,8 @@ begin;
            (select cfg from unnest(p.proconfig) cfg where cfg like 'search_path=%')
       into v_secdef, v_vol, v_sp
       from pg_proc p
-      where p.oid = 'public.nearby_trainers(double precision, double precision, double precision)'::regprocedure;
+      -- M11 §4: 5-arg signature (the 3-arg cast would ERROR post-M11, not fail).
+      where p.oid = 'public.nearby_trainers(double precision, double precision, double precision, integer, integer)'::regprocedure;
 
     if v_secdef = false and v_vol = 's'
        and v_sp in ('search_path=', 'search_path=""') then
