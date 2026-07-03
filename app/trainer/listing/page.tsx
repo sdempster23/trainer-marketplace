@@ -11,13 +11,12 @@ import {
 } from "@/components/ui/card";
 import { createClient } from "@/lib/supabase/server";
 import {
+  METERS_PER_MILE,
   SPECIALTY_LABELS,
   TIMEZONE_LABELS,
   type Specialty,
   type TrainerTimezone,
 } from "@/lib/validators/trainer";
-
-const METERS_PER_MILE = 1609.344;
 
 /**
  * Post-onboarding landing — confirms what's PERSISTED (Flag C: no city/state,

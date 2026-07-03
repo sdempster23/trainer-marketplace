@@ -593,6 +593,21 @@ export type Database = {
         Args: { p_duration_minutes: number; p_starts_at: string }
         Returns: string
       }
+      nearby_trainers: {
+        Args: { radius_miles: number; search_lat: number; search_lng: number }
+        Returns: {
+          bio: string
+          display_name: string
+          distance_meters: number
+          id: string
+          lat: number
+          lng: number
+          service_radius_meters: number
+          specialties: Database["public"]["Enums"]["trainer_specialty"][]
+          timezone: string
+          years_experience: number
+        }[]
+      }
     }
     Enums: {
       booking_status: "PENDING" | "CONFIRMED" | "COMPLETED" | "CANCELLED"
