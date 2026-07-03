@@ -582,7 +582,14 @@ self-scoping. A correction to convention, not a workaround.
 SECURITY DEFINER helper INSIDE the policy — probed live, it bypassed the
 planner's 42P17 guard into runtime recursion and the backend died with
 **SIGSEGV**. Postgres cannot even fail that construction safely;
-DEFINER-inside-policy is never the remedy. (A DEFINER RPC called directly
+DEFINER-inside-policy is never the remedy.
+*[M12 annotation: the segfault itself is now attributed to a LOCAL-STACK
+bug, not to the construction — M10's own default-privileges guard made the
+in-transaction probe helper GRANTLESS, the evaluating role hit the
+permission-DENIED call path, and that path segfaults on this environment
+for ANY function (M12's T1–T5 isolation). Verdict unchanged: the 42P17
+recursion stands on its own and DEFINER-inside-policy stays rejected — but
+"cannot fail it safely" is environment-qualified, not a Postgres property.]* (A DEFINER RPC called directly
 — never inside policy expansion — remains a legitimate future shape, but
 was unnecessary once the real anomaly was corrected.)
 
@@ -620,3 +627,63 @@ encode world-state, later migrations and later seeds both move the world.
 - Hosted push pending (M11 is local-only until the push decision).
 - Phase 8 attaches real payment intents via the system path §1 built for
   it; whether the column returns to NOT NULL afterward is a Phase-8 call.
+
+---
+
+## M12 — `trainer_busy_ranges` (the slot picker's busy-times read)
+
+One function: the booking flow's missing read. Bookings RLS is parties-only,
+so a slot picker fed from owner-visible rows offers taken slots at any
+trainer with a second client. `trainer_busy_ranges(t_id)` returns future
+`(starts_at, ends_at)` for a trainer's PENDING/CONFIRMED bookings — ranges
+only: no ids, no parties, no status detail, future-bounded in-body (an
+in-progress session still appears; its tail still blocks).
+
+**Outcome:** 6/6 M12 checks + the full M6–M11 regression (23+19+72+3+26+9)
+— **158/158**, no premise shifts (function-only migration).
+
+### The first deliberate DEFINER-as-API (the M8 convention's access-side exception)
+
+The M8 rule is integrity → DEFINER, access → INVOKER. This is access, but
+the ANSWER requires rows the caller must never see — "an aggregate answer
+over invisible rows," the integrity shape generalized. The alternative
+(INVOKER over a new narrow SELECT policy) was rejected on leak shape: a
+policy grants ROW visibility — even column-scoped, policy-visible rows are a
+queryable RELATION, and PostgREST would let anyone filter/aggregate a
+trainer's full booking history (volume curves, scrapeable analytics). The
+function grants ANSWER visibility: fixed question shape, fixed time window,
+strictly less. It also leaves the bookings policy graph untouched (the M11
+recursion lesson makes every new bookings policy an interaction surface).
+Posture: STABLE, pinned-empty search_path, COMMENT with the reason,
+**direct-RPC-only — never referenced inside a policy** (M11's rule), and
+M12-5 pins `prosecdef = TRUE` — the deliberate inversion of the M10-D2
+INVOKER pin, because an INVOKER flip would silently return zero ranges to
+every non-party. Grants: authenticated + service_role; **anon revoked as
+deliberate minimalism** (v1's picker lives behind the owner guard; widening
+later is a one-line ride-along — the reverse asymmetry of the wide-return
+trade).
+
+### Environment finding: the permission-denied call path segfaults locally
+
+Probing the suite's "anon denied" case crashed the local backend — and
+isolation (T1–T5, minimal repros) showed the real shape: on this local stack
+(supabase CLI v2.90 image, PG 17.6), **any function call by a role lacking
+EXECUTE segfaults** — committed or in-transaction, DEFINER or plain SQL,
+anon or authenticated; only the DENIED path crashes, the granted path is
+clean. Hosted is unaffected (M11's remote verification called functions
+live). Consequences: (1) the M11 finding-3 annotation above — the
+"DEFINER-inside-policy segfault" was this bug wearing a costume (the M10
+guard made the probe helper grantless); (2) **suites assert EXECUTE denial
+via `has_function_privilege` only, never a live denied call** — which is the
+right test anyway: the grant STATE is the thing under test, and the granted
+path is live-proven (M12-1); (3) the CLI upgrade (v2.90 → v2.109) is a
+deliberate POST-ARC item with the denial-path repro as its fixed-or-not
+test (recorded in the scratch backlog).
+
+### Forward items
+
+- Regenerate `types/supabase.ts` (M11's 5-arg RPC + M12 together) at the
+  booking-flow build's start — next group.
+- Hosted push pending the standard decision.
+- If a logged-out picker preview ever ships, the anon grant is the one-line
+  ride-along noted in the migration.
