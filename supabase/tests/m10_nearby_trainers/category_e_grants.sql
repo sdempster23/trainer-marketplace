@@ -36,7 +36,9 @@
 \echo === E1: nearby_trainers EXECUTE = {anon, authenticated, service_role}, no PUBLIC ===
 do $$
 declare
-  v_sig constant text := 'public.nearby_trainers(double precision, double precision, double precision)';
+  -- M11 (20260703160000_booking_enablers §4) added pagination params via
+  -- DROP+CREATE — the signature is now 5-arg. Updated with M11.
+  v_sig constant text := 'public.nearby_trainers(double precision, double precision, double precision, integer, integer)';
   v_public_grant boolean;
 begin
   select exists (
@@ -89,16 +91,20 @@ begin
     end if;
   end loop;
 
+  -- M11 §3 made the service_role grant DELIBERATE (the M10 hosted-drift
+  -- remedy) — asserted positively here since then; before M11 it passed
+  -- locally only via a platform-default artifact.
   if has_function_privilege('anon', v_ends_at, 'execute')
      or not has_function_privilege('authenticated', v_ends_at, 'execute')
+     or not has_function_privilege('service_role', v_ends_at, 'execute')
      or exists (select 1 from unnest((select proacl from pg_proc where oid = v_ends_at::regprocedure)) a
                 where a::text like '=X/%') then
-    raise warning 'E2 MISMATCH | _bookings_ends_at not policy-matched (want: authenticated only)';
+    raise warning 'E2 MISMATCH | _bookings_ends_at not policy-matched (want: authenticated + service_role)';
     fails := fails + 1;
   end if;
 
   if fails = 0 then
-    raise notice 'E2 PASS | 8 trigger functions swept bare; _bookings_ends_at = authenticated only';
+    raise notice 'E2 PASS | 8 trigger functions swept bare; _bookings_ends_at = authenticated + service_role (M11)';
   else
     raise exception 'E2 FAIL | % function(s) off-matrix (see warnings)', fails;
   end if;
@@ -146,8 +152,9 @@ do $$
 begin
   if has_function_privilege('service_role',
        'public._bookings_ends_at(timestamp with time zone, integer)', 'execute')
+     -- M11 §4: signature updated (pagination params, DROP+CREATE).
      and has_function_privilege('service_role',
-       'public.nearby_trainers(double precision, double precision, double precision)', 'execute') then
+       'public.nearby_trainers(double precision, double precision, double precision, integer, integer)', 'execute') then
     raise notice 'E4 PASS | service_role EXECUTE intact on _bookings_ends_at and nearby_trainers';
   else
     raise exception 'E4 FAIL: service_role lost EXECUTE — over-revoke (server-side bookings writes would break)';

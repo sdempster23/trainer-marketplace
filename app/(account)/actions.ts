@@ -34,7 +34,8 @@ export async function updateDisplayName(
 
   // Auth only — deliberately NO role check: every authenticated user owns a
   // profiles row and may name themselves. RLS scopes the write to their own
-  // row (auth.uid() = id; the WITH CHECK role-freeze holds regardless).
+  // row (auth.uid() = id); the role freeze is a BEFORE UPDATE trigger since
+  // M11 (the WITH CHECK self-subquery was a policy-recursion partner).
   const supabase = await createClient();
   const { data: claimsData } = await supabase.auth.getClaims();
   const userId = claimsData?.claims?.sub;

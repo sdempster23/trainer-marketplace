@@ -27,6 +27,17 @@
 
 \set QUIET on
 
+-- SEED TEARDOWN (added with M11): the dev seed (PR #16, which POSTDATES this
+-- suite) loads 12 trainers on every db reset — a Nashville cluster that
+-- contaminates this fixture's Nashville-anchored expected sets (the seed's
+-- downtown trainer ties t_downtown at 0 m). The suite runs against its own
+-- fresh reset, so removing the seed rows here is safe; the next reset
+-- restores them.
+delete from public.trainer_specialty_assignments where trainer_id::text like '5eed00%';
+delete from public.trainer_services where trainer_id::text like '5eed00%';
+delete from public.trainers where id::text like '5eed00%';
+delete from auth.users where id::text like '5eed00%';
+
 -- Tear down (children before parents).
 delete from public.trainer_specialty_assignments where trainer_id in (
   'a1111111-1111-1111-1111-111111111111','a2222222-2222-2222-2222-222222222222',

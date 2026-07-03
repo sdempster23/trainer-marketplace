@@ -88,7 +88,8 @@ export async function completeOnboarding(
   // can never produce a listed-but-nameless trainer. The inverse failure
   // (named-but-unlisted) is invisible to owners and self-heals on retry, same
   // as the write-1/write-2 upsert path. RLS scopes this to the caller's own
-  // row (auth.uid() = id), and the M9-era WITH CHECK freezes role.
+  // row (auth.uid() = id); role is frozen by the M11 BEFORE UPDATE trigger
+  // (formerly a WITH CHECK self-subquery — see the M11 journal entry).
   let writeError: string | null = null;
   try {
     const { error } = await supabase

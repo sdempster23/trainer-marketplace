@@ -523,3 +523,100 @@ post-apply (M6's H/I/K exercise real bookings DML through both mechanisms).
   populates `profiles.display_name` (owner: the onboarding display_name step),
   `trainer_services` / pricing has no write surface, and the dev DB needs the
   trainer-population seed. All queued in the directory build plan, after M10.
+
+---
+
+## M11 — booking enablers (nullable payment intent, counterparty read, pagination, grant parity)
+
+The Arc-C migration: four backlog items, every one carried in the scratch
+investigations since its discovery, probed against the live DB before
+drafting (P1–P4: trigger text verbatim, the dogs policy verbatim, the
+circularity probe, NULLS-DISTINCT + DROP/CREATE confirmation).
+
+**Outcome:** §1 `stripe_payment_intent_id` nullable + a one-shot,
+SYSTEM-PATH-ONLY NULL→value attach spliced in place into the §10 trigger
+(M9 precedent — the amendment was spliced into a `pg_get_functiondef` dump,
+not retyped); §2 the counterparty profile read (`TO authenticated`, the
+dogs-policy mirror) plus the trigger-ization of the profiles role freeze;
+§3 deliberate service_role EXECUTE on `_bookings_ends_at`; §4
+`nearby_trainers` pagination params via DROP+CREATE with full grant
+re-issue (clamped 1..100 / ≥0 in-body — it is a public anon-callable API).
+Verified **152/152**: the new 23-case M11 suite, the amended 19-case M10
+suite, and the full M6–M9 regression (72+3+26+9), each from its own fresh
+reset.
+
+### Findings (four — a record for one migration)
+
+**1. The squat scenario (§1's actor scoping).** The spec said "permit
+NULL→value once"; the draft added "…and only via the system path" after
+walking the failure: the parties hold UPDATE on their booking, so an owner
+could write a garbage value into the payment-intent column pre-Phase-8 —
+and immutable-once-set would then PROTECT the squat, permanently blocking
+the real payment attach. Immutability guarantees are only as good as the
+rules about who may perform the one permitted write. A6 pins the rejection.
+
+**2. A policy mirror without its GRANT-CONTEXT mirror is not a mirror.**
+§2's first draft copied the M6 dogs-policy structure without a `TO` clause
+(defaulting to PUBLIC, M7's old lesson). Tests B4/D1 caught it: profiles
+SELECT policies are OR'd, so anon evaluated the new qual — which reads
+bookings, where anon holds ZERO grants — and every logged-out profiles
+read (the entire public directory) died with "permission denied for table
+bookings". The dogs original never detonates only because dogs has no anon
+SELECT at all: same policy shape, different grant context, opposite
+outcome. Fixed with `TO authenticated`; B6 pins the anon directory read
+with a booking present as the standing trap.
+
+**3. The recursion pair — and the remedy that segfaulted.** With the
+counterparty policy in place, EVERY authenticated profiles UPDATE raised
+42P17 "infinite recursion detected". The recursion partner was the old
+UPDATE policy's WITH CHECK role-freeze SELF-SUBQUERY
+(`role = (select role from profiles …)`) — a policy on profiles
+subquerying profiles, tolerated until a second table-subquerying SELECT
+policy joined the expansion. M9's own recorded lesson already said
+OLD-vs-NEW enforcement is a TRIGGER's job; the freeze moved to a BEFORE
+UPDATE trigger (`profiles_validate_update`, swept bare per the M10
+function-grant convention, firing for every actor including system —
+deliberately stronger) and the WITH CHECK simplified to plain
+self-scoping. A correction to convention, not a workaround.
+**Considered and rejected:** wrapping the counterparty EXISTS in a
+SECURITY DEFINER helper INSIDE the policy — probed live, it bypassed the
+planner's 42P17 guard into runtime recursion and the backend died with
+**SIGSEGV**. Postgres cannot even fail that construction safely;
+DEFINER-inside-policy is never the remedy. (A DEFINER RPC called directly
+— never inside policy expansion — remains a legitimate future shape, but
+was unnecessary once the real anomaly was corrected.)
+
+**4. Visibility migrations shift older suites' PREMISES, not just
+assertions.** M8's C1 proves the thread trigger must be DEFINER by first
+demonstrating "the owner is invisible to the trainer" — using the fixture
+pair that shares a booking. M11 makes booked counterparties visible BY
+DESIGN, so the premise check (not the contract) broke. Repointed at a
+no-booking pair (owner_c): the DEFINER trap stays armed, and C1 now also
+documents the M11 boundary — with-booking pairs are policy-visible,
+without-booking pairs are not, and freestanding threads must work for
+both. Related: the M10 fixture predates the SEED (PR #16), whose Nashville
+cluster contaminated its expected sets on every post-#16 reset — the
+fixture now tears down `5eed%` rows at load. When a suite's premises
+encode world-state, later migrations and later seeds both move the world.
+
+### Conventions established / extended
+
+- **Actor-scope the exceptional write.** A "permitted once" transition
+  names WHO may perform it, or the permission is a squat vector.
+- **`TO authenticated` on any policy whose qual reads tables anon cannot.**
+  The PUBLIC default is only safe for quals evaluable by every role that
+  can reach the table.
+- **No self-subqueries in policies, ever** — OLD/NEW comparisons and
+  role checks against the policy's own table belong in triggers (M9's
+  lesson, now enforced by having removed the last violation).
+- **Signature changes are DROP+CREATE + full grant re-issue** (CREATE OR
+  REPLACE would overload; the M10 guard means new signatures are born
+  grantless). C3 pins "no overload left behind".
+
+### Forward items
+
+- Regenerate `types/supabase.ts` for the 5-arg RPC when the booking-flow
+  arc starts (the 3-arg call sites keep working via defaults).
+- Hosted push pending (M11 is local-only until the push decision).
+- Phase 8 attaches real payment intents via the system path §1 built for
+  it; whether the column returns to NOT NULL afterward is a Phase-8 call.
