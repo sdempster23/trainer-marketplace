@@ -1,3 +1,5 @@
+import Link from "next/link";
+
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   METERS_PER_MILE,
@@ -11,9 +13,12 @@ import {
  * produced it. `distanceMeters` is the one mode-specific field: present only
  * in proximity mode, where it renders the distance badge.
  *
- * Cards are TERMINAL this group — no link target. Trainer profile pages are a
- * later surface; when they exist, the card wraps in a Link and this comment
- * dies.
+ * Cards link to /trainers/[id] via the STRETCHED-LINK pattern: the anchor is
+ * the heading (so its accessible name is the trainer's name, not the whole
+ * card's text read out as one giant link label) and an ::after overlay makes
+ * the full card the hit target. Safe while the card contains no other
+ * interactive elements; revisit if it gains any (the overlay would shadow
+ * their clicks).
  */
 export type TrainerCardData = {
   id: string;
@@ -32,9 +37,16 @@ export function TrainerCard({ trainer }: { trainer: TrainerCardData }) {
       : null;
 
   return (
-    <Card>
+    <Card className="hover:border-primary/40 relative transition-colors">
       <CardHeader className="flex flex-row items-start justify-between gap-2">
-        <CardTitle className="text-lg">{trainer.displayName}</CardTitle>
+        <CardTitle className="text-lg">
+          <Link
+            href={`/trainers/${trainer.id}`}
+            className="after:absolute after:inset-0"
+          >
+            {trainer.displayName}
+          </Link>
+        </CardTitle>
         {trainer.distanceMeters !== undefined ? (
           <span className="bg-primary/10 text-primary inline-flex shrink-0 items-center rounded-full px-2.5 py-1 text-xs font-medium">
             {(trainer.distanceMeters / METERS_PER_MILE).toFixed(1)} mi away
