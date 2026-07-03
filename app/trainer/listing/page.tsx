@@ -152,6 +152,9 @@ export default async function TrainerListingPage() {
             <Link href="/trainer/services">Manage services</Link>
           </Button>
           <Button asChild variant="outline" className="w-full">
+            <Link href="/trainer/availability">Manage availability</Link>
+          </Button>
+          <Button asChild variant="outline" className="w-full">
             <Link href="/account">Back to account</Link>
           </Button>
         </CardContent>

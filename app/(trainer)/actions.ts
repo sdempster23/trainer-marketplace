@@ -5,7 +5,15 @@ import { redirect } from "next/navigation";
 import { lookup } from "zipcodes";
 
 import { createClient } from "@/lib/supabase/server";
+import { getWeeklyPattern } from "@/lib/trainer/availability";
 import { getOnboardingState } from "@/lib/trainer/onboarding";
+import {
+  availabilityIdSchema,
+  DAY_OF_WEEK_LABELS,
+  exceptionSchema,
+  formatTimeOfDay,
+  weeklySlotSchema,
+} from "@/lib/validators/availability";
 import {
   METERS_PER_MILE,
   onboardingSchema,
@@ -346,6 +354,239 @@ export async function deleteService(
   }
   if (!deleted) {
     return { error: "That service could not be found." };
+  }
+
+  revalidatePath("/", "layout");
+  return { success: true };
+}
+
+// ---------------------------------------------------------------------------
+// Availability — the project's FIRST HARD-DELETE surface. Deliberate
+// deviations from the services/dogs pattern, each commented at its site:
+// these tables are CONFIG, not record (no deleted_at column; real DELETE
+// grant + policies), so deletes are real .delete() and there is no
+// view-spec floor. Everything else keeps the discipline: zod → auth →
+// role → scoped writes → row-count rule → { success } sentinel.
+// ---------------------------------------------------------------------------
+
+export type AvailabilityActionState =
+  | { error: string }
+  | { success: true }
+  | null;
+
+export async function addWeeklySlot(
+  _prevState: AvailabilityActionState,
+  formData: FormData,
+): Promise<AvailabilityActionState> {
+  const parsed = weeklySlotSchema.safeParse({
+    dayOfWeek: formData.get("dayOfWeek"),
+    startTime: formData.get("startTime"),
+    endTime: formData.get("endTime"),
+  });
+  if (!parsed.success) {
+    return { error: parsed.error.issues[0]?.message ?? VALIDATION_ERROR };
+  }
+
+  const ctx = await requireTrainer();
+  if ("error" in ctx) {
+    return ctx;
+  }
+
+  // Same FK reality as services: availability rows attach to the trainers
+  // row — 'none' must be turned away with a helpful message, not an FK error.
+  const state = await getOnboardingState(ctx.supabase, ctx.userId);
+  if (state === "none") {
+    return {
+      error: "Create your trainer listing first — then set your hours.",
+    };
+  }
+
+  // OVERLAP GUARD (design surprise #1): the schema PERMITS same-day overlaps
+  // (UNIQUE is on start_time only) and the slot-math module unions them —
+  // but the UI shouldn't create what the math has to clean up, so entry
+  // rejects overlaps with a friendly pointer at the colliding window.
+  // Adjacency (end == start) is allowed — it isn't overlap. The two-tab race
+  // (both pass the check, both insert) is tolerable BECAUSE the module
+  // unions: worst case is a redundant row, never wrong slots.
+  const { slots, error: readError } = await getWeeklyPattern(
+    ctx.supabase,
+    ctx.userId,
+  );
+  if (readError) {
+    return { error: GENERIC_ERROR };
+  }
+  const collision = slots.find(
+    (s) =>
+      s.day_of_week === parsed.data.dayOfWeek &&
+      parsed.data.startTime < s.end_time &&
+      s.start_time < parsed.data.endTime,
+  );
+  if (collision) {
+    return {
+      error: `That overlaps your ${formatTimeOfDay(collision.start_time)}–${formatTimeOfDay(collision.end_time)} window on ${DAY_OF_WEEK_LABELS[collision.day_of_week]}.`,
+    };
+  }
+
+  let writeError: string | null = null;
+  try {
+    const { error } = await ctx.supabase.from("trainer_availability").insert({
+      trainer_id: ctx.userId,
+      day_of_week: parsed.data.dayOfWeek,
+      start_time: parsed.data.startTime,
+      end_time: parsed.data.endTime,
+    });
+    writeError = error?.message ?? null;
+  } catch {
+    writeError = GENERIC_ERROR;
+  }
+  if (writeError) {
+    return { error: writeError };
+  }
+
+  revalidatePath("/", "layout");
+  return { success: true };
+}
+
+export async function deleteWeeklySlot(
+  _prevState: AvailabilityActionState,
+  formData: FormData,
+): Promise<AvailabilityActionState> {
+  const parsedId = availabilityIdSchema.safeParse(formData.get("slotId"));
+  if (!parsedId.success) {
+    return { error: parsedId.error.issues[0]?.message ?? VALIDATION_ERROR };
+  }
+
+  const ctx = await requireTrainer();
+  if ("error" in ctx) {
+    return ctx;
+  }
+
+  // REAL delete — the deliberate deviation: availability is config (no
+  // deleted_at column exists; the DELETE grant + own-rows policy are live,
+  // M7-verified). The row-count rule still applies: RLS makes cross-trainer
+  // deletes silent 0-row no-ops, so 0 rows = honest "not found".
+  let deleted: { id: string } | null = null;
+  let writeError: string | null = null;
+  try {
+    const { data, error } = await ctx.supabase
+      .from("trainer_availability")
+      .delete()
+      .eq("id", parsedId.data)
+      .eq("trainer_id", ctx.userId)
+      .select("id")
+      .maybeSingle();
+    deleted = data;
+    writeError = error?.message ?? null;
+  } catch {
+    writeError = GENERIC_ERROR;
+  }
+  if (writeError) {
+    return { error: writeError };
+  }
+  if (!deleted) {
+    return { error: "That availability window could not be found." };
+  }
+
+  revalidatePath("/", "layout");
+  return { success: true };
+}
+
+export async function addException(
+  _prevState: AvailabilityActionState,
+  formData: FormData,
+): Promise<AvailabilityActionState> {
+  const kind = formData.get("kind");
+  const parsed = exceptionSchema.safeParse(
+    kind === "blocked"
+      ? { kind, date: formData.get("date") }
+      : {
+          kind,
+          date: formData.get("date"),
+          startTime: formData.get("startTime"),
+          endTime: formData.get("endTime"),
+        },
+  );
+  if (!parsed.success) {
+    return { error: parsed.error.issues[0]?.message ?? VALIDATION_ERROR };
+  }
+
+  const ctx = await requireTrainer();
+  if ("error" in ctx) {
+    return ctx;
+  }
+
+  const state = await getOnboardingState(ctx.supabase, ctx.userId);
+  if (state === "none") {
+    return {
+      error: "Create your trainer listing first — then set your hours.",
+    };
+  }
+
+  let writeError: string | null = null;
+  try {
+    const { error } = await ctx.supabase
+      .from("trainer_availability_exceptions")
+      .insert({
+        trainer_id: ctx.userId,
+        exception_date: parsed.data.date,
+        is_blocked: parsed.data.kind === "blocked",
+        start_time: parsed.data.kind === "replace" ? parsed.data.startTime : null,
+        end_time: parsed.data.kind === "replace" ? parsed.data.endTime : null,
+      });
+    // UNIQUE (trainer_id, exception_date) — verified in the Group-0 pass.
+    // One exception per date is the schema's rule; surface the 23505 as a
+    // friendly message instead of a raw constraint error.
+    writeError =
+      error?.code === "23505"
+        ? "You already have an exception for that date — delete it first."
+        : (error?.message ?? null);
+  } catch {
+    writeError = GENERIC_ERROR;
+  }
+  if (writeError) {
+    return { error: writeError };
+  }
+
+  revalidatePath("/", "layout");
+  return { success: true };
+}
+
+export async function deleteException(
+  _prevState: AvailabilityActionState,
+  formData: FormData,
+): Promise<AvailabilityActionState> {
+  const parsedId = availabilityIdSchema.safeParse(formData.get("exceptionId"));
+  if (!parsedId.success) {
+    return { error: parsedId.error.issues[0]?.message ?? VALIDATION_ERROR };
+  }
+
+  const ctx = await requireTrainer();
+  if ("error" in ctx) {
+    return ctx;
+  }
+
+  // REAL delete + row-count rule — same deviation and same reasons as
+  // deleteWeeklySlot.
+  let deleted: { id: string } | null = null;
+  let writeError: string | null = null;
+  try {
+    const { data, error } = await ctx.supabase
+      .from("trainer_availability_exceptions")
+      .delete()
+      .eq("id", parsedId.data)
+      .eq("trainer_id", ctx.userId)
+      .select("id")
+      .maybeSingle();
+    deleted = data;
+    writeError = error?.message ?? null;
+  } catch {
+    writeError = GENERIC_ERROR;
+  }
+  if (writeError) {
+    return { error: writeError };
+  }
+  if (!deleted) {
+    return { error: "That exception could not be found." };
   }
 
   revalidatePath("/", "layout");
