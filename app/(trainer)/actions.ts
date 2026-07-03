@@ -5,7 +5,13 @@ import { redirect } from "next/navigation";
 import { lookup } from "zipcodes";
 
 import { createClient } from "@/lib/supabase/server";
-import { METERS_PER_MILE, onboardingSchema } from "@/lib/validators/trainer";
+import { getOnboardingState } from "@/lib/trainer/onboarding";
+import {
+  METERS_PER_MILE,
+  onboardingSchema,
+  serviceIdSchema,
+  serviceSchema,
+} from "@/lib/validators/trainer";
 
 /**
  * Trainer onboarding — the trusted boundary that creates the M3 `trainers` row
@@ -136,4 +142,212 @@ export async function completeOnboarding(
 
   revalidatePath("/", "layout");
   redirect(POST_ONBOARDING_REDIRECT);
+}
+
+// ---------------------------------------------------------------------------
+// Services — the trainer_services write surface (create / update / soft-delete).
+// Same trusted-boundary patterns as completeOnboarding: zod parse → auth →
+// role check → serializable { error } → revalidate.
+// ---------------------------------------------------------------------------
+
+/** null = not yet submitted; { success } lets client forms distinguish a
+ * completed submit from the initial state (close the editor / reset fields). */
+export type ServiceActionState = { error: string } | { success: true } | null;
+
+/**
+ * Shared prelude for the three service actions: authenticated caller with a
+ * trainer profile, or the appropriate exit (redirect for no session, { error }
+ * for wrong role). Role isn't in the JWT, so it's read from profiles — same
+ * reasoning as completeOnboarding, which keeps its own inline copy (approved
+ * code, not churned here).
+ */
+async function requireTrainer(): Promise<
+  | { supabase: Awaited<ReturnType<typeof createClient>>; userId: string }
+  | { error: string }
+> {
+  const supabase = await createClient();
+  const { data: claimsData } = await supabase.auth.getClaims();
+  const userId = claimsData?.claims?.sub;
+  if (!userId) {
+    redirect("/login");
+  }
+
+  const { data: profile } = await supabase
+    .from("profiles")
+    .select("role")
+    .eq("id", userId)
+    .maybeSingle();
+  if (profile?.role !== "trainer") {
+    return { error: "Only trainer accounts can manage services." };
+  }
+  return { supabase, userId };
+}
+
+export async function createService(
+  _prevState: ServiceActionState,
+  formData: FormData,
+): Promise<ServiceActionState> {
+  const parsed = serviceSchema.safeParse({
+    name: formData.get("name"),
+    description: formData.get("description") ?? "",
+    priceDollars: formData.get("priceDollars"),
+    durationMinutes: formData.get("durationMinutes"),
+    sessionType: formData.get("sessionType"),
+  });
+  if (!parsed.success) {
+    return { error: parsed.error.issues[0]?.message ?? VALIDATION_ERROR };
+  }
+
+  const ctx = await requireTrainer();
+  if ("error" in ctx) {
+    return ctx;
+  }
+
+  // Services attach to the trainers ROW (the FK target), not to onboarding
+  // completeness — 'partial' is fine (services and specialties can arrive in
+  // any order); only 'none' (no trainers row at all) must be turned away, or
+  // the INSERT would die on the FK instead of a helpful message.
+  const state = await getOnboardingState(ctx.supabase, ctx.userId);
+  if (state === "none") {
+    return {
+      error: "Create your trainer listing first — then add your services.",
+    };
+  }
+
+  let writeError: string | null = null;
+  try {
+    const { error } = await ctx.supabase.from("trainer_services").insert({
+      trainer_id: ctx.userId,
+      name: parsed.data.name,
+      description: parsed.data.description,
+      session_type: parsed.data.sessionType,
+      // priceDollars is CENTS post-transform (schema converts at the boundary)
+      price_cents: parsed.data.priceDollars,
+      duration_minutes: parsed.data.durationMinutes,
+    });
+    writeError = error?.message ?? null;
+  } catch {
+    writeError = GENERIC_ERROR;
+  }
+  if (writeError) {
+    return { error: writeError };
+  }
+
+  revalidatePath("/", "layout");
+  return { success: true };
+}
+
+export async function updateService(
+  _prevState: ServiceActionState,
+  formData: FormData,
+): Promise<ServiceActionState> {
+  const parsedId = serviceIdSchema.safeParse(formData.get("serviceId"));
+  const parsed = serviceSchema.safeParse({
+    name: formData.get("name"),
+    description: formData.get("description") ?? "",
+    priceDollars: formData.get("priceDollars"),
+    durationMinutes: formData.get("durationMinutes"),
+    sessionType: formData.get("sessionType"),
+  });
+  if (!parsedId.success || !parsed.success) {
+    return {
+      error:
+        parsedId.error?.issues[0]?.message ??
+        parsed.error?.issues[0]?.message ??
+        VALIDATION_ERROR,
+    };
+  }
+
+  const ctx = await requireTrainer();
+  if ("error" in ctx) {
+    return ctx;
+  }
+
+  // .eq(trainer_id) is belt-and-suspenders with RLS; the ROW-COUNT check is
+  // the load-bearing part. The investigation proved a cross-trainer (or
+  // nonexistent-id) UPDATE is a SILENT 0-row no-op under RLS — without
+  // .select() + the null check, a tampered form would report success while
+  // changing nothing. Surface it as failure.
+  let updated: { id: string } | null = null;
+  let writeError: string | null = null;
+  try {
+    const { data, error } = await ctx.supabase
+      .from("trainer_services")
+      .update({
+        name: parsed.data.name,
+        description: parsed.data.description,
+        session_type: parsed.data.sessionType,
+        // priceDollars is CENTS post-transform (schema converts at the boundary)
+        price_cents: parsed.data.priceDollars,
+        duration_minutes: parsed.data.durationMinutes,
+      })
+      .eq("id", parsedId.data)
+      .eq("trainer_id", ctx.userId)
+      // The view-spec rule applies to writes too: only ACTIVE rows are
+      // editable (a soft-deleted id from a stale/tampered form is "not
+      // found", not a silent edit of an invisible row).
+      .is("deleted_at", null)
+      .select("id")
+      .maybeSingle();
+    updated = data;
+    writeError = error?.message ?? null;
+  } catch {
+    writeError = GENERIC_ERROR;
+  }
+  if (writeError) {
+    return { error: writeError };
+  }
+  if (!updated) {
+    return { error: "That service could not be found." };
+  }
+
+  revalidatePath("/", "layout");
+  return { success: true };
+}
+
+export async function deleteService(
+  _prevState: ServiceActionState,
+  formData: FormData,
+): Promise<ServiceActionState> {
+  const parsedId = serviceIdSchema.safeParse(formData.get("serviceId"));
+  if (!parsedId.success) {
+    return { error: parsedId.error.issues[0]?.message ?? VALIDATION_ERROR };
+  }
+
+  const ctx = await requireTrainer();
+  if ("error" in ctx) {
+    return ctx;
+  }
+
+  // SOFT delete — hard DELETE is grant-blocked by design (the M7 sweep left
+  // authenticated without DELETE on soft-delete tables; verified live: 42501).
+  // Setting deleted_at rides the ordinary UPDATE grant + own-row policy. Same
+  // row-count rule as updateService: a 0-row result is a failure, not success.
+  let deleted: { id: string } | null = null;
+  let writeError: string | null = null;
+  try {
+    const { data, error } = await ctx.supabase
+      .from("trainer_services")
+      .update({ deleted_at: new Date().toISOString() })
+      .eq("id", parsedId.data)
+      .eq("trainer_id", ctx.userId)
+      // Only active rows are deletable — re-deleting an already-deleted row
+      // would silently refresh its deleted_at; make it "not found" instead.
+      .is("deleted_at", null)
+      .select("id")
+      .maybeSingle();
+    deleted = data;
+    writeError = error?.message ?? null;
+  } catch {
+    writeError = GENERIC_ERROR;
+  }
+  if (writeError) {
+    return { error: writeError };
+  }
+  if (!deleted) {
+    return { error: "That service could not be found." };
+  }
+
+  revalidatePath("/", "layout");
+  return { success: true };
 }

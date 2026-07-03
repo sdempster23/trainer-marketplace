@@ -10,8 +10,11 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { createClient } from "@/lib/supabase/server";
+import { getActiveServices } from "@/lib/trainer/services";
 import {
+  formatPrice,
   METERS_PER_MILE,
+  SESSION_TYPE_LABELS,
   SPECIALTY_LABELS,
   TIMEZONE_LABELS,
   type Specialty,
@@ -58,6 +61,11 @@ export default async function TrainerListingPage() {
   if (!trainer || !assignments || assignments.length === 0) {
     redirect("/trainer/onboarding");
   }
+
+  // Read-only services summary — same single read path as everywhere
+  // (getActiveServices holds the view-spec rule); management lives at
+  // /trainer/services, this page stays the confirmation card.
+  const { services } = await getActiveServices(supabase, claims.sub);
 
   const radiusMiles = trainer.service_radius_meters
     ? Math.round(trainer.service_radius_meters / METERS_PER_MILE)
@@ -112,6 +120,37 @@ export default async function TrainerListingPage() {
             <dd>{TIMEZONE_LABELS[trainer.timezone as TrainerTimezone]}</dd>
           </dl>
 
+          <div className="grid gap-2">
+            <span className="text-muted-foreground text-xs font-medium">
+              Your services
+            </span>
+            {services.length === 0 ? (
+              <p className="text-muted-foreground text-sm">
+                No services yet —{" "}
+                <Link href="/trainer/services" className="underline">
+                  add your first
+                </Link>
+                .
+              </p>
+            ) : (
+              <ul className="flex flex-col gap-1 text-sm">
+                {services.map((service) => (
+                  <li key={service.id}>
+                    <span className="font-medium">{service.name}</span>{" "}
+                    <span className="text-muted-foreground">
+                      — {formatPrice(service.price_cents)} ·{" "}
+                      {service.duration_minutes} min ·{" "}
+                      {SESSION_TYPE_LABELS[service.session_type]}
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
+
+          <Button asChild variant="outline" className="w-full">
+            <Link href="/trainer/services">Manage services</Link>
+          </Button>
           <Button asChild variant="outline" className="w-full">
             <Link href="/account">Back to account</Link>
           </Button>
