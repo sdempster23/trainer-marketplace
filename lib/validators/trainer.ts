@@ -143,3 +143,132 @@ export const TIMEZONE_LABELS: Record<TrainerTimezone, string> = {
 /** Sensible default zone for the Nashville-area core market (Central). The
  * trainer confirms/changes it — we don't derive it (see TRAINER_TIMEZONES). */
 export const DEFAULT_TIMEZONE: TrainerTimezone = "America/Chicago";
+
+// ---------------------------------------------------------------------------
+// Services — the trainer_services write surface.
+// ---------------------------------------------------------------------------
+
+/**
+ * The 3 session types, derived from the generated Database enum — the
+ * SPECIALTIES pattern: regenerating types regenerates this list, so it cannot
+ * drift from the DB `session_type` enum.
+ */
+export const SESSION_TYPES = Constants.public.Enums.session_type;
+
+export type SessionType = (typeof SESSION_TYPES)[number];
+
+/** Exhaustive Record — adding an enum value breaks the build until labeled. */
+export const SESSION_TYPE_LABELS: Record<SessionType, string> = {
+  in_home: "In-home",
+  at_trainer_location: "At trainer's location",
+  virtual: "Virtual",
+};
+
+/** Name/description bounds — zod supplies the caps the DB columns don't have
+ * (both are uncapped text; same discipline as the bio/display-name bounds). */
+export const SERVICE_NAME_MIN_LENGTH = 2;
+export const SERVICE_NAME_MAX_LENGTH = 80;
+export const SERVICE_DESCRIPTION_MAX_LENGTH = 500;
+
+/** Price/duration bounds — mirror the DB CHECKs exactly
+ * (price_cents > 0 AND <= 100,000,000; duration 15–480), so violations
+ * surface as friendly zod messages instead of raw 23514 constraint errors. */
+export const SERVICE_PRICE_MIN_CENTS = 1;
+export const SERVICE_PRICE_MAX_CENTS = 100_000_000;
+export const SERVICE_DURATION_MIN_MINUTES = 15;
+export const SERVICE_DURATION_MAX_MINUTES = 480;
+
+const CENTS_PER_DOLLAR = 100;
+
+/**
+ * Dollars-string → integer cents WITHOUT float arithmetic. The classic trap
+ * is `parseFloat("62.50") * 100` (float multiplication can land on
+ * 6249.999…); splitting the validated string and doing integer math cannot.
+ * Only called on input the price regex has already accepted.
+ */
+const dollarsToCents = (input: string): number => {
+  const [dollars = "0", fraction = ""] = input.split(".");
+  return (
+    Number(dollars) * CENTS_PER_DOLLAR + Number(fraction.padEnd(2, "0") || "0")
+  );
+};
+
+/**
+ * Service input. The form speaks DOLLARS (what a person types); the DB speaks
+ * cents-integer — the conversion happens here, at the boundary, float-safe.
+ * `description` is optional in the form; empty submits normalize to null
+ * (the column is nullable — store the absence, not "").
+ */
+export const serviceSchema = z.object({
+  name: z
+    .string()
+    .trim()
+    .min(SERVICE_NAME_MIN_LENGTH, "Give the service a name.")
+    .max(
+      SERVICE_NAME_MAX_LENGTH,
+      `Keep the name under ${SERVICE_NAME_MAX_LENGTH} characters.`,
+    ),
+  description: z
+    .string()
+    .trim()
+    .max(
+      SERVICE_DESCRIPTION_MAX_LENGTH,
+      `Keep the description under ${SERVICE_DESCRIPTION_MAX_LENGTH} characters.`,
+    )
+    .transform((v) => (v === "" ? null : v)),
+  priceDollars: z
+    .string()
+    .trim()
+    .regex(/^\d+(\.\d{1,2})?$/, "Enter a price like 85 or 62.50.")
+    .transform(dollarsToCents)
+    .refine((cents) => cents >= SERVICE_PRICE_MIN_CENTS, "Enter a price.")
+    .refine(
+      (cents) => cents <= SERVICE_PRICE_MAX_CENTS,
+      "Price can't exceed $1,000,000.",
+    ),
+  durationMinutes: z.coerce
+    .number()
+    .int("Duration must be whole minutes.")
+    .min(
+      SERVICE_DURATION_MIN_MINUTES,
+      `Sessions are at least ${SERVICE_DURATION_MIN_MINUTES} minutes.`,
+    )
+    .max(
+      SERVICE_DURATION_MAX_MINUTES,
+      `Sessions are at most ${SERVICE_DURATION_MAX_MINUTES} minutes (8 hours).`,
+    ),
+  sessionType: z.enum(SESSION_TYPES, "Choose where the session happens."),
+});
+
+export type ServiceInput = z.infer<typeof serviceSchema>;
+
+/** Update/delete need the target row; the id rides the form as a hidden
+ * field and is validated like any other input. */
+export const serviceIdSchema = z.uuid("Invalid service.");
+
+/**
+ * Cents → display string. "$85", not "$85.00" — whole-dollar prices drop the
+ * cents; "$62.50" keeps them. The division by 100 happens only here, at the
+ * display edge (storage and arithmetic stay integer). This formatter is the
+ * single place the no-currency-column = USD assumption lives.
+ */
+/** Cents → the dollars STRING the price input speaks — the inverse boundary
+ * conversion (edit-form prefill). Integer math, mirroring dollarsToCents:
+ * "8500 → 85", "6250 → 62.50". */
+export function centsToDollarsInput(cents: number): string {
+  const dollars = Math.floor(cents / CENTS_PER_DOLLAR);
+  const rem = cents % CENTS_PER_DOLLAR;
+  return rem === 0
+    ? String(dollars)
+    : `${dollars}.${String(rem).padStart(2, "0")}`;
+}
+
+export function formatPrice(cents: number): string {
+  const isWholeDollars = cents % CENTS_PER_DOLLAR === 0;
+  return new Intl.NumberFormat("en-US", {
+    style: "currency",
+    currency: "USD",
+    minimumFractionDigits: isWholeDollars ? 0 : 2,
+    maximumFractionDigits: isWholeDollars ? 0 : 2,
+  }).format(cents / CENTS_PER_DOLLAR);
+}
