@@ -5,7 +5,7 @@ import { redirect } from "next/navigation";
 import { lookup } from "zipcodes";
 
 import { createClient } from "@/lib/supabase/server";
-import { onboardingSchema } from "@/lib/validators/trainer";
+import { METERS_PER_MILE, onboardingSchema } from "@/lib/validators/trainer";
 
 /**
  * Trainer onboarding — the trusted boundary that creates the M3 `trainers` row
@@ -22,7 +22,6 @@ const POST_ONBOARDING_REDIRECT = "/trainer/listing";
 const GENERIC_ERROR = "Something went wrong. Please try again.";
 const VALIDATION_ERROR = "Please check the form and try again.";
 
-const METERS_PER_MILE = 1609.344;
 const milesToMeters = (miles: number) => Math.round(miles * METERS_PER_MILE);
 
 export async function completeOnboarding(

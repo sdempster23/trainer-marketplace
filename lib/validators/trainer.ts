@@ -44,11 +44,29 @@ export const TRAINER_TIMEZONES = [
 
 export type TrainerTimezone = (typeof TRAINER_TIMEZONES)[number];
 
+/** Meters per statute mile — THE conversion constant for the trainer domain
+ * (the DB stores meters; forms and display speak miles). Single definition;
+ * import it rather than redeclaring (the investigation flagged copies drifting
+ * into actions/pages). */
+export const METERS_PER_MILE = 1609.344;
+
 /** Service-radius options in MILES (the form's choices). Converted to meters in
  * the action. 100mi ≈ 160,934m, within the DB CHECK cap of 200,000m (~124mi). */
 export const SERVICE_RADIUS_MILES = [10, 25, 50, 100] as const;
 
 export type ServiceRadiusMiles = (typeof SERVICE_RADIUS_MILES)[number];
+
+/** Directory search-radius options in MILES — a superset of the trainer-side
+ * SERVICE_RADIUS_MILES. 250 exists deliberately: regional working-dog trainers
+ * with 100 mi service radii are real in this niche, and an owner 150 mi out
+ * still wants to find them. */
+export const DIRECTORY_RADIUS_MILES = [10, 25, 50, 100, 250] as const;
+
+export type DirectoryRadiusMiles = (typeof DIRECTORY_RADIUS_MILES)[number];
+
+/** Default search radius when none is chosen — wide enough to show a metro
+ * cluster, narrow enough that distance still means something. */
+export const DEFAULT_DIRECTORY_RADIUS: DirectoryRadiusMiles = 25;
 
 /**
  * Onboarding input. The zip is validated for FORMAT only (5 digits) — whether
