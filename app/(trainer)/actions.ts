@@ -30,6 +30,7 @@ export async function completeOnboarding(
   formData: FormData,
 ): Promise<OnboardingActionState> {
   const parsed = onboardingSchema.safeParse({
+    displayName: formData.get("displayName"),
     bio: formData.get("bio"),
     specialties: formData.getAll("specialties"), // multi-select → array
     zip: formData.get("zip"),
@@ -68,6 +69,27 @@ export async function completeOnboarding(
     return { error: "We couldn't find that ZIP — please check and re-enter." };
   }
 
+  // WRITE 0 — the trainer's display name, on their profiles row. NAME FIRST,
+  // deliberately: the trainers row (write 1) is what makes a trainer LISTABLE
+  // in the directory, so ordering name-before-listing means a partial failure
+  // can never produce a listed-but-nameless trainer. The inverse failure
+  // (named-but-unlisted) is invisible to owners and self-heals on retry, same
+  // as the write-1/write-2 upsert path. RLS scopes this to the caller's own
+  // row (auth.uid() = id), and the M9-era WITH CHECK freezes role.
+  let writeError: string | null = null;
+  try {
+    const { error } = await supabase
+      .from("profiles")
+      .update({ display_name: parsed.data.displayName })
+      .eq("id", userId);
+    writeError = error?.message ?? null;
+  } catch {
+    writeError = GENERIC_ERROR;
+  }
+  if (writeError) {
+    return { error: writeError };
+  }
+
   // WRITE 1 — upsert the trainers row.
   // UPSERT, not insert: a partial-onboarding retry (row exists, no specialties)
   // must UPDATE, not hit a PK 23505 — that self-heal is the whole reason we
@@ -75,7 +97,6 @@ export async function completeOnboarding(
   // service_point EWKT is POINT(LONGITUDE LATITUDE) — LNG FIRST. zipcodes returns
   // { latitude, longitude } as named fields; transcribe them in POINT order, not
   // object order (the classic lng/lat reversal trap).
-  let writeError: string | null = null;
   try {
     const { error } = await supabase.from("trainers").upsert({
       id: userId,
