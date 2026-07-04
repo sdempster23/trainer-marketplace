@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { notFound } from "next/navigation";
 import { cache } from "react";
 import { z } from "zod";
@@ -24,8 +25,8 @@ import {
  * Partial trainers (no specialties, no services) render honestly, same as
  * the directory decision.
  *
- * No booking/contact affordances yet — the page is informational this arc;
- * booking is a later phase (forward item).
+ * Each service links to /trainers/[id]/book?service=… — the booking flow's
+ * entry (the informational-only forward item died with Arc C).
  */
 
 // z.guid(), NOT z.uuid(): zod's uuid() enforces RFC-4122 version/variant
@@ -182,6 +183,12 @@ export default async function TrainerDetailPage({
                       {service.description}
                     </p>
                   ) : null}
+                  <Link
+                    href={`/trainers/${trainer.id}/book?service=${service.id}`}
+                    className="text-primary mt-1 text-sm font-medium underline-offset-4 hover:underline"
+                  >
+                    Book this service
+                  </Link>
                 </li>
               ))}
             </ul>

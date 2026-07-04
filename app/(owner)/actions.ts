@@ -3,7 +3,16 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 
+import { getBusyRanges } from "@/lib/trainer/busy";
+import { getExceptions, getWeeklyPattern } from "@/lib/trainer/availability";
+import { computeBookableSlots } from "@/lib/trainer/schedule";
+import { getActiveService } from "@/lib/trainer/services";
 import { createClient } from "@/lib/supabase/server";
+import { getActiveDogs } from "@/lib/owner/dogs";
+import {
+  BOOKING_WINDOW_DAYS,
+  createBookingSchema,
+} from "@/lib/validators/booking";
 import { dogIdSchema, dogSchema } from "@/lib/validators/dog";
 
 /**
@@ -190,4 +199,159 @@ export async function deleteDog(
 
   revalidatePath("/", "layout");
   return { success: true };
+}
+
+// ---------------------------------------------------------------------------
+// Booking — the flow's one write. Arc C creates; Arc D transitions.
+// ---------------------------------------------------------------------------
+
+export type BookingActionState = { error: string } | null;
+
+const MS_PER_DAY = 86_400_000;
+
+export async function createBooking(
+  _prevState: BookingActionState,
+  formData: FormData,
+): Promise<BookingActionState> {
+  // (a) The client sends three ids-and-an-instant, nothing else.
+  const parsed = createBookingSchema.safeParse({
+    serviceId: formData.get("serviceId"),
+    dogId: formData.get("dogId"),
+    slotStartUtc: formData.get("slotStartUtc"),
+  });
+  if (!parsed.success) {
+    return { error: parsed.error.issues[0]?.message ?? VALIDATION_ERROR };
+  }
+
+  // (b)
+  const ctx = await requireOwner();
+  if ("error" in ctx) {
+    return { error: "Only dog-owner accounts can book." };
+  }
+
+  // (c) The service is the G2/G3 source: trainer_id + the price/duration
+  // snapshots come from THIS row — the trigger audits the copy. The dog is
+  // G1's precondition, friendly-checked before the trigger would reject.
+  const { service } = await getActiveService(ctx.supabase, parsed.data.serviceId);
+  if (!service) {
+    return { error: "That service is no longer offered." };
+  }
+  const { dogs } = await getActiveDogs(ctx.supabase, ctx.userId);
+  if (!dogs.some((d) => d.id === parsed.data.dogId)) {
+    return { error: "That dog could not be found." };
+  }
+
+  // (d) THE RECOMPUTE-MEMBERSHIP GUARD — the action's spine. The DB never
+  // checks availability: the EXCLUDE constraint only stops booking-vs-booking
+  // overlap, so this recompute is BOTH the security check (a crafted POST
+  // cannot book 3 AM outside the trainer's hours) and the staleness check
+  // (hours changed, slot taken, or the floor slipped past since render).
+  // 'now' = the real clock: determinism-as-parameter still holds — the TEST
+  // double injects a fixture instant, production injects new Date().
+  const { data: trainer } = await ctx.supabase
+    .from("trainers")
+    .select("timezone")
+    .eq("id", service.trainer_id)
+    .maybeSingle();
+  if (!trainer) {
+    return { error: "That service is no longer offered." };
+  }
+
+  const { slots: pattern, error: patternError } = await getWeeklyPattern(
+    ctx.supabase,
+    service.trainer_id,
+  );
+  const todayLocal = new Intl.DateTimeFormat("en-CA", {
+    timeZone: trainer.timezone,
+  }).format(new Date());
+  const [ty = 0, tm = 1, td = 1] = todayLocal.split("-").map(Number);
+  const toDateLocal = new Date(
+    Date.UTC(ty, tm - 1, td) + (BOOKING_WINDOW_DAYS - 1) * MS_PER_DAY,
+  )
+    .toISOString()
+    .slice(0, 10);
+  const { exceptions, error: exceptionsError } = await getExceptions(
+    ctx.supabase,
+    service.trainer_id,
+    todayLocal,
+  );
+  const { busy, error: busyError } = await getBusyRanges(
+    ctx.supabase,
+    service.trainer_id,
+  );
+  if (patternError || exceptionsError || busyError) {
+    return { error: GENERIC_ERROR };
+  }
+
+  const offered = computeBookableSlots({
+    pattern,
+    exceptions,
+    bookings: busy,
+    timezone: trainer.timezone,
+    durationMinutes: service.duration_minutes,
+    fromDateLocal: todayLocal,
+    toDateLocal,
+    now: new Date(),
+  });
+  if (!offered.some((slot) => slot.startUtc === parsed.data.slotStartUtc)) {
+    return { error: "That time isn't available — pick another slot." };
+  }
+
+  // (e) The INSERT. status defaults to PENDING (the trigger requires PENDING
+  // entry); stripe_payment_intent_id stays NULL (M11 — the system path
+  // attaches it in Phase 8).
+  let created: { id: string } | null = null;
+  let failure: string | null = null;
+  try {
+    const { data, error } = await ctx.supabase
+      .from("bookings")
+      .insert({
+        owner_id: ctx.userId,
+        trainer_id: service.trainer_id, // from the SERVICE row, never the client
+        dog_id: parsed.data.dogId,
+        service_id: service.id,
+        starts_at: parsed.data.slotStartUtc,
+        duration_minutes: service.duration_minutes, // G3 snapshots — server-copied
+        price_cents: service.price_cents,
+      })
+      .select("id")
+      .maybeSingle();
+    created = data;
+
+    // (f) The failure map. Unlike the services actions (which surface raw
+    // error.message), trigger raises here are engineer-facing — map the known
+    // ones to friendly forms, everything else to generic.
+    if (error) {
+      if (error.code === "23P01") {
+        // The EXCLUDE race: someone took the slot between recompute and
+        // insert. This catch is unconditional — races exist with perfect data.
+        failure = "That time was just taken — pick another slot.";
+      } else if (error.code === "23514" && error.message.includes("15 minutes")) {
+        // The +15 floor. The module's floor matches the trigger's EXACTLY
+        // (MIN_LEAD_MINUTES parity), so an OFFERED slot cannot honestly
+        // violate it — this entry is purely the recompute-to-insert race net
+        // (proven unconstructible through the front door in the Arc-C live
+        // proof; the DB layer's 23514 probe-verified).
+        failure = "That time just passed — pick another slot.";
+      } else if (error.code === "23503") {
+        // A G1/G2 raise: the dog or service changed under us post-precheck.
+        failure = "That dog or service could not be found.";
+      } else {
+        failure = GENERIC_ERROR;
+      }
+    }
+  } catch {
+    failure = GENERIC_ERROR;
+  }
+  if (failure) {
+    return { error: failure };
+  }
+  if (!created) {
+    return { error: GENERIC_ERROR };
+  }
+
+  revalidatePath("/", "layout");
+  // House pattern: redirect in the ACTION, outside any try/catch (redirect
+  // throws NEXT_REDIRECT — a catch would swallow it).
+  redirect("/owner/bookings");
 }
