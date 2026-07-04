@@ -29,6 +29,34 @@ export type ActiveService = {
   duration_minutes: number;
 };
 
+/**
+ * One ACTIVE service by id — the booking flow's G2/G3 source (trainer_id +
+ * price/duration snapshots come from THIS row, never the client). Lives here
+ * beside getActiveServices so the deleted_at view-spec rule still has exactly
+ * one home file; a soft-deleted or unknown id returns null ("no longer
+ * offered"), which is precisely the booking-time answer.
+ */
+export type ActiveServiceWithTrainer = ActiveService & { trainer_id: string };
+
+export async function getActiveService(
+  supabase: SupabaseClient<Database>,
+  serviceId: string,
+): Promise<{ service: ActiveServiceWithTrainer | null; error: string | null }> {
+  const { data, error } = await supabase
+    .from("trainer_services")
+    .select(
+      "id, trainer_id, name, description, session_type, price_cents, duration_minutes",
+    )
+    .eq("id", serviceId)
+    .is("deleted_at", null)
+    .maybeSingle();
+
+  if (error) {
+    return { service: null, error: error.message };
+  }
+  return { service: data, error: null };
+}
+
 export async function getActiveServices(
   supabase: SupabaseClient<Database>,
   trainerId: string,

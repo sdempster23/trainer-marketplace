@@ -49,7 +49,7 @@ export type Database = {
           service_id: string
           starts_at: string
           status: Database["public"]["Enums"]["booking_status"]
-          stripe_payment_intent_id: string
+          stripe_payment_intent_id: string | null
           trainer_id: string
           updated_at: string
         }
@@ -67,7 +67,7 @@ export type Database = {
           service_id: string
           starts_at: string
           status?: Database["public"]["Enums"]["booking_status"]
-          stripe_payment_intent_id: string
+          stripe_payment_intent_id?: string | null
           trainer_id: string
           updated_at?: string
         }
@@ -85,7 +85,7 @@ export type Database = {
           service_id?: string
           starts_at?: string
           status?: Database["public"]["Enums"]["booking_status"]
-          stripe_payment_intent_id?: string
+          stripe_payment_intent_id?: string | null
           trainer_id?: string
           updated_at?: string
         }
@@ -594,7 +594,13 @@ export type Database = {
         Returns: string
       }
       nearby_trainers: {
-        Args: { radius_miles: number; search_lat: number; search_lng: number }
+        Args: {
+          max_results?: number
+          radius_miles: number
+          result_offset?: number
+          search_lat: number
+          search_lng: number
+        }
         Returns: {
           bio: string
           display_name: string
@@ -606,6 +612,13 @@ export type Database = {
           specialties: Database["public"]["Enums"]["trainer_specialty"][]
           timezone: string
           years_experience: number
+        }[]
+      }
+      trainer_busy_ranges: {
+        Args: { t_id: string }
+        Returns: {
+          ends_at: string
+          starts_at: string
         }[]
       }
     }

@@ -149,11 +149,16 @@ export default async function AccountPage() {
                   : `${ownerDogs.length} ${ownerDogs.length === 1 ? "dog" : "dogs"} on your profile.`}
               </CardDescription>
             </CardHeader>
-            <CardContent>
+            <CardContent className="flex flex-col gap-2">
               <Button asChild className="w-full">
                 <Link href="/owner/dogs">
                   {ownerDogs.length === 0 ? "Add your dog" : "Manage dogs"}
                 </Link>
+              </Button>
+              {/* Smallest honest bookings entry: one link, zero queries —
+                  the list page owns its own empty state. */}
+              <Button asChild variant="outline" className="w-full">
+                <Link href="/owner/bookings">Your bookings</Link>
               </Button>
             </CardContent>
           </Card>
