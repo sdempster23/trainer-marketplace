@@ -2,12 +2,16 @@
 
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
+import { after } from "next/server";
 
 import { getBusyRanges } from "@/lib/trainer/busy";
 import { getExceptions, getWeeklyPattern } from "@/lib/trainer/availability";
 import { computeBookableSlots } from "@/lib/trainer/schedule";
 import { getActiveService } from "@/lib/trainer/services";
+import { requestReceived } from "@/lib/mail/templates";
+import { sendMail } from "@/lib/mail/send";
 import { createClient } from "@/lib/supabase/server";
+import { getUserEmail } from "@/lib/supabase/admin";
 import { getActiveDogs } from "@/lib/owner/dogs";
 import {
   BOOKING_WINDOW_DAYS,
@@ -349,6 +353,36 @@ export async function createBooking(
   if (!created) {
     return { error: GENERIC_ERROR };
   }
+
+  // NOTIFY THE TRAINER — registered BEFORE redirect() throws (the docs'
+  // guarantee: "after will be executed even if ... notFound or redirect is
+  // called" — register-before-the-throw is the corollary). The callback runs
+  // post-response: fetching the owner's name + dog name here costs the
+  // user's click nothing. getUserEmail is the ONLY admin-surface touch; the
+  // display fields come through the caller's own RLS.
+  const dogId = parsed.data.dogId;
+  const slotStartUtc = parsed.data.slotStartUtc;
+  after(async () => {
+    try {
+      const email = await getUserEmail(service.trainer_id);
+      if (!email) return;
+      const [{ data: ownerProfile }, { data: dog }] = await Promise.all([
+        ctx.supabase.from("profiles").select("display_name").eq("id", ctx.userId).maybeSingle(),
+        ctx.supabase.from("dogs").select("name").eq("id", dogId).maybeSingle(),
+      ]);
+      const mail = requestReceived({
+        counterpartyName: ownerProfile?.display_name ?? null,
+        dogName: dog?.name ?? "their dog",
+        serviceName: service.name,
+        startsAtIso: slotStartUtc,
+        trainerTimezone: trainer.timezone,
+        priceCents: service.price_cents,
+      });
+      await sendMail({ to: email, ...mail });
+    } catch (e) {
+      console.error("[MAIL] request notification failed:", e); // never surfaces
+    }
+  });
 
   revalidatePath("/", "layout");
   // House pattern: redirect in the ACTION, outside any try/catch (redirect
