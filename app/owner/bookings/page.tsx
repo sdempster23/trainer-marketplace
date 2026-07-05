@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 
+import { CancelBookingButton } from "@/components/bookings/transition-buttons";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { createClient } from "@/lib/supabase/server";
@@ -20,9 +21,8 @@ export const metadata = { title: "Your bookings — PawMatch" };
  * picked from, so the confirmation never contradicts the picker (owner-local
  * labeling is the virtual-session follow-up, a display change only).
  *
- * NO cancel affordance — owner cancel is a §10 status TRANSITION, and
- * transitions are Arc D (trainer confirm/cancel/complete + owner cancel,
- * together). Arc C creates; Arc D transitions.
+ * Cancel (two-step) on PENDING and CONFIRMED rows — Arc D's owner half;
+ * cancelled rows show attribution.
  */
 export default async function OwnerBookingsPage() {
   const supabase = await createClient();
@@ -84,7 +84,13 @@ export default async function OwnerBookingsPage() {
                       </span>
                     </div>
                     <span className="bg-accent text-accent-foreground inline-flex shrink-0 items-center rounded-full px-2.5 py-1 text-xs font-medium">
-                      {BOOKING_STATUS_LABELS[booking.status]}
+                      {booking.status === "CANCELLED"
+                        ? booking.cancelled_by === "owner"
+                          ? "Cancelled by you"
+                          : booking.cancelled_by === "trainer"
+                            ? "Cancelled by the trainer"
+                            : "Cancelled"
+                        : BOOKING_STATUS_LABELS[booking.status]}
                     </span>
                   </div>
                   <span className="text-muted-foreground text-sm">
@@ -95,6 +101,15 @@ export default async function OwnerBookingsPage() {
                     · {booking.duration_minutes} min ·{" "}
                     {formatPrice(booking.price_cents)}
                   </span>
+                  {booking.status === "PENDING" ||
+                  booking.status === "CONFIRMED" ? (
+                    <div className="flex justify-end">
+                      <CancelBookingButton
+                        bookingId={booking.id}
+                        label="Cancel"
+                      />
+                    </div>
+                  ) : null}
                 </CardContent>
               </Card>
             ))}
