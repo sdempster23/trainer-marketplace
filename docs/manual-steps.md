@@ -108,3 +108,19 @@ middleware default.
   catalog-only convention — M12 journal entry has the full story), never a
   live denied call. Hosted is unaffected. Escalation if it ever matters:
   force a fresh db image pull / newer image pin — not a CLI bump.
+
+## Email (transition notifications)
+
+- **Local:** no setup — with the Phase-0 placeholder key, the mail seam runs
+  in `[MAIL:LOG-MODE]` and prints rendered emails to the dev-server log.
+- **Real sends without a domain:** put a real `RESEND_API_KEY` in
+  `.env.local`; `onboarding@resend.dev` (the test-only from) can then
+  deliver ONLY to the Resend account owner's own address, plus the
+  `*@resend.dev` test recipients (delivered@/bounced@/complained@/
+  suppressed@, `+label` supported).
+- **Hosted/production (when it matters):** verify a domain in Resend
+  (SPF + DKIM DNS), set `EMAIL_FROM=noreply@<domain>`, and add
+  `RESEND_API_KEY` **and `SUPABASE_SERVICE_ROLE_KEY`** to Vercel env
+  (Preview + Production) — the service key is now read server-side for
+  recipient-email lookup (lib/supabase/admin.ts; see its header for why
+  emails must NOT be denormalized into profiles).

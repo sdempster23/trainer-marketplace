@@ -2,9 +2,22 @@
 
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
+import { after } from "next/server";
 import { z } from "zod";
 
+import type { SupabaseClient } from "@supabase/supabase-js";
+
+import {
+  cancelledByOwner,
+  completed,
+  confirmed,
+  declinedByTrainer,
+  type BookingMailContext,
+} from "@/lib/mail/templates";
+import { sendMail } from "@/lib/mail/send";
 import { createClient } from "@/lib/supabase/server";
+import { getUserEmail } from "@/lib/supabase/admin";
+import type { Database } from "@/types/supabase";
 
 /**
  * Booking transitions — Arc D's verbs over the M6 state machine.
@@ -72,6 +85,55 @@ function mapTriggerError(message: string): string {
   return GENERIC_ERROR;
 }
 
+
+/**
+ * The shared post-transition send (module-private — "use server" constrains
+ * EXPORTS to actions; helpers stay internal). Runs INSIDE after(): fetches
+ * the booking's display context through the CALLER's own RLS (they're a
+ * party — the embeds are theirs to read) and touches the admin surface for
+ * exactly one thing, the recipient's address — the split that keeps
+ * lib/supabase/admin.ts one function wide. Everything swallowed: a mail
+ * failure must never surface anywhere.
+ */
+async function sendTransitionMail(
+  supabase: SupabaseClient<Database>,
+  bookingId: string,
+  kind: "confirmed" | "completed" | "cancelledByOwner" | "declinedByTrainer",
+): Promise<void> {
+  try {
+    const { data: b } = await supabase
+      .from("bookings")
+      .select(
+        "owner_id, trainer_id, starts_at, price_cents, dogs(name), trainer_services(name), trainers(timezone, profiles(display_name)), profiles(display_name)",
+      )
+      .eq("id", bookingId)
+      .maybeSingle();
+    if (!b) return;
+
+    // Recipient is the OTHER party per template direction; counterpartyName
+    // is the SENDER-side party the recipient reads about.
+    const toOwner = kind !== "cancelledByOwner";
+    const recipientId = toOwner ? b.owner_id : b.trainer_id;
+    const email = await getUserEmail(recipientId);
+    if (!email) return;
+
+    const context: BookingMailContext = {
+      counterpartyName: toOwner
+        ? (b.trainers?.profiles.display_name ?? null)
+        : (b.profiles?.display_name ?? null),
+      dogName: b.dogs?.name ?? "their dog",
+      serviceName: b.trainer_services?.name ?? "the session",
+      startsAtIso: b.starts_at,
+      trainerTimezone: b.trainers?.timezone ?? "UTC",
+      priceCents: b.price_cents,
+    };
+    const render = { confirmed, completed, cancelledByOwner, declinedByTrainer }[kind];
+    await sendMail({ to: email, ...render(context) });
+  } catch (e) {
+    console.error(`[MAIL] ${kind} notification failed:`, e);
+  }
+}
+
 export async function confirmBooking(
   _prevState: TransitionActionState,
   formData: FormData,
@@ -105,6 +167,7 @@ export async function confirmBooking(
     return { error: RACE_MESSAGE };
   }
 
+  after(() => sendTransitionMail(supabase, parsed.data, "confirmed"));
   revalidatePath("/", "layout");
   return { success: true };
 }
@@ -142,6 +205,7 @@ export async function completeBooking(
     return { error: RACE_MESSAGE };
   }
 
+  after(() => sendTransitionMail(supabase, parsed.data, "completed"));
   revalidatePath("/", "layout");
   return { success: true };
 }
@@ -200,6 +264,18 @@ export async function cancelBooking(
     return { error: RACE_MESSAGE };
   }
 
+  // Attribution forks the template: owner-cancel notifies the TRAINER;
+  // trainer-cancel (Decline included) notifies the OWNER via
+  // declinedByTrainer — reviewed for BOTH trainer-cancel cases: the copy
+  // speaks to the outcome ("can't make it"), not the prior status, and
+  // "nothing was charged" is universally true pre-Phase-8.
+  after(() =>
+    sendTransitionMail(
+      supabase,
+      parsed.data,
+      cancelledBy === "owner" ? "cancelledByOwner" : "declinedByTrainer",
+    ),
+  );
   revalidatePath("/", "layout");
   return { success: true };
 }
