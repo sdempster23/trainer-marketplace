@@ -94,3 +94,17 @@ middleware default.
   `NEXT_PUBLIC_SUPABASE_URL=https://iomaiasjqozunjbvsdsk.supabase.co NEXT_PUBLIC_SUPABASE_ANON_KEY=<hosted-anon-key> pnpm dev`
   — never by editing `.env.local` back. The override dies with the shell; an
   edit silently persists for every future session.
+
+- **Local-stack quirk: permission-DENIED function calls SEGFAULT the local
+  Postgres** (the supabase db image, PG 17.6 — verified surviving the CLI
+  v2.109 upgrade, which doesn't replace an already-present db image). Any
+  role calling a function it lacks EXECUTE on kills the backend (crash-
+  recovery brings it back; committed data is safe). Repro:
+  `create function public._t() returns int language sql as 'select 1';
+  revoke execute on function public._t() from public, anon, authenticated;`
+  then `set role anon; select public._t();` — a clean 42501 means a future
+  image fixed it; a dropped connection means it hasn't. Consequences: test
+  suites assert EXECUTE denial via `has_function_privilege()` ONLY (the
+  catalog-only convention — M12 journal entry has the full story), never a
+  live denied call. Hosted is unaffected. Escalation if it ever matters:
+  force a fresh db image pull / newer image pin — not a CLI bump.
