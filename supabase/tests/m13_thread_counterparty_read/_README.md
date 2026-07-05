@@ -24,6 +24,11 @@ same rolled-back case — but the check's ordering is now load-bearing from two
 directions (M11: no booking; M13: no thread yet). Watched in the full-chain
 run; see the journal.
 
+**PINNED:** C1's premise is now ORDERING-dependent. If it ever breaks (e.g. a
+future fixture leaves a persistent thread between its pair), the fix is a
+dedicated no-thread fixture pair for the invisibility check — NEVER reordering
+the check relative to the INSERT (the before-INSERT position is the premise).
+
 ## Invocation
 
 ```bash
