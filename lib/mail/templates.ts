@@ -92,6 +92,35 @@ Your bookings: ${siteUrl()}/trainer/bookings`,
   };
 }
 
+/** Preview cap for newMessage — the email is a doorbell, not the
+ * conversation; the full text lives behind the /messages link. */
+export const MESSAGE_PREVIEW_LENGTH = 160;
+
+export type NewMessageMailContext = {
+  /** The SENDER's display name — direction-agnostic (either party sends),
+   * so the fallback can't name a role the way the booking templates do. */
+  senderName: string | null;
+  body: string;
+};
+
+/** → the OTHER PARTY: a new message landed while they were fully caught up
+ * (the watermark gate lives in the action; this only renders). */
+export function newMessage(c: NewMessageMailContext): RenderedMail {
+  const sender = c.senderName ?? "Someone on PawMatch";
+  const preview =
+    c.body.length > MESSAGE_PREVIEW_LENGTH
+      ? `${c.body.slice(0, MESSAGE_PREVIEW_LENGTH)}…`
+      : c.body;
+  return {
+    subject: `New message from ${sender}`,
+    text: `${sender} sent you a message:
+
+"${preview}"
+
+Read and reply: ${siteUrl()}/messages`,
+  };
+}
+
 /** → the OWNER: session marked complete (the future review-prompt hook). */
 export function completed(c: BookingMailContext): RenderedMail {
   const trainer = c.counterpartyName ?? "Your trainer";
