@@ -28,6 +28,8 @@ import type { Database } from "@/types/supabase";
 export type OwnerBooking = {
   id: string;
   status: Database["public"]["Enums"]["booking_status"];
+  /** Attribution for CANCELLED rows ("by you" / "by the other party"). */
+  cancelled_by: Database["public"]["Enums"]["cancelled_by"] | null;
   starts_at: string;
   ends_at: string | null; // GENERATED column — non-null in practice
   duration_minutes: number;
@@ -49,7 +51,7 @@ export async function getOwnerBookings(
   const { data, error } = await supabase
     .from("bookings")
     .select(
-      "id, status, starts_at, ends_at, duration_minutes, price_cents, trainer_services(name), trainers(timezone, profiles(display_name)), dogs(name)",
+      "id, status, cancelled_by, starts_at, ends_at, duration_minutes, price_cents, trainer_services(name), trainers(timezone, profiles(display_name)), dogs(name)",
     )
     .eq("owner_id", ownerId)
     .order("starts_at", { ascending: true });

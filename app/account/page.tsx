@@ -131,9 +131,13 @@ export default async function AccountPage() {
               <CardTitle className="text-xl">{trainerCta.title}</CardTitle>
               <CardDescription>{trainerCta.body}</CardDescription>
             </CardHeader>
-            <CardContent>
+            <CardContent className="flex flex-col gap-2">
               <Button asChild className="w-full">
                 <Link href={trainerCta.href}>{trainerCta.cta}</Link>
+              </Button>
+              {/* Mirror of the owner side's line: one link, zero queries. */}
+              <Button asChild variant="outline" className="w-full">
+                <Link href="/trainer/bookings">Your bookings</Link>
               </Button>
             </CardContent>
           </Card>
