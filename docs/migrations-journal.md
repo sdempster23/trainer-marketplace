@@ -687,3 +687,85 @@ test (recorded in the scratch backlog).
 - Hosted push pending the standard decision.
 - If a logged-out picker preview ever ships, the anon grant is the one-line
   ride-along noted in the migration.
+
+## M13 — thread counterparty profile read (the messaging arc's enabler)
+
+One additive SELECT policy on profiles: trainers read the profiles of owners
+they share a `message_thread` with — M11 §2's counterparty read mirrored onto
+the freestanding-messaging relationship. Ruled at the messaging arc's Group-1
+review: M8 threads are deliberately booking-free (pre-booking inquiries are
+product), but the only trainer→owner profile path was M11's BOOKING-scoped
+policy, so a booking-less inquiry rendered "An owner" — proven live in the
+Group-1 work (real GoTrue token: `profiles: null` on the trainer side of a
+thread with no booking). Disclosure reasoning matches M11: opening a thread
+IS deliberate contact.
+
+**Outcome:** 7/7 M13 checks + the full M6–M12 regression under the
+fresh-reset-per-suite protocol — **161 PASS** with exactly 3 failures, all
+one pre-existing environment drift (below), none caused by M13 (control
+probe: the failures persist with the M13 policy dropped in-transaction).
+
+### The M11 lessons, applied at draft time (the point of writing them down)
+
+TO authenticated (anon holds profiles SELECT but ZERO message_threads grants
+— a PUBLIC-scoped qual would detonate the public directory exactly like the
+M11 B4/D1 draft) and the recursion pair checked BEFORE drafting: the
+message_threads quals are pure `auth.uid() = column` comparisons (no
+profiles subquery — the thread-INSERT owner-role check reads profiles from a
+SECURITY DEFINER trigger, which is not a policy and cannot join the
+expansion). Candidate probed rolled-back before the file was written: party
+read, stranger exclusion, anon intact, UPDATE + INSERT recursion probes all
+clean. The suite pins each as a standing trap (A4 = the B6 mirror, A5/A6 =
+the 42P17 traps, A7 = the roles={authenticated} catalog pin).
+
+### Findings
+
+**1. NAMEDATALEN truncates policy names at 63 chars — caught in the probe.**
+The first draft's name ("…they share a message thread with") was silently
+cut mid-word by Postgres (identifier truncation NOTICE). Shortened to fit.
+A truncated name would have broken the A7 catalog pin and every future
+`drop policy` referencing the documented name.
+
+**2. ENVIRONMENT: the v2.90→v2.109 CLI upgrade changed service_role's
+default table ACL (the M11 §3 drift class, now platform-wide).** On a fresh
+reset under v2.109, EVERY table shows `service_role=Dxtm` — TRUNCATE/
+REFERENCES/TRIGGER/MAINTAIN only, no SELECT/INSERT/UPDATE/DELETE. Three
+suite cases assert the v2.90-era artifact and now FAIL: M6 J4, M7-2, M8 G2
+("service_role retains full DML"). M12's 158/158 ran under v2.90; this is
+the upgrade surfacing on first fresh reset, not a regression in any
+migration. LEFT FAILING DELIBERATELY: the remedy is a decision, not a
+ride-along — either M11 §3's pattern (a deliberate-grants migration for
+whatever service_role actually needs; Phase 8's system transition path needs
+bookings UPDATE per J4's own rationale) or amending the three cases to pin
+the new reality. Local now matches hosted's "service_role grants are never
+platform-conferred" (the M11 finding), which argues for the deliberate-
+grants migration before Phase 8.
+
+**3. The M12 denial-path segfault SURVIVES v2.109** (the recorded
+fixed-or-not test, run post-upgrade): an anon call to a function without
+EXECUTE still crashes the backend into recovery. The M12 convention stands —
+suites assert EXECUTE denial via `has_function_privilege` only, never a live
+denied call.
+
+**4. Premise watch (the M8 C1 lesson, applied).** M13 changes profile
+visibility for THREAD pairs the way M11 did for booking pairs. M8 C1's
+invisibility precondition still holds — it is checked BEFORE the case's
+thread INSERT — but that ordering is now load-bearing from two directions
+(M11: no booking; M13: no thread yet). No test edits needed; noted in the
+M13 README and here.
+
+**5. The fresh-reset-per-suite protocol is not optional.** m9-after-m8 in
+one database hits the documented fixture co-load collision (M8's lesson:
+shared anchors, persisting fixture bookings). The full chain was re-run with
+a reset before each suite; every non-drift case passes.
+
+### Forward items
+
+- **service_role deliberate-grants migration (pre-Phase-8)** — the drift
+  finding's remedy decision; until then M6 J4 / M7-2 / M8 G2 fail on fresh
+  local resets and document the drift.
+- Hosted push pending the standard decision (expect the lightest
+  classification — one additive policy).
+- Group 2 of the messaging arc builds on this: the "An owner" fallback stays
+  in code as defense; the live proof exercises real names on a pre-booking
+  inquiry.
