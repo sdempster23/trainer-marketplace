@@ -6,6 +6,7 @@ import {
   CompleteBookingButton,
   ConfirmBookingButton,
 } from "@/components/bookings/transition-buttons";
+import { MessageButton } from "@/components/messages/message-button";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { createClient } from "@/lib/supabase/server";
@@ -86,6 +87,12 @@ export default async function TrainerBookingsPage() {
   const who = (b: TrainerBooking) =>
     b.profiles?.display_name ?? "An owner"; // NULL-name fallback (investigation flag)
 
+  // The cardBody(b) pattern: one wiring, four status groups — a prop change
+  // edits one line, not four.
+  const messageButton = (b: TrainerBooking) => (
+    <MessageButton counterpartyId={b.owner_id} bookingId={b.id} />
+  );
+
   const cardBody = (b: TrainerBooking) => (
     <div className="flex flex-col gap-1">
       <span className="font-medium">
@@ -136,6 +143,7 @@ export default async function TrainerBookingsPage() {
                       <div className="flex items-start justify-between gap-2">
                         {cardBody(b)}
                         <div className="flex shrink-0 items-center gap-2">
+                          {messageButton(b)}
                           {isPast(b) ? null : (
                             <ConfirmBookingButton bookingId={b.id} />
                           )}
@@ -162,6 +170,7 @@ export default async function TrainerBookingsPage() {
                     <CardContent className="flex items-start justify-between gap-2 pt-6">
                       {cardBody(b)}
                       <div className="flex shrink-0 items-center gap-2">
+                        {messageButton(b)}
                         <CancelBookingButton bookingId={b.id} label="Cancel" />
                       </div>
                     </CardContent>
@@ -178,6 +187,7 @@ export default async function TrainerBookingsPage() {
                     <CardContent className="flex items-start justify-between gap-2 pt-6">
                       {cardBody(b)}
                       <div className="flex shrink-0 items-center gap-2">
+                        {messageButton(b)}
                         <CompleteBookingButton bookingId={b.id} />
                         <CancelBookingButton bookingId={b.id} label="Cancel" />
                       </div>
@@ -194,15 +204,18 @@ export default async function TrainerBookingsPage() {
                   <Card key={b.id}>
                     <CardContent className="flex items-start justify-between gap-2 pt-6">
                       {cardBody(b)}
-                      <span className="bg-accent text-accent-foreground inline-flex shrink-0 items-center rounded-full px-2.5 py-1 text-xs font-medium">
-                        {b.status === "COMPLETED"
-                          ? "Completed"
-                          : b.cancelled_by === "trainer"
-                            ? "Cancelled by you"
-                            : b.cancelled_by === "owner"
-                              ? "Cancelled by the owner"
-                              : "Cancelled"}
-                      </span>
+                      <div className="flex shrink-0 flex-col items-end gap-2">
+                        <span className="bg-accent text-accent-foreground inline-flex items-center rounded-full px-2.5 py-1 text-xs font-medium">
+                          {b.status === "COMPLETED"
+                            ? "Completed"
+                            : b.cancelled_by === "trainer"
+                              ? "Cancelled by you"
+                              : b.cancelled_by === "owner"
+                                ? "Cancelled by the owner"
+                                : "Cancelled"}
+                        </span>
+                      {messageButton(b)}
+                      </div>
                     </CardContent>
                   </Card>
                 ))}

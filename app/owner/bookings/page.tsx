@@ -2,6 +2,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 
 import { CancelBookingButton } from "@/components/bookings/transition-buttons";
+import { MessageButton } from "@/components/messages/message-button";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { createClient } from "@/lib/supabase/server";
@@ -101,15 +102,23 @@ export default async function OwnerBookingsPage() {
                     · {booking.duration_minutes} min ·{" "}
                     {formatPrice(booking.price_cents)}
                   </span>
-                  {booking.status === "PENDING" ||
-                  booking.status === "CONFIRMED" ? (
-                    <div className="flex justify-end">
+                  {/* Message rides every row — coordination isn't status-
+                      gated (a completed session still gets a "thanks", a
+                      cancelled one a "can we rebook?"). Find-or-create, so
+                      repeat clicks land on the same thread. */}
+                  <div className="flex justify-end gap-2">
+                    <MessageButton
+                      counterpartyId={booking.trainer_id}
+                      bookingId={booking.id}
+                    />
+                    {booking.status === "PENDING" ||
+                    booking.status === "CONFIRMED" ? (
                       <CancelBookingButton
                         bookingId={booking.id}
                         label="Cancel"
                       />
-                    </div>
-                  ) : null}
+                    ) : null}
+                  </div>
                 </CardContent>
               </Card>
             ))}

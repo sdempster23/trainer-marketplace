@@ -11,6 +11,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import { getUnreadThreadCount } from "@/lib/messages/threads";
 import { createClient } from "@/lib/supabase/server";
 import { getActiveDogs } from "@/lib/owner/dogs";
 import {
@@ -107,20 +108,30 @@ export default async function AccountPage() {
   // /account is the role-forked hub — the fork, kept legible: trainers get
   // the onboarding-state CTA, owners get the dogs CTA, each computed ONLY for
   // its role so neither pays for the other's queries. The name section below
-  // is the role-universal part.
-  const trainerCta =
-    profile.role === "trainer"
-      ? TRAINER_CTA[await getOnboardingState(supabase, claims.sub)]
-      : null;
-
+  // is the role-universal part. The role-forked read and the unread count
+  // are independent, so they run CONCURRENTLY — one round-trip of latency,
+  // not two stacked.
+  //
   // Dog count via getActiveDogs (not a bare head-count query): the count must
   // respect the same deleted_at view spec as every dogs read, and the helper
-  // is the single place that rule lives — a separate count query would be a
-  // second, forgettable query site.
-  const ownerDogs =
+  // is the single place that rule lives. Unread via getUnreadThreadCount —
+  // the priced app-side shape (one slim query, the pure authority derives
+  // per thread); only participants can have threads, so admin skips it, and
+  // it returns 0 on error by contract (the hub link degrades to countless,
+  // never breaks).
+  const [trainerCta, ownerDogs, unreadCount] = await Promise.all([
+    profile.role === "trainer"
+      ? getOnboardingState(supabase, claims.sub).then((s) => TRAINER_CTA[s])
+      : Promise.resolve(null),
     profile.role === "owner"
-      ? (await getActiveDogs(supabase, claims.sub)).dogs
-      : null;
+      ? getActiveDogs(supabase, claims.sub).then((r) => r.dogs)
+      : Promise.resolve(null),
+    profile.role === "owner" || profile.role === "trainer"
+      ? getUnreadThreadCount(supabase, claims.sub)
+      : Promise.resolve(0),
+  ]);
+  const messagesLabel =
+    unreadCount > 0 ? `Messages (${unreadCount} new)` : "Messages";
 
   return (
     <main className="bg-muted flex min-h-screen items-center justify-center px-6 py-12">
@@ -138,6 +149,9 @@ export default async function AccountPage() {
               {/* Mirror of the owner side's line: one link, zero queries. */}
               <Button asChild variant="outline" className="w-full">
                 <Link href="/trainer/bookings">Your bookings</Link>
+              </Button>
+              <Button asChild variant="outline" className="w-full">
+                <Link href="/messages">{messagesLabel}</Link>
               </Button>
             </CardContent>
           </Card>
@@ -163,6 +177,9 @@ export default async function AccountPage() {
                   the list page owns its own empty state. */}
               <Button asChild variant="outline" className="w-full">
                 <Link href="/owner/bookings">Your bookings</Link>
+              </Button>
+              <Button asChild variant="outline" className="w-full">
+                <Link href="/messages">{messagesLabel}</Link>
               </Button>
             </CardContent>
           </Card>
