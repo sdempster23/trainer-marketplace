@@ -796,3 +796,19 @@ read-only:
    any Phase-8 system-path table write via service_role is broken until the
    deliberate-grants migration. The forward item is now grounded in cited
    fact, not environment inference.
+
+### Rulings closed by the messaging arc (2026-07-05, post-#30)
+
+- **service_role deliberate-grants migration — RULED IN**, pre-Phase-8, as
+  its own arc after messaging. The cited ACL fact (above) confirmed local
+  matches hosted, so the remedy is a real migration, not a suite amendment.
+  **M6 J4 / M7-2 / M8 G2 stay failing on fresh resets until that arc lands
+  and amends them together** — not before; the failures document the drift
+  and are the arc's acceptance targets.
+- **Hosted positive counterparty read — ACCEPTED RESIDUAL.** M13's
+  authenticated trainer-reads-owner path was never exercised on hosted (no
+  participant credentials; service_role can't count thread rows). It is
+  suite-proven locally (M13 A1) and live-proven end-to-end on the local
+  stack (the #30 finale: real name on a booking-less inquiry). **The first
+  real hosted thread is the de facto proof, and the first suspect if hosted
+  messaging ever misbehaves.**
