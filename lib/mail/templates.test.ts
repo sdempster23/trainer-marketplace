@@ -5,6 +5,8 @@ import {
   completed,
   confirmed,
   declinedByTrainer,
+  MESSAGE_PREVIEW_LENGTH,
+  newMessage,
   requestReceived,
   type BookingMailContext,
   type RenderedMail,
@@ -62,5 +64,53 @@ describe.each(templates)("$name", ({ render, nullFallback }) => {
     const { text } = render({ ...FULL, trainerTimezone: "UTC" });
     expect(text).toContain("(UTC)"); // raw zone named, not blank
     expect(text).not.toContain("undefined");
+  });
+});
+
+/**
+ * newMessage is direction-agnostic (either party may be the sender), so its
+ * context carries the sender's name directly — no per-template fallback
+ * pair. The body PREVIEW is truncated: the email is a doorbell, not the
+ * conversation; the full text lives behind the /messages link.
+ */
+describe("newMessage", () => {
+  const CONTEXT = { senderName: "Olivia Park", body: "Where do we meet?" };
+
+  test("renders sender, preview, and the /messages link; no 'undefined'", () => {
+    const { subject, text } = newMessage(CONTEXT);
+    const all = `${subject}\n${text}`;
+    expect(all).toContain("Olivia Park");
+    expect(all).toContain("Where do we meet?");
+    expect(text).toContain("/messages");
+    expect(all).not.toContain("undefined");
+  });
+
+  test("NULL sender name falls back, still no 'undefined' or 'null'", () => {
+    const { subject, text } = newMessage({ ...CONTEXT, senderName: null });
+    const all = `${subject}\n${text}`;
+    expect(all).not.toContain("undefined");
+    expect(all).not.toContain("null");
+    expect(text).toContain("/messages");
+  });
+
+  test("long bodies are truncated with an ellipsis at the preview cap", () => {
+    const { text } = newMessage({ ...CONTEXT, body: "x".repeat(500) });
+    expect(text).toContain("x".repeat(MESSAGE_PREVIEW_LENGTH) + "…");
+    expect(text).not.toContain("x".repeat(MESSAGE_PREVIEW_LENGTH + 1));
+  });
+
+  test("short bodies render whole — no ellipsis", () => {
+    const { text } = newMessage(CONTEXT);
+    expect(text).not.toContain("…");
+  });
+  test("never splits an emoji at the preview boundary (code points, not units)", () => {
+    // 159 ASCII chars + 🐶 + tail: a unit-based slice(0, 160) would cut the
+    // surrogate pair in half and render U+FFFD in the email.
+    const { text } = newMessage({
+      ...CONTEXT,
+      body: "x".repeat(MESSAGE_PREVIEW_LENGTH - 1) + "🐶" + "y".repeat(20),
+    });
+    expect(text).toContain("x".repeat(MESSAGE_PREVIEW_LENGTH - 1) + "🐶…");
+    expect(text).not.toContain("�");
   });
 });

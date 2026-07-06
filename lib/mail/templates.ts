@@ -1,3 +1,4 @@
+import { truncatePreview } from "@/lib/utils";
 import { formatBookingStart } from "@/lib/validators/booking";
 import {
   formatPrice,
@@ -89,6 +90,33 @@ export function cancelledByOwner(c: BookingMailContext): RenderedMail {
 The slot is open again: ${when(c)}
 
 Your bookings: ${siteUrl()}/trainer/bookings`,
+  };
+}
+
+/** Preview cap for newMessage (code points — truncatePreview never splits
+ * an emoji) — the email is a doorbell, not the conversation; the full text
+ * lives behind the /messages link. */
+export const MESSAGE_PREVIEW_LENGTH = 160;
+
+export type NewMessageMailContext = {
+  /** The SENDER's display name — direction-agnostic (either party sends),
+   * so the fallback can't name a role the way the booking templates do. */
+  senderName: string | null;
+  body: string;
+};
+
+/** → the OTHER PARTY: a new message landed while they were fully caught up
+ * (the watermark gate lives in the action; this only renders). */
+export function newMessage(c: NewMessageMailContext): RenderedMail {
+  const sender = c.senderName ?? "Someone on PawMatch";
+  const preview = truncatePreview(c.body, MESSAGE_PREVIEW_LENGTH);
+  return {
+    subject: `New message from ${sender}`,
+    text: `${sender} sent you a message:
+
+"${preview}"
+
+Read and reply: ${siteUrl()}/messages`,
   };
 }
 

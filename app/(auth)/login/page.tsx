@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useActionState } from "react";
+import { use, useActionState } from "react";
 
 import { signIn, type AuthActionState } from "@/app/(auth)/actions";
 import { Button } from "@/components/ui/button";
@@ -15,7 +15,15 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 
-export default function LoginPage() {
+export default function LoginPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ next?: string }>;
+}) {
+  // `?next=` carries the pre-login destination (e.g. "Log in to message" on
+  // a trainer page). Passed through as a hidden field; the ACTION validates
+  // it as a same-origin path — this component never trusts it.
+  const { next } = use(searchParams);
   const [state, formAction, isPending] = useActionState<
     AuthActionState,
     FormData
@@ -30,6 +38,7 @@ export default function LoginPage() {
         </CardHeader>
         <CardContent>
           <form action={formAction} className="flex flex-col gap-6">
+            {next ? <input type="hidden" name="next" value={next} /> : null}
             <div className="grid gap-2">
               <Label htmlFor="email">Email</Label>
               <Input

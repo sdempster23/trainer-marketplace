@@ -19,6 +19,8 @@ import type { Database } from "@/types/supabase";
  */
 export type TrainerBooking = {
   id: string;
+  /** The counterparty id — the Message button's find-or-create target. */
+  owner_id: string;
   status: Database["public"]["Enums"]["booking_status"];
   /** Attribution for CANCELLED rows ("by you" / "by the other party"). */
   cancelled_by: Database["public"]["Enums"]["cancelled_by"] | null;
@@ -38,7 +40,7 @@ export async function getTrainerBookings(
   const { data, error } = await supabase
     .from("bookings")
     .select(
-      "id, status, cancelled_by, starts_at, ends_at, duration_minutes, price_cents, trainer_services(name), profiles(display_name), dogs(name)",
+      "id, owner_id, status, cancelled_by, starts_at, ends_at, duration_minutes, price_cents, trainer_services(name), profiles(display_name), dogs(name)",
     )
     .eq("trainer_id", trainerId)
     .order("starts_at", { ascending: true });

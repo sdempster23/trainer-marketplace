@@ -123,7 +123,24 @@ export async function signIn(
   }
 
   revalidatePath("/", "layout");
-  redirect(POST_AUTH_REDIRECT);
+  redirect(safeInternalPath(formData.get("next")) ?? POST_AUTH_REDIRECT);
+}
+
+/**
+ * Post-login return path (`?next=` → hidden input → here). SECURITY: this
+ * value is attacker-suppliable, so it must never become an open redirect —
+ * only a same-origin PATH is honored: leading "/", not "//" (protocol-
+ * relative URL) and no "\" (browsers normalize "/\" to "//"). Anything else
+ * falls back to the default landing.
+ */
+function safeInternalPath(value: FormDataEntryValue | null): string | null {
+  if (typeof value !== "string" || value === "") {
+    return null;
+  }
+  if (!value.startsWith("/") || value.startsWith("//") || value.includes("\\")) {
+    return null;
+  }
+  return value;
 }
 
 export async function signOut(): Promise<void> {

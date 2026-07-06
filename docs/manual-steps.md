@@ -75,10 +75,10 @@ middleware default.
 ## Environment / database
 
 - **Hosted dev Supabase project** (`trainer-marketplace-dev`, ref
-  `iomaiasjqozunjbvsdsk`) is at **migration M10** — the full M1→M10 schema was
+  `iomaiasjqozunjbvsdsk`) is at **migration M13** — the full M1→M13 schema was
   pushed (`supabase db push`) so the deployed app has every table the code
   expects (identity, dogs, trainers, services/availability, stripe accounts,
-  bookings, messaging + read-state, the nearby_trainers RPC). Anyone pointing
+  bookings, messaging + read-state + thread counterparty read, the nearby_trainers RPC, busy ranges). Anyone pointing
   the app at hosted dev has a complete, grant-hardened schema.
 - **Local dev runs against the LOCAL stack by default** (decided 2026-07-02).
   `.env.local` points `NEXT_PUBLIC_SUPABASE_URL` / anon key / service-role key

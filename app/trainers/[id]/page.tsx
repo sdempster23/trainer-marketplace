@@ -1,10 +1,15 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { cache } from "react";
-import { z } from "zod";
 
+import type { SupabaseClient } from "@supabase/supabase-js";
+
+import { MessageButton } from "@/components/messages/message-button";
+import { Button } from "@/components/ui/button";
 import { createClient } from "@/lib/supabase/server";
+import type { Database } from "@/types/supabase";
 import { getActiveServices } from "@/lib/trainer/services";
+import { dbIdSchema } from "@/lib/validators/id";
 import {
   formatPrice,
   METERS_PER_MILE,
@@ -29,12 +34,8 @@ import {
  * entry (the informational-only forward item died with Arc C).
  */
 
-// z.guid(), NOT z.uuid(): zod's uuid() enforces RFC-4122 version/variant
-// bits, but the gate's job is to match what the Postgres uuid COLUMN accepts
-// (any 8-4-4-4-12 hex) — the seed's readable anchors (5eed0001-…) are valid
-// column values with a "version 0", and z.uuid() would 404 every seed
-// trainer at the gate instead of letting the floor judge them.
-const uuidSchema = z.guid();
+// The z.guid()-not-z.uuid() argument lives with the shared schema.
+const uuidSchema = dbIdSchema();
 
 /**
  * React cache() so generateMetadata and the page render share ONE fetch per
@@ -57,6 +58,36 @@ const getListableTrainer = cache(async (id: string) => {
     .maybeSingle();
   return data;
 });
+
+/**
+ * Pre-booking contact (the messaging arc's ruling 1): OWNERS get a Message
+ * button — the M8 freestanding-thread contract makes an unbooked inquiry
+ * legal, and M13 makes the inquirer's name visible to the trainer. NO
+ * redirect anywhere in this probe — the page stays public (the front-door
+ * rule); logged-out visitors get a login link instead, and a trainer or
+ * admin viewing gets neither (they cannot be the owner side of a thread —
+ * the DEFINER gate would reject the insert anyway). A failed role read is
+ * LOGGED and degrades to no-button (the getUnreadThreadCount contract:
+ * a probe failure must never break the page it decorates).
+ */
+async function getViewer(
+  supabase: SupabaseClient<Database>,
+): Promise<{ isLoggedIn: boolean; isOwner: boolean }> {
+  const { data } = await supabase.auth.getClaims();
+  const viewerId = data?.claims?.sub;
+  if (!viewerId) {
+    return { isLoggedIn: false, isOwner: false };
+  }
+  const { data: profile, error } = await supabase
+    .from("profiles")
+    .select("role")
+    .eq("id", viewerId)
+    .maybeSingle();
+  if (error) {
+    console.error("[MESSAGES] viewer role probe failed:", error.message);
+  }
+  return { isLoggedIn: true, isOwner: profile?.role === "owner" };
+}
 
 type Params = { id: string };
 
@@ -100,10 +131,15 @@ export default async function TrainerDetailPage({
     notFound();
   }
 
-  // The single services read path — the deleted_at IS NULL view-spec rides
-  // free (this page is exactly the one the access-floor catch was about:
-  // a trainer viewing their OWN detail page while logged in).
-  const { services } = await getActiveServices(await createClient(), id);
+  // One client for the render's remaining reads, run CONCURRENTLY — the
+  // services read (the single read path; the deleted_at IS NULL view-spec
+  // rides free) and the viewer probe are independent, and this is the
+  // directory's click-through, the hottest public page: no stacked awaits.
+  const supabase = await createClient();
+  const [{ services }, viewer] = await Promise.all([
+    getActiveServices(supabase, id),
+    getViewer(supabase),
+  ]);
 
   const radiusMiles =
     trainer.service_radius_meters !== null
@@ -126,6 +162,23 @@ export default async function TrainerDetailPage({
               : null}
             {radiusMiles !== null ? `Travels up to ${radiusMiles} miles` : null}
           </p>
+          {viewer.isOwner ? (
+            <div className="mt-1">
+              <MessageButton counterpartyId={trainer.id} />
+            </div>
+          ) : !viewer.isLoggedIn ? (
+            <div className="mt-1">
+              <Button asChild variant="outline" size="sm">
+                {/* ?next= brings them back here post-login (validated as a
+                    same-origin path by the signIn action). */}
+                <Link
+                  href={`/login?next=${encodeURIComponent(`/trainers/${trainer.id}`)}`}
+                >
+                  Log in to message
+                </Link>
+              </Button>
+            </div>
+          ) : null}
         </header>
 
         {trainer.bio ? (

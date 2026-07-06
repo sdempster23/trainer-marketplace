@@ -769,3 +769,30 @@ a reset before each suite; every non-drift case passes.
 - Group 2 of the messaging arc builds on this: the "An owner" fallback stays
   in code as defense; the live proof exercises real names on a pre-booking
   inquiry.
+
+### M13 hosted push + remote verification (2026-07-05, post-merge)
+
+Pushed clean — the only pending migration (hosted was already at M12; the
+manual-steps "at M10" note was stale, corrected). Verification, all
+read-only:
+
+1. **Catalog pin ✅** (via `supabase db dump --linked`): the policy exists
+   under its full untruncated name, `FOR SELECT TO "authenticated"`, qual
+   byte-matching the migration.
+2. **Anon spot-check ✅**: anon profiles read returns trainer rows only
+   (200, no detonation), `nearby_trainers` evaluates clean (200). Hosted
+   has no owner profiles, so anon-cannot-read-an-owner is vacuous there —
+   suite-proven locally (A4).
+3. **Authenticated counterparty read — not exercisable on hosted**: no
+   participant credentials, and (finding 4) service_role cannot even count
+   thread rows. Group 2's live proof is the real evidence, as ruled.
+4. **THE ACL FACT, CITED (replaces "local now matches hosted" inference):**
+   hosted grants service_role exactly `REFERENCES, TRIGGER, TRUNCATE,
+   MAINTAIN` on bookings, message_threads, and profiles (pg_dump GRANT
+   statements) — identical to local v2.109's `Dxtm`. Demonstrated live:
+   service-role PostgREST reads of message_threads AND profiles both return
+   42501 on hosted TODAY. The current app is unaffected (its only
+   service-role surface is the auth admin API — lib/supabase/admin.ts), but
+   any Phase-8 system-path table write via service_role is broken until the
+   deliberate-grants migration. The forward item is now grounded in cited
+   fact, not environment inference.
