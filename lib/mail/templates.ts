@@ -1,3 +1,4 @@
+import { truncatePreview } from "@/lib/utils";
 import { formatBookingStart } from "@/lib/validators/booking";
 import {
   formatPrice,
@@ -92,8 +93,9 @@ Your bookings: ${siteUrl()}/trainer/bookings`,
   };
 }
 
-/** Preview cap for newMessage — the email is a doorbell, not the
- * conversation; the full text lives behind the /messages link. */
+/** Preview cap for newMessage (code points — truncatePreview never splits
+ * an emoji) — the email is a doorbell, not the conversation; the full text
+ * lives behind the /messages link. */
 export const MESSAGE_PREVIEW_LENGTH = 160;
 
 export type NewMessageMailContext = {
@@ -107,10 +109,7 @@ export type NewMessageMailContext = {
  * (the watermark gate lives in the action; this only renders). */
 export function newMessage(c: NewMessageMailContext): RenderedMail {
   const sender = c.senderName ?? "Someone on PawMatch";
-  const preview =
-    c.body.length > MESSAGE_PREVIEW_LENGTH
-      ? `${c.body.slice(0, MESSAGE_PREVIEW_LENGTH)}…`
-      : c.body;
+  const preview = truncatePreview(c.body, MESSAGE_PREVIEW_LENGTH);
   return {
     subject: `New message from ${sender}`,
     text: `${sender} sent you a message:

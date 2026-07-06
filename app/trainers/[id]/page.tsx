@@ -1,10 +1,10 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { cache } from "react";
-import { z } from "zod";
 
 import { createClient } from "@/lib/supabase/server";
 import { getActiveServices } from "@/lib/trainer/services";
+import { dbIdSchema } from "@/lib/validators/id";
 import {
   formatPrice,
   METERS_PER_MILE,
@@ -29,12 +29,8 @@ import {
  * entry (the informational-only forward item died with Arc C).
  */
 
-// z.guid(), NOT z.uuid(): zod's uuid() enforces RFC-4122 version/variant
-// bits, but the gate's job is to match what the Postgres uuid COLUMN accepts
-// (any 8-4-4-4-12 hex) — the seed's readable anchors (5eed0001-…) are valid
-// column values with a "version 0", and z.uuid() would 404 every seed
-// trainer at the gate instead of letting the floor judge them.
-const uuidSchema = z.guid();
+// The z.guid()-not-z.uuid() argument lives with the shared schema.
+const uuidSchema = dbIdSchema();
 
 /**
  * React cache() so generateMetadata and the page render share ONE fetch per

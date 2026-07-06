@@ -3,7 +3,6 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { after } from "next/server";
-import { z } from "zod";
 
 import type { SupabaseClient } from "@supabase/supabase-js";
 
@@ -12,6 +11,7 @@ import { newMessage } from "@/lib/mail/templates";
 import { shouldSendNewMessageEmail } from "@/lib/messages/unread";
 import { getUserEmail } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
+import { dbIdSchema } from "@/lib/validators/id";
 import { messageBodySchema } from "@/lib/validators/message";
 import type { Database } from "@/types/supabase";
 
@@ -35,12 +35,9 @@ export type MessageActionState =
   | { success: true }
   | null;
 
-// z.guid(), not z.uuid(), for ids that can be SEED anchors (5eed…-pattern
-// "version 0" uuids) — the trainer-detail gate's argument verbatim: match
-// what the uuid COLUMN accepts, or every seed trainer 404s at the gate.
-const counterpartyIdSchema = z.guid("Invalid profile.");
-const threadIdSchema = z.guid("Invalid conversation.");
-const bookingIdSchema = z.guid("Invalid booking.");
+const counterpartyIdSchema = dbIdSchema("Invalid profile.");
+const threadIdSchema = dbIdSchema("Invalid conversation.");
+const bookingIdSchema = dbIdSchema("Invalid booking.");
 
 const GENERIC_ERROR = "Something went wrong. Please try again.";
 const NOT_FOUND_MESSAGE = "That conversation could not be found.";
@@ -326,7 +323,17 @@ export async function markThreadRead(threadId: string): Promise<void> {
   if (!threadIdSchema.safeParse(threadId).success) {
     return;
   }
-  const { supabase, userId } = await requireUser();
+  // NOT requireUser(): its redirect("/login") would ride the action
+  // transport back to the client and NAVIGATE the tab — from a background
+  // 30s tick, that yanks a user mid-draft the moment their session
+  // expires. Fire-and-forget means every exit is a silent return; the
+  // page's own guard handles the logged-out state on the next navigation.
+  const supabase = await createClient();
+  const { data } = await supabase.auth.getClaims();
+  const userId = data?.claims?.sub;
+  if (!userId) {
+    return;
+  }
 
   try {
     const { data: thread } = await supabase

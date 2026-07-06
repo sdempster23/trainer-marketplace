@@ -103,4 +103,14 @@ describe("newMessage", () => {
     const { text } = newMessage(CONTEXT);
     expect(text).not.toContain("…");
   });
+  test("never splits an emoji at the preview boundary (code points, not units)", () => {
+    // 159 ASCII chars + 🐶 + tail: a unit-based slice(0, 160) would cut the
+    // surrogate pair in half and render U+FFFD in the email.
+    const { text } = newMessage({
+      ...CONTEXT,
+      body: "x".repeat(MESSAGE_PREVIEW_LENGTH - 1) + "🐶" + "y".repeat(20),
+    });
+    expect(text).toContain("x".repeat(MESSAGE_PREVIEW_LENGTH - 1) + "🐶…");
+    expect(text).not.toContain("�");
+  });
 });
