@@ -33,8 +33,16 @@
 -- HARDENED END STATE (verified on a fresh `supabase db reset`):
 --   authenticated -> SELECT, INSERT, UPDATE   (exactly three)
 --   anon          -> nothing
---   service_role  -> full (bypasses RLS; server-side admin path, unchanged)
+--   service_role  -> SELECT, UPDATE           (M14 declared; see J4)
 --   postgres      -> full (table owner; unchanged)
+--
+-- M14 AMENDMENT (2026-07-08): "service_role -> full" above was the v2.90-era
+-- platform default, an artifact this suite never granted. The v2.90->v2.109
+-- CLI upgrade removed it (journal: hosted + local both grant service_role
+-- only REFERENCES/TRIGGER/TRUNCATE/MAINTAIN at table creation), and M14
+-- replaced the artifact with a DECLARED set: SELECT + UPDATE — exactly what
+-- the §10 system transitions and the M11 §1 payment-intent attach need.
+-- J4 flips accordingly, from over-revoke guard to declared-grants pin.
 --
 -- VERIFICATION MECHANISM: has_table_privilege(role, table, priv) -> boolean.
 -- The role is an explicit argument, so no JWT-clearing prelude and no session-
@@ -45,7 +53,7 @@
 --   J1  authenticated HAS select/insert/update          (granted DML present)
 --   J2  authenticated LACKS delete/truncate/references/trigger (REVOKE held)
 --   J3  anon has NO privileges                          (revoke all held)
---   J4  service_role retains full DML                   (REVOKE not over-broad)
+--   J4  service_role holds the M14 declared set exactly (S,U in; I,D out)
 --
 -- Acceptance: all 4 cases must PASS.
 -- ============================================================================
@@ -124,24 +132,29 @@ begin
 end $$;
 
 -- ============================================================================
--- J4: service_role retains full DML (the REVOKE was not over-broad)
--- service_role is the trusted server-side role (it also has BYPASSRLS). The
--- §13 REVOKE targeted anon + authenticated only; this case guards against an
--- over-broad revoke that would break server-side admin/cron paths (e.g. the
--- Phase 8 system-path CONFIRMED -> COMPLETED). Grants are separate from
--- BYPASSRLS: the role still needs table privileges to operate.
+-- J4: service_role holds the M14 DECLARED set exactly (was: over-revoke guard)
+-- service_role is the trusted server-side role (it also has BYPASSRLS —
+-- irrelevant here: row security sits ABOVE table privileges; a role with no
+-- table privilege never reaches it). M14 declares SELECT + UPDATE: the §10
+-- system transitions (PENDING->CANCELLED by system, CONFIRMED->COMPLETED
+-- cron) and the M11 §1 payment-intent attach are all UPDATEs, and UPDATE's
+-- WHERE clause needs SELECT on the columns it reads. INSERT and DELETE are
+-- pinned ABSENT by design: bookings enter only via the authenticated owner
+-- (§9), and cancellation is a transition, never a row removal (J2). Both
+-- directions asserted — a lost grant breaks Phase 8's system path; a stray
+-- grant hands the RLS-bypassing role a verb the design forbids.
 -- ============================================================================
 \echo
-\echo === J4: service_role retains full DML (not over-revoked) ===
+\echo === J4: service_role holds SELECT,UPDATE and NOT INSERT,DELETE (M14 pin) ===
 do $$
 begin
   if has_table_privilege('service_role','public.bookings','SELECT')
-     and has_table_privilege('service_role','public.bookings','INSERT')
      and has_table_privilege('service_role','public.bookings','UPDATE')
-     and has_table_privilege('service_role','public.bookings','DELETE') then
-    raise notice 'J4 PASS | service_role retains full DML (server-side path intact)';
+     and not has_table_privilege('service_role','public.bookings','INSERT')
+     and not has_table_privilege('service_role','public.bookings','DELETE') then
+    raise notice 'J4 PASS | service_role = SELECT,UPDATE exactly (M14 declared set)';
   else
-    raise exception 'J4 FAIL | service_role lost a privilege (over-revoke): S=% I=% U=% D=%',
+    raise exception 'J4 FAIL | service_role off the M14 declared set: S=% I=% U=% D=% (want t/f/t/f)',
       has_table_privilege('service_role','public.bookings','SELECT'),
       has_table_privilege('service_role','public.bookings','INSERT'),
       has_table_privilege('service_role','public.bookings','UPDATE'),

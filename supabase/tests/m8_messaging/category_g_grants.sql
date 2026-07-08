@@ -8,7 +8,8 @@
 -- G1 exact matrix: message_threads + messages x {anon, authenticated},
 --    exhaustive across all 7 table privileges (proves absence as well as
 --    presence — e.g. anon has nothing, messages has no UPDATE/DELETE).
--- G2 over-revoke guard: service_role retains full DML on both tables.
+-- G2 service_role declared-set pin (M14): NO DML on either table — no
+--    system path writes messaging; the M14 declaration grants it nothing.
 --
 -- 2 checks. Acceptance: all PASS.
 -- ============================================================================
@@ -59,10 +60,18 @@ begin
 end $$;
 
 -- ============================================================================
--- G2: over-revoke guard — service_role retains full DML on both tables
+-- G2: service_role declared-set pin (M14 amendment, 2026-07-08)
+-- Was an over-revoke guard asserting full DML — the v2.90 platform-default
+-- artifact, never granted by any migration, removed by the v2.90->v2.109 CLI
+-- upgrade (journal: service_role grants are never platform-conferred, hosted
+-- + local alike). M14 declares service_role's set per table, and for
+-- messaging that set is EMPTY: all writes are authenticated-party server
+-- actions; the mail seam reads run under the acting user's session plus the
+-- auth admin API. Absence is now the assertion — a stray grant here would
+-- hand the RLS-bypassing role a surface no designed path uses.
 -- ============================================================================
 \echo
-\echo === G2: service_role retains full DML (over-revoke guard) ===
+\echo === G2: service_role holds NO DML on messaging tables (M14 pin) ===
 do $$
 declare
   t text;
@@ -73,16 +82,16 @@ declare
 begin
   foreach t in array tables loop
     foreach p in array dml loop
-      if not has_table_privilege('service_role', 'public.' || t, p) then
-        raise warning 'G2 MISSING | service_role lacks % on %', p, t;
+      if has_table_privilege('service_role', 'public.' || t, p) then
+        raise warning 'G2 STRAY | service_role holds % on % (declared set is empty)', p, t;
         fails := fails + 1;
       end if;
     end loop;
   end loop;
   if fails = 0 then
-    raise notice 'G2 PASS | service_role retains full DML (REVOKE scoped to anon/authenticated only)';
+    raise notice 'G2 PASS | service_role holds no DML on messaging tables (M14 declared set: empty)';
   else
-    raise exception 'G2 FAIL | service_role lost % privilege(s) — over-revoke', fails;
+    raise exception 'G2 FAIL | % stray privilege(s) beyond the M14 declared set', fails;
   end if;
 end $$;
 

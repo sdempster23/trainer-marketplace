@@ -11,9 +11,12 @@ the GRANT layer as a real second gate beneath RLS, project-wide.
    (SELECT/INSERT/UPDATE/DELETE/TRUNCATE/REFERENCES/TRIGGER) asserted
    present-if-intended and absent-otherwise — so the test catches both a
    missing grant and a leftover excess.
-2. **Over-revoke guard (J4 pattern)** — `service_role` retains full DML
-   (the §1 REVOKEs name only `anon, authenticated`; a typo hitting
-   `service_role` would break the server-side / cron paths and is caught here).
+2. **service_role declared-set pin (M14 amendment, 2026-07-08)** —
+   `trainer_stripe_accounts` = SELECT,INSERT,UPDATE exactly; `dogs` = no DML
+   at all. (Originally an over-revoke guard asserting full DML — that was
+   the v2.90 platform-default artifact, never granted by any migration and
+   removed by the v2.90→v2.109 CLI upgrade. M14 declares the real set; the
+   case now pins it in both directions.)
 3. **Default-privileges capstone** — a throwaway table created as `postgres`
    auto-grants nothing to `anon`/`authenticated`, proving §2's
    `ALTER DEFAULT PRIVILEGES` took (future tables are hardened by default).

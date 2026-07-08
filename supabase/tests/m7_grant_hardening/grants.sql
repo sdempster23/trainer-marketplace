@@ -9,7 +9,8 @@
 --   M7-1  exact grant matrix — each of the 9 swept tables, anon + authenticated
 --         hold EXACTLY the policy-matched set (all 7 privileges asserted, so
 --         both a missing grant and a leftover excess fail)
---   M7-2  over-revoke guard — service_role retains full DML (J4 pattern)
+--   M7-2  service_role declared-set pin (M14): trainer_stripe_accounts =
+--         SELECT,INSERT,UPDATE exactly; dogs = no DML at all
 --   M7-3  default-privileges capstone — a new table auto-grants nothing to
 --         anon/authenticated (proves §2 ALTER DEFAULT PRIVILEGES took)
 --
@@ -79,35 +80,49 @@ begin
 end $$;
 
 -- ============================================================================
--- M7-2: over-revoke guard — service_role retains full DML
--- The §1 REVOKEs name only anon + authenticated. A typo revoking from
--- service_role would silently break server-side writes (e.g. the M5 Stripe
--- two-gate path, Phase 8 cron). Verify service_role still holds full DML on the
--- two most-tightened tables (stripe = authenticated-SELECT-only; dogs =
--- anon-none) — if service_role survived there, the REVOKE scope was correct.
+-- M7-2: service_role declared-set pin (M14 amendment, 2026-07-08)
+-- The original case was an over-revoke guard asserting service_role's full
+-- DML — which was never granted by anyone; it was the v2.90 platform default,
+-- removed by the v2.90->v2.109 CLI upgrade (journal: grants are never
+-- platform-conferred for service_role, hosted + local alike). M14 declares
+-- the real set. Same two most-tightened tables, now pinned in BOTH
+-- directions against the M14 declaration:
+--   trainer_stripe_accounts = SELECT,INSERT,UPDATE exactly (the M5 two-gate
+--     table — service_role is its ONLY writer: Phase-7 onboarding INSERT,
+--     Phase-8 account.updated UPDATE, stripe_account_id lookup SELECT; no
+--     DELETE — row absence is a first-class state, never reached by delete)
+--   dogs = no DML at all (no system path touches dogs)
 -- ============================================================================
 \echo
-\echo === M7-2: service_role retains full DML (over-revoke guard) ===
+\echo === M7-2: service_role holds the M14 declared set exactly (both directions) ===
 do $$
 declare
-  t text;
+  r record;
   p text;
-  tables text[] := array['trainer_stripe_accounts','dogs'];
-  dml text[] := array['SELECT','INSERT','UPDATE','DELETE'];
+  expected boolean;
+  actual boolean;
   fails int := 0;
 begin
-  foreach t in array tables loop
-    foreach p in array dml loop
-      if not has_table_privilege('service_role', 'public.' || t, p) then
-        raise warning 'M7-2 MISSING | service_role lacks % on %', p, t;
+  for r in
+    select * from (values
+      ('trainer_stripe_accounts', array['SELECT','INSERT','UPDATE']),
+      ('dogs',                    array[]::text[])
+    ) as m(tbl, granted)
+  loop
+    foreach p in array array['SELECT','INSERT','UPDATE','DELETE'] loop
+      expected := p = any(r.granted);
+      actual := has_table_privilege('service_role', 'public.' || r.tbl, p);
+      if actual <> expected then
+        raise warning 'M7-2 MISMATCH | service_role | % | % | expected=% actual=%',
+          r.tbl, p, expected, actual;
         fails := fails + 1;
       end if;
     end loop;
   end loop;
   if fails = 0 then
-    raise notice 'M7-2 PASS | service_role retains full DML (REVOKE scoped to anon/authenticated only)';
+    raise notice 'M7-2 PASS | service_role = M14 declared set (stripe S,I,U; dogs none)';
   else
-    raise exception 'M7-2 FAIL | service_role lost % privilege(s) — over-revoke', fails;
+    raise exception 'M7-2 FAIL | % mismatch(es) against the M14 declared set', fails;
   end if;
 end $$;
 

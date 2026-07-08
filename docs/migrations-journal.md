@@ -812,3 +812,127 @@ read-only:
   stack (the #30 finale: real name on a booking-less inquiry). **The first
   real hosted thread is the de facto proof, and the first suspect if hosted
   messaging ever misbehaves.**
+
+---
+
+## M14 — deliberate service_role table grants (the drift remedy, pre-Phase-8)
+
+Two additive GRANTs and nothing else: `bookings → SELECT, UPDATE` and
+`trainer_stripe_accounts → SELECT, INSERT, UPDATE` to service_role. The
+remedy the M13 arc ruled in: the v2.90→v2.109 CLI upgrade removed
+service_role's platform-default DML (every table `service_role=Dxtm`),
+matching hosted's provisioned-from-day-one state — the M13 hosted
+verification's CITED ACL FACT. Grants are never platform-conferred for
+service_role; M14 is the declaration of what the server actually needs.
+
+**Scope was ruled at investigation QA (2026-07-08), minimal per-table, NOT
+blanket ALL:** every verb maps to a system path the schema already declares
+— the M6 §10 trigger's `v_is_system` branch (PENDING→CANCELLED by system,
+CONFIRMED→COMPLETED cron), the M11 §1 payment-intent attach (NULL→value,
+system-only), and M5's two-gate design under which service_role is
+`trainer_stripe_accounts`' ONLY writer (Phase-7 onboarding INSERT, Phase-8
+`account.updated` UPDATE). SELECT rides along as mechanics, not widening:
+Postgres requires SELECT on columns an UPDATE's WHERE clause reads, and the
+webhook/cron must resolve rows. The absences are design and now pinned:
+no bookings INSERT (entry is owner-only via §9), no bookings DELETE
+(cancellation is a transition, never a row removal — J2), no
+trainer_stripe_accounts DELETE (row absence is a first-class state), and
+nothing on any other table (the app's entire service-role surface is the
+auth admin API; blanket ALL would recreate M6 Category J's founding defect
+— unconsidered privileges — pointed at the one role that bypasses RLS).
+Precedent extended: M11 §3/§4's "deliberate, both envs" for function
+EXECUTE, now applied to table DML.
+
+**Outcome:** full M6–M14 chain under the fresh-reset-per-suite protocol —
+**167 PASS, 0 failures** (m6 72, m7 3, m8 26, m9 9, m10 19, m11 23, m12 6,
+m13 7, m14 2). The arc's definition of done: the three deliberately-red
+drift documents (M6 J4 / M7-2 / M8 G2) are green as declared-set pins, and
+zero pre-existing-failure carve-outs remain anywhere in the chain. (One
+known cosmetic psql quirk, pre-existing since M9/PR #11 and untouched by
+this arc: category A's A5 `\echo` label contains an apostrophe, which psql
+reports as "unterminated quoted string" — the case itself passes.)
+
+### The acceptance targets, amended together (the ruling, executed)
+
+M6 J4 / M7-2 / M8 G2 — the three cases that pinned the v2.90 platform
+artifact ("service_role retains full DML") and stayed deliberately red on
+fresh resets since 2026-07-05 — flipped in the same change from over-revoke
+guards to DECLARED-SET pins, asserting both directions: J4 pins bookings
+`{SELECT,UPDATE}` with INSERT/DELETE absent; M7-2 pins
+trainer_stripe_accounts `{SELECT,INSERT,UPDATE}` (DELETE absent) and dogs
+empty; G2 pins messaging's set as EMPTY (absence is now the assertion — a
+stray grant would hand the RLS-bypassing role a surface no designed path
+uses).
+
+### The M14 suite's contract (pinned in its README so it survives)
+
+**Assert what we DECLARE; stay silent on platform-default housekeeping.**
+The new suite is a catalog-driven matrix — EVERY public table ×
+{SELECT,INSERT,UPDATE,DELETE} for service_role, table list from pg_class,
+so a future table that never declares its service_role position is asserted
+`{}` automatically and fails loud. It deliberately never asserts
+TRUNCATE/REFERENCES/TRIGGER/MAINTAIN: those are the platform's to shuffle
+(v2.90→v2.109 already did, once, silently), and pinning them would
+re-couple the suite to the exact drift class M14 cures. A second check pins
+declaration integrity (a rename/drop can't silently orphan a declared table
+out of the matrix).
+
+### Findings
+
+**1. M5's grants comment held a stale assumption, corrected in M14's header
+(applied migrations are never edited).** M5 §5 says service_role "has
+implicit table-level privileges via the Supabase grants chain" — true under
+the platform default M5 shipped against, false on hosted since provisioning
+and false locally since v2.109. The two-gate design's WRITE path silently
+depended on a platform default the platform then removed; the design was
+right, its grant assumption wasn't. M14 is the deliberate replacement.
+
+**2. The state-file "local stack up" note was stale** — the stack was down
+at session start (Docker running, zero containers). Started fresh; the ACL
+fact re-confirmed live before any work: all 12 tables `service_role=Dxtm`,
+zero DML, byte-matching the journal's cited hosted state. Pause snapshots
+record the moment of pause, not the moment of resume — environment notes
+get re-verified, not trusted.
+
+**3. Probe discipline paid out again:** the rolled-back probe (BEGIN → the
+two GRANTs → 12-tables×4-verbs matrix → ROLLBACK) confirmed the ACLs land
+exactly on the declared set (`bookings service_role=rwDxtm`,
+`trainer_stripe_accounts=arwDxtm`) and revert clean, before the migration
+file was written.
+
+**4. The pre-PR review surfaced a real unreconciled declaration (and three
+suite hardenings).** M11 §4 grants service_role EXECUTE on
+`nearby_trainers` — SECURITY INVOKER (the M10-D2 pin), body reads
+trainers/profiles/trainer_specialty_assignments, all service_role-SELECT-
+less under M14's declaration. Verified live: a service-role call fails
+42501 ("permission denied for table trainers") INSIDE the body — and did
+before M14; the same drift that removed service_role's DML removed the
+SELECTs that made it work under v2.90. Not a regression, not a grant to
+add: no code path calls it via service_role (single call site is the
+directory page under the session client). M11 §4's grant stands as
+grant-LAYER parity only; a real service-role caller, if one ever appears,
+makes the SELECT set a deliberate-grants decision then. Reconciled in the
+M14 header. The suite hardenings from the same review: `relkind IN
+('r','p','f')` so partitioned/foreign tables can't slip the fails-loud
+matrix, `has_table_privilege` on pg_class oids so quoted identifiers are
+checked rather than detonating the DO block, one shared declared-set
+source for both checks, and the per-table `ok` line gated on that table
+actually matching. Declined (contradicts the ruling): retiring J4/M7-2/G2
+as redundant with the capstone — they are the acceptance targets, amended
+in place, and per-suite self-containment is deliberate.
+
+### Forward items (both ruled at investigation QA, 2026-07-08)
+
+- **profiles SELECT for webhook-context mail — DEFERRED to the Phase 8
+  arc.** Phase 8's webhook emails need counterparty display names with no
+  user session (today's transition mail reads profiles under the acting
+  user's session — impossible in a webhook). Grant or DEFINER function,
+  decided against the real webhook code; grants ride with the feature that
+  needs them (the M10 convention).
+- **Phase 8 open design item: who confirms a booking.** The build plan's
+  "webhook confirms booking" line predates PR #27's trainer-answers design;
+  the §10 trigger gives PENDING→CONFIRMED to the trainer only. Lean:
+  PR #27's trainer-only design is the spec (payment success does not
+  auto-confirm). Either way the verb is UPDATE — no M14 impact. Also new
+  Phase-8 tables (idempotency ledger, refunds) declare their own
+  service_role position in their own migrations.
