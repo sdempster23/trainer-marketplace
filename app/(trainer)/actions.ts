@@ -593,3 +593,108 @@ export async function deleteException(
   revalidatePath("/", "layout");
   return { success: true };
 }
+
+// ============================================================================
+// Calendar feed (M15) — generate/rotate + disable
+// ============================================================================
+
+export type FeedRotateState = { error: string } | { url: string } | null;
+export type FeedDisableState = { error: string } | { success: true } | null;
+
+/**
+ * Generate-or-rotate the caller's ICS feed token via the M15 DEFINER
+ * function (EXECUTE: authenticated; the function itself enforces the
+ * trainer gate — structural evidence against `trainers`, not the profile
+ * role value).
+ *
+ * PLAINTEXT-ONCE (ruling 4): the token exists in exactly two places — the
+ * DEFINER function's return value and this action's response, which the
+ * client renders once. It is never stored (only its sha256 lands in
+ * trainer_feed_tokens), never logged, and never re-shown; the settings
+ * surface afterwards displays only row METADATA (created/rotated dates).
+ * The action returns the FULL subscribe URL, not the bare token — the UI
+ * never assembles credentials.
+ */
+export async function rotateFeedToken(): Promise<FeedRotateState> {
+  // No params on purpose: the action reads nothing from the form and a
+  // zero-arg function is assignable where useActionState expects
+  // (state, payload) — no underscore-park needed.
+  const supabase = await createClient();
+  const { data: claimsData } = await supabase.auth.getClaims();
+  if (!claimsData?.claims?.sub) {
+    redirect("/login");
+  }
+
+  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL;
+  if (!siteUrl) {
+    // Validate-at-startup rule, applied at the boundary that needs it: a
+    // feed URL built on a missing origin would be copyable garbage.
+    console.error("[FEED] NEXT_PUBLIC_SITE_URL is not set");
+    return { error: GENERIC_ERROR };
+  }
+
+  let token: string | null = null;
+  try {
+    const { data, error } = await supabase.rpc("rotate_feed_token");
+    if (error) {
+      // Deliberately not echoing error.message: the only interesting
+      // failure ("Caller is not a trainer") is unreachable through this
+      // UI (the card renders on the trainer fork only), and everything
+      // else is internals the user can't act on.
+      console.error("[FEED] rotate failed:", error.message);
+      return { error: GENERIC_ERROR };
+    }
+    token = data;
+  } catch (e) {
+    console.error("[FEED] rotate threw:", e);
+    return { error: GENERIC_ERROR };
+  }
+
+  if (!token) {
+    return { error: GENERIC_ERROR };
+  }
+
+  revalidatePath("/account");
+  return { url: `${siteUrl}/api/calendar/${token}` };
+}
+
+/**
+ * Disable the feed: RLS-scoped DELETE of the caller's own token row (the
+ * M15 "row absence is a first-class state" — the route 404s from the next
+ * poll). Row-count rule: a 0-row delete is an error, not a silent success
+ * (the button only renders when a row exists, so 0 rows means state
+ * drifted — say so rather than pretend).
+ */
+export async function disableFeed(): Promise<FeedDisableState> {
+  const supabase = await createClient();
+  const { data: claimsData } = await supabase.auth.getClaims();
+  const userId = claimsData?.claims?.sub;
+  if (!userId) {
+    redirect("/login");
+  }
+
+  let deleted: { trainer_id: string } | null = null;
+  try {
+    const { data, error } = await supabase
+      .from("trainer_feed_tokens")
+      .delete()
+      .eq("trainer_id", userId)
+      .select("trainer_id")
+      .maybeSingle();
+    if (error) {
+      console.error("[FEED] disable failed:", error.message);
+      return { error: GENERIC_ERROR };
+    }
+    deleted = data;
+  } catch (e) {
+    console.error("[FEED] disable threw:", e);
+    return { error: GENERIC_ERROR };
+  }
+
+  if (!deleted) {
+    return { error: "No feed to disable — refresh and try again." };
+  }
+
+  revalidatePath("/account");
+  return { success: true };
+}
