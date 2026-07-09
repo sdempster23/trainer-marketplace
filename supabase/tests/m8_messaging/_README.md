@@ -13,7 +13,7 @@ messaging, the first feature table built under the M7 grant convention.
 | D — thread immutability (4d) | 5 | owner_id/trainer_id/booking_id/created_at frozen; updated_at-only allowed |
 | E — RLS (§8) | 7 | participant SELECT yes; outsider owner & trainer hidden; messages EXISTS-derived visibility; outsider INSERT denied |
 | F — message immutability | 2 | UPDATE/DELETE denied at the grant layer (42501) |
-| G — grants | 2 | exact grant matrix (56 checks) + service_role over-revoke guard |
+| G — grants | 2 | exact grant matrix (56 checks) + service_role NO-DML pin (M14 amendment: messaging's declared service_role set is empty) |
 
 Total: 26 cases.
 

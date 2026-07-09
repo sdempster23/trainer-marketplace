@@ -1,0 +1,104 @@
+-- ============================================================================
+-- M14 — deliberate service_role table grants (the drift remedy, pre-Phase-8)
+-- ============================================================================
+-- Two additive GRANTs and nothing else: the exact table DML the schema's own
+-- declared system paths require, made deliberate on both environments.
+--
+-- THE FACT THIS REMEDIES (cited, not inferred — journal, M13 hosted
+-- verification, 2026-07-05): hosted grants service_role exactly
+-- REFERENCES/TRIGGER/TRUNCATE/MAINTAIN on public tables (pg_dump GRANT
+-- statements; live 42501 on service-role PostgREST reads), and local under
+-- CLI v2.109 matches — every table `service_role=Dxtm`, zero DML.
+-- Re-confirmed live on the local stack the day this migration was drafted
+-- (2026-07-08): has_table_privilege false for all of SELECT/INSERT/UPDATE/
+-- DELETE, all 12 tables. service_role's BYPASSRLS is irrelevant here —
+-- row security is a second gate ABOVE table privileges; a role with no
+-- table privilege never reaches it. Grants are never platform-conferred
+-- for service_role; whatever the server needs must be declared. This
+-- migration is that declaration.
+--
+-- WHY EACH GRANT (every verb maps to a system path the schema already
+-- declares — nothing speculative):
+--
+--   bookings SELECT, UPDATE — the M6 §10 trigger's v_is_system branch and
+--   M11 §1 define exactly three system-path operations, all UPDATEs:
+--     (1) payment-intent attach: NULL -> value, system-only (M11 §1 —
+--         "ONLY via the system path … the Phase-8 payment attach");
+--     (2) PENDING -> CANCELLED with cancelled_by='system' (auto-expire /
+--         payment-failure — the Phase-8 payment_intent.payment_failed
+--         handler);
+--     (3) CONFIRMED -> COMPLETED (the post-session cron, floored at
+--         starts_at by the trigger).
+--   SELECT is part of the minimal write path, not a widening: Postgres
+--   requires SELECT on every column an UPDATE's WHERE clause reads
+--   (UPDATE … WHERE stripe_payment_intent_id = $1 is impossible without
+--   it), the webhook must resolve "which booking does this event belong
+--   to" (the §5 UNIQUE exists for that lookup) and read current status
+--   for idempotent processing, and the cron must find due CONFIRMED rows.
+--
+--   trainer_stripe_accounts SELECT, INSERT, UPDATE — M5's two-gate design
+--   gives NO other role any write path at all ("All mutation flows through
+--   Supabase's service_role JWT"): the Phase-7 onboarding server action
+--   INSERTs the mirror row; the Phase-8 account.updated webhook UPDATEs
+--   charges_enabled/payouts_enabled; SELECT is the webhook's
+--   stripe_account_id lookup (the M5 UNIQUE index exists for exactly this
+--   pattern) plus the WHERE-clause requirement above.
+--
+-- WHY NOT MORE (the absences are design, and the suites pin them):
+--
+--   bookings INSERT — bookings enter only at PENDING via the authenticated
+--     owner (§9 INSERT trigger); no system path creates bookings.
+--   bookings DELETE — cancellation is a state transition, never a row
+--     removal (M6 J2's rationale). A system DELETE grant would hand a
+--     buggy cron a destructive verb the design forbids for every actor.
+--   trainer_stripe_accounts DELETE — row absence is a first-class state
+--     established by never inserting; no delete path exists in the design.
+--   every other table: nothing — no designed system write path touches
+--     them. The app's entire current service-role surface is the auth
+--     admin API (lib/supabase/admin.ts, getUserEmail); it reads no public
+--     table. Blanket ALL would recreate M6 Category J's founding defect —
+--     privileges nobody considered, conferred wholesale — pointed at the
+--     one role that bypasses RLS. After this migration the grant layer is
+--     the ONLY gate on the service-role key, and the catalog reads as
+--     intent: "the system transitions bookings; it never creates or
+--     destroys them."
+--
+-- RECONCILED (surfaced by the pre-PR review): M11 §4 grants service_role
+-- EXECUTE on nearby_trainers — a SECURITY INVOKER function (the M10-D2
+-- pin) whose body reads trainers/profiles/trainer_specialty_assignments,
+-- tables this declaration leaves service_role-SELECT-less. A service-role
+-- CALL of nearby_trainers therefore fails 42501 INSIDE the body — and did
+-- before M14 too: the same drift that removed service_role's DML removed
+-- the SELECTs that once made it work under v2.90. This is not a
+-- regression and not an oversight: no code path calls nearby_trainers via
+-- service_role (the single runtime call site is the directory page under
+-- the user's session client). M11 §4's grant stands as what it was —
+-- grant-LAYER parity/determinism, not a working service-role capability.
+-- If a real service-role caller ever appears, its SELECT set becomes a
+-- deliberate-grants decision then, same as the deferred items below.
+--
+-- PRECEDENT: M11 §3/§4 lodged "deliberate, both envs" for function
+-- EXECUTE; this extends the same convention to table DML. Purely additive
+-- — service_role holds zero DML anywhere, so there is nothing to revoke.
+-- Probed rolled-back before this file was written: in-transaction ACLs
+-- land exactly on the declared set (bookings rwDxtm; trainer_stripe_
+-- accounts arwDxtm), matrix-verified across all 12 tables x 4 DML verbs,
+-- rollback reverts clean.
+--
+-- CORRECTS A STALE ASSUMPTION (recorded here because applied migrations
+-- are never edited): M5 §5's grants comment says service_role "has
+-- implicit table-level privileges via the Supabase grants chain." True
+-- under the platform default M5 shipped against; false on hosted since
+-- provisioning and false locally since CLI v2.109. This migration is the
+-- deliberate replacement for that implicit assumption.
+--
+-- DEFERRED (journal forward items, decided at investigation QA):
+--   - profiles SELECT for webhook-context mail (names with no user
+--     session) — rides with the Phase-8 arc, grant or DEFINER function,
+--     decided against the real webhook code.
+--   - New Phase-8 tables (idempotency ledger, refunds) declare their own
+--     service_role position in their own migration (the M10 convention).
+-- ============================================================================
+
+grant select, update         on public.bookings                to service_role;
+grant select, insert, update on public.trainer_stripe_accounts to service_role;
