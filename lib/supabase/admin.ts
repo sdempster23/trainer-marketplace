@@ -57,3 +57,64 @@ export async function getUserEmail(userId: string): Promise<string | null> {
     return null;
   }
 }
+
+// Type-only import: the widened row type (owner_display_name: string|null —
+// gen-types is optimistic about RETURNS TABLE nullability) has ONE home so
+// callers can't disagree about it. No runtime coupling to lib/feed.
+import type { FeedEventRow } from "@/lib/feed/ics";
+
+/** getUserEmail's first sibling — the ICS feed's read (M15).
+ *
+ * WHY THIS LIVES HERE: the feed route is unauthenticated by nature (a
+ * calendar app polls with no JWT; the secret URL token is the whole
+ * credential), so its reads cannot ride a user session. Both RPCs below
+ * are SECURITY DEFINER functions whose EXECUTE is granted to service_role
+ * ONLY (the M15 §5/§6 lane) — the service key never touches a table here;
+ * the functions fix the question shape.
+ *
+ * Return contract mirrors the M15 §6 fork the route needs:
+ *   { valid: false }                 → no such token (route: 404)
+ *   { valid: true, events: [] }      → real feed, nothing in window
+ *                                      (route: 200, EMPTY calendar — a new
+ *                                      trainer's day-one feed must not
+ *                                      present as broken)
+ *   { valid: true, events: [...] }   → the feed
+ *
+ * Unlike getUserEmail, failures here THROW (the route maps them to 500):
+ * a DB outage must not masquerade as { valid: false } — that would 404 a
+ * working subscription into "deleted" in the calendar app, when the right
+ * signal is "temporarily unavailable, poll again later". */
+export async function getFeedEvents(
+  feedToken: string,
+): Promise<{ valid: boolean; events: FeedEventRow[] }> {
+  const admin = getAdminClient();
+
+  // EVENTS FIRST, existence only to fork the empty case: non-empty events
+  // prove the token by themselves, so the common poll costs ONE round trip
+  // (this is the unauthenticated hot path — every subscribed calendar's
+  // poller). It also closes the rotate race the exists-first order had: a
+  // token rotated between two calls can no longer read as valid-but-empty
+  // (Google would wipe the trainer's events for that cycle); with this
+  // order the stale token's empty read re-checks existence, finds the row
+  // gone, and serves the designed 404.
+  const { data, error } = await admin.rpc("trainer_feed_events", {
+    feed_token: feedToken,
+  });
+  if (error) {
+    throw new Error(`[FEED] events read failed: ${error.message}`);
+  }
+  if (data && data.length > 0) {
+    return { valid: true, events: data };
+  }
+
+  const { data: exists, error: existsError } = await admin.rpc(
+    "feed_token_exists",
+    { feed_token: feedToken },
+  );
+  if (existsError) {
+    throw new Error(
+      `[FEED] token existence check failed: ${existsError.message}`,
+    );
+  }
+  return { valid: Boolean(exists), events: [] };
+}
