@@ -5,6 +5,7 @@ import { redirect } from "next/navigation";
 import { after } from "next/server";
 
 import { getBusyRanges } from "@/lib/trainer/busy";
+import { ensureExternalCalendarFresh } from "@/lib/trainer/external-sync";
 import { getExceptions, getWeeklyPattern } from "@/lib/trainer/availability";
 import { computeBookableSlots } from "@/lib/trainer/schedule";
 import { getActiveService } from "@/lib/trainer/services";
@@ -279,6 +280,9 @@ export async function createBooking(
     service.trainer_id,
     todayLocal,
   );
+  // M16: same fetch-on-read moment as the book page — createBooking's slot
+  // revalidation must judge against the same external blocks the picker saw.
+  await ensureExternalCalendarFresh(service.trainer_id, trainer.timezone);
   const { busy, error: busyError } = await getBusyRanges(
     ctx.supabase,
     service.trainer_id,

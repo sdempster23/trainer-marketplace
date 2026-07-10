@@ -13,6 +13,7 @@ import {
 } from "@/components/ui/card";
 import { createClient } from "@/lib/supabase/server";
 import { getBusyRanges } from "@/lib/trainer/busy";
+import { ensureExternalCalendarFresh } from "@/lib/trainer/external-sync";
 import { getExceptions, getWeeklyPattern } from "@/lib/trainer/availability";
 import {
   computeBookableSlots,
@@ -138,6 +139,10 @@ export default async function BookPage({
     .toISOString()
     .slice(0, 10);
   const { exceptions } = await getExceptions(supabase, id, todayLocal);
+  // M16: the external calendar's fetch-on-read moment — never fetched →
+  // synchronous (capped); stale → after() refresh; errors never break the
+  // page (stale blocks keep serving through the RPC).
+  await ensureExternalCalendarFresh(id, trainer.timezone);
   const { busy } = await getBusyRanges(supabase, id);
 
   const slotsByService: Record<string, BookableSlot[]> = {};
