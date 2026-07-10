@@ -936,3 +936,132 @@ in place, and per-suite self-containment is deliberate.
   auto-confirm). Either way the verb is UPDATE — no M14 impact. Also new
   Phase-8 tables (idempotency ledger, refunds) declare their own
   service_role position in their own migrations.
+
+---
+
+## M15 — trainer feed tokens + the ICS feed (calendar bridge, EXPORT half)
+
+The arc: every trainer gets a secret per-trainer URL that puts their
+PawMatch bookings into Google/Apple/Outlook via calendar subscription —
+demand-gen's "fits into the tools you already use," product not demo. DB
+surface: `trainer_feed_tokens` (sha256 at rest, plaintext-once, M5
+row-absence semantics — a TABLE, never a column on anon-readable trainers,
+the investigation's standout catch), `rotate_feed_token()` as the ONLY
+write path (no INSERT/UPDATE policy or grant exists for any api role — a
+client-chosen token is impossible by construction), and two DEFINER-as-API
+reads in the M12 lane (`trainer_feed_events`, `feed_token_exists`),
+EXECUTE service_role only. App surface: the repo's first route handler
+(`/api/calendar/[token]`, text/calendar, no-store) over ical-generator
+(new dep: zero hard dependencies, TS-native; ICS is all edge cases —
+CRLF, 75-octet folding, escaping), and the /account trainer card
+(generate/rotate/disable, plaintext-once UX, inline two-step confirms).
+
+All five investigation-QA rulings (2026-07-09) applied: CANCELLED emitted
+as STATUS:CANCELLED in-window (never silent omission, same UID);
+FEED_WINDOW_PAST_DAYS = 60 as the named constant in the RPC — the window
+has ONE owner, re-filtered nowhere; full display names with rotation as
+the privacy remedy; hashed at rest, shown once, one-button rotation;
+DEFINER-as-API with EMPTY-not-error on bad tokens.
+
+**Outcome:** full fresh-reset M6–M15 chain **182 PASS, 0 failures** (m6
+72, m7 3, m8 26, m9 9, m10 19, m11 23, m12 6, m13 7, m14 2, m15 15); the
+M14 catalog matrix picked up the new table and asserted its `{}`
+service_role position AUTOMATICALLY — the fails-loud contract's first
+real exercise, unedited. 80/80 unit tests incl. byte-level golden ICS.
+
+### Findings
+
+**1. The §6 corollary (caught drafting the route, probed rolled-back,
+amended into M15 pre-merge):** "bad token → EMPTY" makes an invalid token
+indistinguishable from a valid feed with zero in-window bookings — and
+valid-but-empty is exactly the first real trainer's day one. Serving them
+404 would present as broken in Google. `feed_token_exists()` gives the
+route the fork: invalid → 404 (byte-identical for wrong/nonexistent/
+malformed), valid-but-empty → 200 empty calendar.
+
+**2. handle_new_user copies ONLY role from signup metadata** —
+display_name is app-set later. Surfaced by the M15 probe's first run
+(NULL owner name); every fixture that needs names must set them the way
+the app would.
+
+**3. supabase gen types is OPTIMISTIC about RETURNS TABLE nullability:**
+the generated row type claims owner_display_name: string, but the column
+mirrors nullable profiles.display_name. The widened type lives in ONE
+place (lib/feed/ics.ts, imported type-only by the admin module) and the
+"An owner" fallback is load-bearing, not decorative.
+
+**4. Review gates (two high-effort workflow reviews, 7 + 10 findings,
+all applied after dedup; the second review's synthesize step died on a
+session limit — findings arrived unmerged and were triaged by hand):**
+- The C4 catalog pin matched ANY search_path value (`like
+  '%search_path=%'` blesses `search_path=public` — the DEFINER shadowing
+  surface the pin exists to forbid). Now an exact `@> array
+  ['search_path=""']` pin. THE LESSON: a security pin that substring-
+  matches its target isn't a pin.
+- getFeedEvents ran exists-then-events: two round trips on the
+  unauthenticated hot path AND a rotate race serving 200-empty for a
+  just-rotated token (Google would wipe the trainer's events for that
+  cycle). Events-FIRST closes both: non-empty proves the token in one
+  call; only the empty case pays for the existence fork.
+- The route's `?? ""` siteUrl fallback shipped dead relative Manage
+  links on a misconfigured deploy; now null → line omitted + loud log.
+- UI state model: stale rotate state outliving a newer disable (dead URL
+  rendered as live), an armed "Rotate now" left under a fresh URL,
+  "Copied ✓" surviving a rotation, and the page swallowing the
+  status-read error — which would render an ENABLED feed as "Generate"
+  and bypass the rotate warning entirely. All restructured: one view
+  value updated in completion order (last action wins), tri-state
+  enabled/disabled/UNKNOWN from the server (a failed read degrades to
+  read-only, never to Generate).
+
+### Forward items
+
+- **Import half (busy-block sync)** — separate arc, seams verified open:
+  external blocks enter slot math via the M12 RPC (UNION in-body) or
+  merged in getBusyRanges; token table stays export-specific; import
+  needs an ICS parser (ical-generator generates only).
+- Google poll cadence is the client's (~12-24h, no force-refresh):
+  onboarding copy sets the expectation; REFRESH-INTERVAL is advisory.
+- cloudflared added to dev tooling (live proof needs Google's servers to
+  reach the local stack; accountless quick tunnels).
+
+### M15 live proof (2026-07-09, pre-PR — the arc's definition of "works")
+
+Two-part proof, HTTP layer scripted + product lane by hand, through a
+cloudflared quick tunnel so Google's servers could reach the local stack
+(tunnel killed immediately after; dev-only tooling).
+
+**HTTP legs (scripted, real GoTrue session — the server action's exact
+lane):** password login as the seeded proof trainer → rotate_feed_token →
+64-hex; the PUBLIC tunnel URL served `200 text/calendar; charset=utf-8,
+no-store` with both proof bookings (CONFIRMED + TENTATIVE, real
+owner/dog/service names, `<booking_id>@pawmatch` UIDs); rotate → the OLD
+URL 404s through the tunnel, the new one serves both events.
+
+**Manual legs (Shane, real browser + real Google Calendar):**
+1. /account as the proof trainer: the fresh URL rendered EXACTLY once —
+   copy button, the existing-subscriptions confirm warning, metadata-only
+   after navigating away. Ruling 4's UX, confirmed live.
+2. Google Calendar accepted the tunnel URL; both bookings appeared on the
+   prompt initial fetch — CONFIRMED solid, PENDING tentative, names and
+   services correct.
+3. Rotated in the UI, fetched the OLD tunnel URL directly: 404. Rotation
+   kills a live subscription's access — the security story end-to-end
+   through the real UI lane.
+4. Accidental bonus leg: a malformed token (literal placeholder text)
+   404'd identically to a wrong token — the validator's no-oracle
+   behavior, human-verified.
+
+**Staleness expectation, stated for the record:** Google's UI shows a
+dead subscription until its next poll cycle (hours-to-a-day). The direct
+404 is the proof; Google catching up is not part of it.
+
+### Forward items (M15 close)
+
+- **FRICTION, fix before the first real trainer (not this arc): the copy
+  button hands out a localhost-origin URL in local dev** — useless to any
+  calendar service. The URL must be built from the configured site
+  origin; verify NEXT_PUBLIC_SITE_URL is set to the real origin on every
+  deployed environment (Vercel) and decide the local-dev behavior
+  (tunnel-aware or a visible "dev origin" warning).
+- Import half (busy-block sync): separate arc; seams recorded above.

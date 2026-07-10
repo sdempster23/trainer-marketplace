@@ -414,6 +414,35 @@ export type Database = {
           },
         ]
       }
+      trainer_feed_tokens: {
+        Row: {
+          created_at: string
+          rotated_at: string | null
+          token_hash: string
+          trainer_id: string
+        }
+        Insert: {
+          created_at?: string
+          rotated_at?: string | null
+          token_hash: string
+          trainer_id: string
+        }
+        Update: {
+          created_at?: string
+          rotated_at?: string | null
+          token_hash?: string
+          trainer_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "trainer_feed_tokens_trainer_id_fkey"
+            columns: ["trainer_id"]
+            isOneToOne: true
+            referencedRelation: "trainers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       trainer_services: {
         Row: {
           created_at: string
@@ -593,6 +622,7 @@ export type Database = {
         Args: { p_duration_minutes: number; p_starts_at: string }
         Returns: string
       }
+      feed_token_exists: { Args: { feed_token: string }; Returns: boolean }
       nearby_trainers: {
         Args: {
           max_results?: number
@@ -614,11 +644,25 @@ export type Database = {
           years_experience: number
         }[]
       }
+      rotate_feed_token: { Args: never; Returns: string }
       trainer_busy_ranges: {
         Args: { t_id: string }
         Returns: {
           ends_at: string
           starts_at: string
+        }[]
+      }
+      trainer_feed_events: {
+        Args: { feed_token: string }
+        Returns: {
+          booking_id: string
+          dog_name: string
+          ends_at: string
+          owner_display_name: string
+          service_name: string
+          starts_at: string
+          status: Database["public"]["Enums"]["booking_status"]
+          updated_at: string
         }[]
       }
     }

@@ -2,6 +2,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 
 import { signOut } from "@/app/(auth)/actions";
+import { CalendarFeedManager } from "@/components/account/calendar-feed-manager";
 import { DisplayNameEditor } from "@/components/account/display-name-editor";
 import { Button } from "@/components/ui/button";
 import {
@@ -119,7 +120,14 @@ export default async function AccountPage() {
   // per thread); only participants can have threads, so admin skips it, and
   // it returns 0 on error by contract (the hub link degrades to countless,
   // never breaks).
-  const [trainerCta, ownerDogs, unreadCount] = await Promise.all([
+  // Feed status is trainer-only row METADATA (created/rotated — never the
+  // token; only its hash exists anywhere). RLS scopes the read to the
+  // caller's own row; maybeSingle() because row absence is the M15
+  // first-class "feed not enabled" state, not an error. A FAILED read is
+  // NOT absence (review finding): "unknown" makes the manager degrade to
+  // read-only instead of offering Generate — which is the rotate RPC —
+  // against a feed that may exist.
+  const [trainerCta, ownerDogs, unreadCount, feedStatus] = await Promise.all([
     profile.role === "trainer"
       ? getOnboardingState(supabase, claims.sub).then((s) => TRAINER_CTA[s])
       : Promise.resolve(null),
@@ -129,6 +137,23 @@ export default async function AccountPage() {
     profile.role === "owner" || profile.role === "trainer"
       ? getUnreadThreadCount(supabase, claims.sub)
       : Promise.resolve(0),
+    profile.role === "trainer"
+      ? supabase
+          .from("trainer_feed_tokens")
+          .select("created_at, rotated_at")
+          .eq("trainer_id", claims.sub)
+          .maybeSingle()
+          .then((r) => {
+            if (r.error) {
+              console.error("[FEED] status read failed:", r.error.message);
+              return { status: "unknown" as const, row: null };
+            }
+            return {
+              status: r.data ? ("enabled" as const) : ("disabled" as const),
+              row: r.data,
+            };
+          })
+      : Promise.resolve(null),
   ]);
   const messagesLabel =
     unreadCount > 0 ? `Messages (${unreadCount} new)` : "Messages";
@@ -153,6 +178,24 @@ export default async function AccountPage() {
               <Button asChild variant="outline" className="w-full">
                 <Link href="/messages">{messagesLabel}</Link>
               </Button>
+            </CardContent>
+          </Card>
+        ) : null}
+
+        {profile.role === "trainer" ? (
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-xl">Calendar feed</CardTitle>
+              <CardDescription>
+                Your PawMatch bookings, in the calendar you already use.
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <CalendarFeedManager
+                status={feedStatus?.status ?? "disabled"}
+                createdAt={feedStatus?.row?.created_at ?? null}
+                rotatedAt={feedStatus?.row?.rotated_at ?? null}
+              />
             </CardContent>
           </Card>
         ) : null}
