@@ -1,9 +1,10 @@
 "use client";
 
 import Link from "next/link";
-import { useActionState } from "react";
+import { useActionState, useEffect, useState } from "react";
 
 import { signUp, type AuthActionState } from "@/app/(auth)/actions";
+import { TurnstileWidget } from "@/components/auth/turnstile-widget";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -26,6 +27,14 @@ export default function SignUpPage() {
     AuthActionState,
     FormData
   >(signUp, null);
+
+  // A Turnstile token is single-use: after ANY failed submit (email taken,
+  // weak password, or a Turnstile miss), reset the widget so the retry mints
+  // a fresh token instead of re-sending the spent one.
+  const [turnstileReset, setTurnstileReset] = useState(0);
+  useEffect(() => {
+    if (state && "error" in state) setTurnstileReset((n) => n + 1);
+  }, [state]);
 
   return (
     <main className="bg-muted flex min-h-screen items-center justify-center px-6 py-12">
@@ -89,6 +98,11 @@ export default function SignUpPage() {
                 ))}
               </div>
             </fieldset>
+
+            {/* Bot gate — the token rides the form to the action, which
+                verifies it server-side (fails closed + visible). Reset on a
+                failed submit so the single-use token doesn't block retries. */}
+            <TurnstileWidget resetSignal={turnstileReset} />
 
             {state?.error ? (
               <p role="alert" className="text-destructive text-sm">

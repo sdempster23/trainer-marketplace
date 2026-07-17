@@ -4,7 +4,10 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 
 import { siteUrl } from "@/lib/site-url";
+import { verifyTurnstile } from "@/lib/auth/turnstile";
 import { createClient } from "@/lib/supabase/server";
+import { z } from "zod";
+
 import { loginSchema, signUpSchema } from "@/lib/validators/auth";
 
 /**
@@ -40,6 +43,10 @@ const GENERIC_ERROR = "Something went wrong. Please try again.";
  * index access is `undefined`-typed under noUncheckedIndexedAccess). */
 const VALIDATION_ERROR = "Please check the form and try again.";
 
+/** Boundary validation for the resend email (CLAUDE.md: zod at every input
+ * boundary). Kept local — it's just an email shape, not a form schema. */
+const resendSchema = z.string().trim().email();
+
 export async function signUp(
   _prevState: AuthActionState,
   formData: FormData,
@@ -51,6 +58,13 @@ export async function signUp(
   });
   if (!parsed.success) {
     return { error: parsed.error.issues[0]?.message ?? VALIDATION_ERROR };
+  }
+
+  // Bot gate FIRST — before we touch auth. Fails closed + visible (a
+  // Cloudflare outage blocks signup rather than letting bots through).
+  const turnstile = await verifyTurnstile(formData.get("cf-turnstile-response"));
+  if (!turnstile.ok) {
+    return { error: turnstile.error };
   }
 
   const supabase = await createClient();
@@ -149,4 +163,35 @@ export async function signOut(): Promise<void> {
   await supabase.auth.signOut();
   revalidatePath("/", "layout");
   redirect(SIGNED_OUT_REDIRECT);
+}
+
+export type ResendState = { error: string } | { sent: true } | null;
+
+/**
+ * Resend the signup confirmation email (the check-email page's button; the
+ * stranger walkthrough exercises this). Deliberately does NOT reveal whether
+ * the address exists or is already confirmed — Supabase's resend is a no-op in
+ * those cases and we report the same "sent" either way (no account-enumeration
+ * oracle). The confirmation link's origin comes from siteUrl() (the origin fix).
+ */
+export async function resendConfirmation(
+  _prevState: ResendState,
+  formData: FormData,
+): Promise<ResendState> {
+  const parsed = resendSchema.safeParse(formData.get("email"));
+  if (!parsed.success) {
+    return { error: "Enter the email you signed up with." };
+  }
+  const supabase = await createClient();
+  try {
+    await supabase.auth.resend({
+      type: "signup",
+      email: parsed.data,
+      options: { emailRedirectTo: siteUrl(POST_AUTH_REDIRECT) },
+    });
+  } catch {
+    // Never leak whether the address exists; a transient failure still
+    // reports "sent" (the user can retry).
+  }
+  return { sent: true };
 }

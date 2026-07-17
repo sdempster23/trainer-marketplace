@@ -70,3 +70,48 @@ export async function updateDisplayName(
   revalidatePath("/", "layout");
   return { success: true };
 }
+
+/**
+ * The BLOCKING name step (front-door arc): a freshly verified user with no
+ * display_name sets it before reaching the app. One field, Continue, NO skip
+ * — /welcome renders this, /account bounces a nameless user back to it. On
+ * success, land at /account.
+ */
+export async function setInitialDisplayName(
+  _prevState: DisplayNameActionState,
+  formData: FormData,
+): Promise<DisplayNameActionState> {
+  const supabase = await createClient();
+  const { data: claimsData } = await supabase.auth.getClaims();
+  const userId = claimsData?.claims?.sub;
+  if (!userId) {
+    redirect("/login");
+  }
+
+  const parsed = displayNameSchema.safeParse(formData.get("displayName"));
+  if (!parsed.success) {
+    return { error: parsed.error.issues[0]?.message ?? VALIDATION_ERROR };
+  }
+
+  let updated: { id: string } | null = null;
+  try {
+    const { data, error } = await supabase
+      .from("profiles")
+      .update({ display_name: parsed.data })
+      .eq("id", userId)
+      .select("id")
+      .maybeSingle();
+    if (error) {
+      return { error: GENERIC_ERROR };
+    }
+    updated = data;
+  } catch {
+    return { error: GENERIC_ERROR };
+  }
+  if (!updated) {
+    return { error: GENERIC_ERROR };
+  }
+
+  revalidatePath("/", "layout");
+  redirect("/account");
+}

@@ -108,6 +108,15 @@ export default async function AccountPage() {
     );
   }
 
+  // BLOCKING name step (front-door arc): a nameless user is bounced to
+  // /welcome and cannot reach the hub until they set a name. This is the
+  // chokepoint that makes the name step "no skip" — the funnel's landing.
+  // The DisplayNameEditor's "Not set" state below is now defense-in-depth,
+  // no longer a normal state.
+  if (!profile.display_name) {
+    redirect("/welcome");
+  }
+
   // /account is the role-forked hub — the fork, kept legible: trainers get
   // the onboarding-state CTA, owners get the dogs CTA, each computed ONLY for
   // its role so neither pays for the other's queries. The name section below

@@ -1,5 +1,6 @@
 import Link from "next/link";
 
+import { ResendConfirmation } from "@/components/auth/resend-confirmation";
 import {
   Card,
   CardContent,
@@ -25,7 +26,8 @@ export default function CheckEmailPage() {
             then log in.
           </CardDescription>
         </CardHeader>
-        <CardContent>
+        <CardContent className="flex flex-col gap-6">
+          <ResendConfirmation />
           <p className="text-muted-foreground text-sm">
             Already confirmed?{" "}
             <Link href="/login" className="text-primary underline">
