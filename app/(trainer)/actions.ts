@@ -5,6 +5,7 @@ import { redirect } from "next/navigation";
 import { lookup } from "zipcodes";
 
 import { createClient } from "@/lib/supabase/server";
+import { externalCalendarUrlSchema } from "@/lib/validators/feed";
 import { getWeeklyPattern } from "@/lib/trainer/availability";
 import { getOnboardingState } from "@/lib/trainer/onboarding";
 import {
@@ -693,6 +694,114 @@ export async function disableFeed(): Promise<FeedDisableState> {
 
   if (!deleted) {
     return { error: "No feed to disable — refresh and try again." };
+  }
+
+  revalidatePath("/account");
+  return { success: true };
+}
+
+// ============================================================================
+// External calendar (M16, import half) — subscribe/replace + remove
+// ============================================================================
+
+export type ExternalCalendarState = { error: string } | { success: true } | null;
+
+/**
+ * Subscribe (or replace) the caller's external calendar URL via the M16
+ * DEFINER lane (EXECUTE authenticated; the function enforces the trainer
+ * gate + the https shape-check). The FULL SSRF validation runs later at
+ * fetch time (lib/feed/fetch-ics) — a URL that is never fetched leaks
+ * nothing, and DNS-rebind can only be judged at connect time. Re-paste
+ * resets fetch state, so the next booking-page read fetches synchronously.
+ *
+ * The URL is never returned to the client and never logged — the caller
+ * already has it (they typed it); the status card afterwards shows only
+ * metadata.
+ */
+export async function setExternalCalendar(
+  _prevState: ExternalCalendarState,
+  formData: FormData,
+): Promise<ExternalCalendarState> {
+  // Auth is the first line (CLAUDE.md) — before we validate any input.
+  const supabase = await createClient();
+  const { data: claimsData } = await supabase.auth.getClaims();
+  if (!claimsData?.claims?.sub) {
+    redirect("/login");
+  }
+
+  const parsed = externalCalendarUrlSchema.safeParse(formData.get("url"));
+  if (!parsed.success) {
+    return { error: parsed.error.issues[0]?.message ?? VALIDATION_ERROR };
+  }
+
+  // NORMALIZE before the RPC so the client check, the action, and the
+  // fetcher all agree on one https URL. Without this, a valid webcal://
+  // (Apple/iCloud/Outlook hand these out) or an uppercase HTTPS:// passes
+  // the client + Zod checks but the RPC's case-sensitive `^https://` guard
+  // rejects it → a dead-end GENERIC_ERROR (the review's confirmed bug).
+  // validateExternalCalendarUrl (the SSRF shape gate) lowercases the scheme
+  // and rewrites webcal://→https://, and rejects IP-literal/internal hosts
+  // here too — defense in depth, before anything is even stored.
+  const { validateExternalCalendarUrl } = await import("@/lib/feed/fetch-ics");
+  const shaped = validateExternalCalendarUrl(parsed.data);
+  if (!shaped.ok) {
+    return { error: shaped.error };
+  }
+
+  try {
+    const { error } = await supabase.rpc("set_external_calendar", {
+      cal_url: shaped.url,
+    });
+    if (error) {
+      // "not a trainer" is unreachable through this UI (trainer fork only);
+      // the https/host shape is already normalized+validated above. Anything
+      // else is internals — never echo error.message (it can carry the URL).
+      console.error("[EXTCAL] set failed for trainer", claimsData.claims.sub);
+      return { error: GENERIC_ERROR };
+    }
+  } catch (e) {
+    console.error("[EXTCAL] set threw:", e);
+    return { error: GENERIC_ERROR };
+  }
+
+  revalidatePath("/account");
+  return { success: true };
+}
+
+/**
+ * Remove the subscription: RLS-scoped DELETE of the caller's own row. The
+ * CASCADE clears the busy blocks, so the trainer's slots unblock — the UI
+ * confirm copy says exactly that. Row-count rule: a 0-row delete is state
+ * drift (the button only shows when a row exists), surfaced not swallowed.
+ */
+export async function removeExternalCalendar(): Promise<ExternalCalendarState> {
+  const supabase = await createClient();
+  const { data: claimsData } = await supabase.auth.getClaims();
+  const userId = claimsData?.claims?.sub;
+  if (!userId) {
+    redirect("/login");
+  }
+
+  let deleted: { trainer_id: string } | null = null;
+  try {
+    const { data, error } = await supabase
+      .from("trainer_external_calendars")
+      .delete()
+      .eq("trainer_id", userId)
+      .select("trainer_id")
+      .maybeSingle();
+    if (error) {
+      console.error("[EXTCAL] remove failed:", error.message);
+      return { error: GENERIC_ERROR };
+    }
+    deleted = data;
+  } catch (e) {
+    console.error("[EXTCAL] remove threw:", e);
+    return { error: GENERIC_ERROR };
+  }
+
+  if (!deleted) {
+    return { error: "No calendar to remove — refresh and try again." };
   }
 
   revalidatePath("/account");

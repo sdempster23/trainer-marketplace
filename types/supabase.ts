@@ -414,6 +414,73 @@ export type Database = {
           },
         ]
       }
+      trainer_external_busy_blocks: {
+        Row: {
+          ends_at: string
+          fetched_at: string
+          starts_at: string
+          trainer_id: string
+        }
+        Insert: {
+          ends_at: string
+          fetched_at?: string
+          starts_at: string
+          trainer_id: string
+        }
+        Update: {
+          ends_at?: string
+          fetched_at?: string
+          starts_at?: string
+          trainer_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "trainer_external_busy_blocks_trainer_id_fkey"
+            columns: ["trainer_id"]
+            isOneToOne: false
+            referencedRelation: "trainer_external_calendars"
+            referencedColumns: ["trainer_id"]
+          },
+        ]
+      }
+      trainer_external_calendars: {
+        Row: {
+          created_at: string
+          failing_since: string | null
+          last_attempted_at: string | null
+          last_fetch_ok: boolean
+          last_fetched_at: string | null
+          trainer_id: string
+          url: string
+        }
+        Insert: {
+          created_at?: string
+          failing_since?: string | null
+          last_attempted_at?: string | null
+          last_fetch_ok?: boolean
+          last_fetched_at?: string | null
+          trainer_id: string
+          url: string
+        }
+        Update: {
+          created_at?: string
+          failing_since?: string | null
+          last_attempted_at?: string | null
+          last_fetch_ok?: boolean
+          last_fetched_at?: string | null
+          trainer_id?: string
+          url?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "trainer_external_calendars_trainer_id_fkey"
+            columns: ["trainer_id"]
+            isOneToOne: true
+            referencedRelation: "trainers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       trainer_feed_tokens: {
         Row: {
           created_at: string
@@ -622,6 +689,15 @@ export type Database = {
         Args: { p_duration_minutes: number; p_starts_at: string }
         Returns: string
       }
+      external_calendar_to_fetch: {
+        Args: { t_id: string }
+        Returns: {
+          failing_since: string
+          last_attempted_at: string
+          last_fetched_at: string
+          url: string
+        }[]
+      }
       feed_token_exists: { Args: { feed_token: string }; Returns: boolean }
       nearby_trainers: {
         Args: {
@@ -644,7 +720,12 @@ export type Database = {
           years_experience: number
         }[]
       }
+      refresh_external_blocks: {
+        Args: { blocks: Json; fetch_ok: boolean; t_id: string }
+        Returns: undefined
+      }
       rotate_feed_token: { Args: never; Returns: string }
+      set_external_calendar: { Args: { cal_url: string }; Returns: undefined }
       trainer_busy_ranges: {
         Args: { t_id: string }
         Returns: {

@@ -3,7 +3,9 @@ import { redirect } from "next/navigation";
 
 import { signOut } from "@/app/(auth)/actions";
 import { CalendarFeedManager } from "@/components/account/calendar-feed-manager";
+import { ExternalCalendarManager } from "@/components/account/external-calendar-manager";
 import { DisplayNameEditor } from "@/components/account/display-name-editor";
+import { getExternalCalendarStatus } from "@/lib/trainer/external-calendar-status";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -127,34 +129,43 @@ export default async function AccountPage() {
   // NOT absence (review finding): "unknown" makes the manager degrade to
   // read-only instead of offering Generate — which is the rotate RPC —
   // against a feed that may exist.
-  const [trainerCta, ownerDogs, unreadCount, feedStatus] = await Promise.all([
-    profile.role === "trainer"
-      ? getOnboardingState(supabase, claims.sub).then((s) => TRAINER_CTA[s])
-      : Promise.resolve(null),
-    profile.role === "owner"
-      ? getActiveDogs(supabase, claims.sub).then((r) => r.dogs)
-      : Promise.resolve(null),
-    profile.role === "owner" || profile.role === "trainer"
-      ? getUnreadThreadCount(supabase, claims.sub)
-      : Promise.resolve(0),
-    profile.role === "trainer"
-      ? supabase
-          .from("trainer_feed_tokens")
-          .select("created_at, rotated_at")
-          .eq("trainer_id", claims.sub)
-          .maybeSingle()
-          .then((r) => {
-            if (r.error) {
-              console.error("[FEED] status read failed:", r.error.message);
-              return { status: "unknown" as const, row: null };
-            }
-            return {
-              status: r.data ? ("enabled" as const) : ("disabled" as const),
-              row: r.data,
-            };
-          })
-      : Promise.resolve(null),
-  ]);
+  // External-calendar status is the M16 import card's read: metadata + a
+  // block count, same tri-state "failed read ≠ absence" discipline as the
+  // feed card (a swallowed error would offer paste-over — a destructive
+  // replace — against a subscription that may exist). The url column is
+  // never selected (it's granted to no api role anyway).
+  const [trainerCta, ownerDogs, unreadCount, feedStatus, externalCalendar] =
+    await Promise.all([
+      profile.role === "trainer"
+        ? getOnboardingState(supabase, claims.sub).then((s) => TRAINER_CTA[s])
+        : Promise.resolve(null),
+      profile.role === "owner"
+        ? getActiveDogs(supabase, claims.sub).then((r) => r.dogs)
+        : Promise.resolve(null),
+      profile.role === "owner" || profile.role === "trainer"
+        ? getUnreadThreadCount(supabase, claims.sub)
+        : Promise.resolve(0),
+      profile.role === "trainer"
+        ? supabase
+            .from("trainer_feed_tokens")
+            .select("created_at, rotated_at")
+            .eq("trainer_id", claims.sub)
+            .maybeSingle()
+            .then((r) => {
+              if (r.error) {
+                console.error("[FEED] status read failed:", r.error.message);
+                return { status: "unknown" as const, row: null };
+              }
+              return {
+                status: r.data ? ("enabled" as const) : ("disabled" as const),
+                row: r.data,
+              };
+            })
+        : Promise.resolve(null),
+      profile.role === "trainer"
+        ? getExternalCalendarStatus(supabase, claims.sub)
+        : Promise.resolve(null),
+    ]);
   const messagesLabel =
     unreadCount > 0 ? `Messages (${unreadCount} new)` : "Messages";
 
@@ -195,6 +206,25 @@ export default async function AccountPage() {
                 status={feedStatus?.status ?? "disabled"}
                 createdAt={feedStatus?.row?.created_at ?? null}
                 rotatedAt={feedStatus?.row?.rotated_at ?? null}
+              />
+            </CardContent>
+          </Card>
+        ) : null}
+
+        {profile.role === "trainer" ? (
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-xl">Your calendar</CardTitle>
+              <CardDescription>
+                Block PawMatch slots with the times you&apos;re already busy.
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <ExternalCalendarManager
+                status={externalCalendar?.status ?? "none"}
+                lastFetchedAt={externalCalendar?.lastFetchedAt ?? null}
+                failingSince={externalCalendar?.failingSince ?? null}
+                blockCount={externalCalendar?.blockCount ?? 0}
               />
             </CardContent>
           </Card>

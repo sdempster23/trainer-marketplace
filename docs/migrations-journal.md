@@ -1065,3 +1065,121 @@ dead subscription until its next poll cycle (hours-to-a-day). The direct
   deployed environment (Vercel) and decide the local-dev behavior
   (tunnel-aware or a visible "dev origin" warning).
 - Import half (busy-block sync): separate arc; seams recorded above.
+
+---
+
+## M16 — external calendars (calendar bridge, IMPORT half)
+
+The demand-gen promise completed: a trainer's external calendar
+(Google/Outlook/Apple secret ICS URL — her ProPet schedule arrives
+transitively via ProPet→Google) blocks PawMatch bookable slots.
+**ADVISORY sync by strategy ruling** — poll lag can never fully prevent a
+conflict; the pending→confirm flow is the designed backstop. We block
+what we know; we don't promise perfection, and the EXCLUDE constraint
+deliberately does NOT know external blocks (a hard INSERT rejection would
+promote advisory to authoritative).
+
+DB surface (M16 migration): `trainer_external_calendars` (subscription,
+one per trainer, row-absence semantics; the pasted URL is a bearer
+credential stored RETRIEVABLE — column-granted to NO api role, read only
+via a service_role DEFINER lane) and `trainer_external_busy_blocks`
+(INSTANTS ONLY — no titles, the third-party-PII argument in the header:
+her clients' names never touch our DB). Three DEFINER lanes
+(`set_external_calendar` authenticated; `external_calendar_to_fetch` +
+`refresh_external_blocks` service_role) and the M12 `trainer_busy_ranges`
+amended IN PLACE with a union arm (the M9/M11 splice precedent; the M12
+suite re-runs UNAMENDED as the contract proof). App surface: an
+SSRF-guarded fetcher, a node-ical parser wrapper, fetch-on-read sync, and
+the /account "Your calendar" card.
+
+All seven investigation-QA rulings (2026-07-09) implemented. **Outcome:**
+fresh-reset M6–M16 **201 PASS, 0 fail** (m16 19; m12 UNAMENDED 6/6; m14
+matrix 15 tables — both new tables auto-asserted service_role DML {});
+app gates typecheck/lint/**100 tests**/build green; live-proven end to
+end against a real Google calendar (below).
+
+### Findings
+
+**1. STALE BEATS NONE is pinned in the DB, not app code.** A failed fetch
+(`refresh_external_blocks(fetch_ok=false)`) is structurally unable to
+touch blocks — the failure branch only bookkeeps. A silent unblock is
+this feature's worst outcome (her real schedule stops being respected
+exactly when her calendar host hiccups); the invariant lives where app
+code can't bypass it.
+
+**2. The url column's absence is a loud TRIPWIRE.** Column-scoped grants
+expose only metadata to the trainer; the `url` column is granted to no
+role. The M16 suite asserts `has_column_privilege` false for every role,
+so a future table-level `GRANT SELECT` that silently re-exposed it fails
+the suite. Verified live: a real trainer reading their own row's `url`
+gets 42501. URL residual ACCEPTED (raw-DB access reads it) with the
+marginal-blast argument load-bearing (our own tables dominate that blast
+radius) and the tripwire: re-argue the day they stop dominating.
+
+**3. Two silent-double-book parser bugs (review, verified vs node-ical's
+real output shapes).** (a) Recurring ALL-DAY events carry `datetype=date`
+AND an rrule; the all-day branch used to push once and `continue`,
+blocking only the first occurrence — a weekly "out of office" left every
+later week bookable. (b) `rrule.between(now, …)` drops an occurrence that
+STARTED before now but is still in progress, so a client could book
+during a live class. Fixed by unifying RRULE expansion across all-day and
+timed and expanding from `now − duration` (push() filters the truly
+past). LESSON: a recurrence library's `between` is start-exclusive at its
+lower bound and does not apply EXDATE — both are the caller's to handle,
+and only real-payload testing surfaces the dual-key override storage.
+
+**4. A fetch-on-read DoS, caught in review.** A feed that never succeeds
+never advanced `last_fetched_at`, so the never-fetched branch re-ran a
+synchronous ≤5s outbound fetch on EVERY public book-page render forever —
+an attacker could point a feed at a slow host and tie up handlers 5s at a
+time. Fixed with a `last_attempted_at` column that advances on success
+AND failure; the app TTL gate reads IT, so a failing feed backs off to
+the 15-min cadence. The migration was amended in place (unmerged branch),
+probed rolled-back, and the suite pins the invariant. Plus an in-process
+in-flight dedup Map against the concurrent-render thundering herd.
+
+**5. supabase gen types is optimistic about RETURNS TABLE nullability
+(again — the M15 lesson).** `external_calendar_to_fetch`'s timestamps are
+genuinely nullable (never-fetched / never-attempted / not-failing);
+widened at the one admin-lane boundary.
+
+### Live proof (2026-07-11 / 2026-07-17) — the arc's definition of "works"
+
+Real Google test calendar (Weekly Class Mon 10:00 CDT from 7/20, the 7/27
+occurrence deleted via EXDATE, the 8/03 occurrence MOVED to 8/04, plus an
+all-day 7/21), captured to `tests/fixtures/google-proof-calendar.ics`
+(Shane rotated the secret address post-capture; the committed .ics body
+carries no secret).
+
+- **Golden**: the captured payload through the real parser yields exactly
+  the expected instants (weekly minus the EXDATE'd one, the moved
+  instance ONCE at its new time via dual-key dedup, the all-day's exact
+  Chicago-zone UTC range, no titles), stable under four server timezones.
+- **App layer (real network fetch)**: `fetchIcsSafely` → parse →
+  `computeBookableSlots` proves the 7/20 Monday slot BLOCKED, the 7/27
+  EXDATE'd Monday SURVIVES, the 8/03 moved-away Monday SURVIVES, the 8/04
+  moved-to Tuesday BLOCKED.
+- **DB lane**: subscribed the real URL through the real authenticated
+  `set_external_calendar` (204), the url-column tripwire held live
+  (42501), the real parsed blocks landed in `trainer_busy_ranges`.
+- **Stale-hold**: a real post-reset (dead-token) URL failed cleanly
+  through the fetcher; `refresh_external_blocks(fetch_ok=false)` HELD all
+  three blocks, set `failing_since`, advanced `last_attempted_at`
+  (backoff). The visual browser legs (UI subscribe, Google-side reset)
+  are the trainer-facing confirmation; the mechanism is proven here.
+
+The live-proof harness (`lib/feed/external-live-proof.test.ts`) is gated
+behind `LIVE_PROOF=1` + `EXTCAL_URL`, so CI never depends on Google.
+
+### Forward items
+
+- **P5 advisory residual (ACCEPTED, ruled)**: within the 15-min TTL a
+  slot the trainer just blocked externally can still be offered; the
+  confirm backstop covers it. This IS the advisory design — not a bug.
+- **The always-paid admin RPC** on the book path (one PK-indexed lookup
+  even for unsubscribed trainers) is unavoidable at that seam (the owner's
+  session can't see the trainer's sub row under RLS); denormalizing a
+  flag onto the public trainers row is a future optimization.
+- Import authenticates by pasted ICS URL only; an OAuth-based source
+  (Google API push, sub-minute freshness) would be a later arc if the
+  advisory cadence proves too slow.

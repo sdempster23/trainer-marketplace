@@ -118,3 +118,51 @@ export async function getFeedEvents(
   }
   return { valid: Boolean(exists), events: [] };
 }
+
+/** The import half's url-retrieval lane (M16 §5) — the ONLY read path to
+ * the url column anywhere. Returns null when the trainer has no
+ * subscription (row absence is the first-class "not subscribed" state).
+ * The url must never be logged or surfaced; callers get it to fetch it. */
+export async function getExternalCalendarToFetch(trainerId: string): Promise<{
+  url: string;
+  last_fetched_at: string | null;
+  last_attempted_at: string | null;
+  failing_since: string | null;
+} | null> {
+  const { data, error } = await getAdminClient().rpc(
+    "external_calendar_to_fetch",
+    { t_id: trainerId },
+  );
+  if (error) {
+    throw new Error(`[EXTCAL] to-fetch read failed: ${error.message}`);
+  }
+  const row = data?.[0];
+  if (!row) return null;
+  return {
+    url: row.url,
+    // gen-types marks RETURNS TABLE columns non-nullable; these timestamps
+    // are genuinely nullable (never-fetched / never-attempted / not-failing)
+    // — same optimistic-types finding as M15, handled at the one boundary.
+    last_fetched_at: (row.last_fetched_at as string | null) ?? null,
+    last_attempted_at: (row.last_attempted_at as string | null) ?? null,
+    failing_since: (row.failing_since as string | null) ?? null,
+  };
+}
+
+/** The import half's write lane (M16 §6). fetch_ok=false is bookkeeping
+ * only — the DB is structurally unable to touch blocks on that path
+ * (stale beats none). blocks=null is only meaningful with fetch_ok=false. */
+export async function applyExternalRefresh(
+  trainerId: string,
+  blocks: { starts_at: string; ends_at: string }[] | null,
+  fetchOk: boolean,
+): Promise<void> {
+  const { error } = await getAdminClient().rpc("refresh_external_blocks", {
+    t_id: trainerId,
+    blocks: blocks ?? [],
+    fetch_ok: fetchOk,
+  });
+  if (error) {
+    throw new Error(`[EXTCAL] refresh apply failed: ${error.message}`);
+  }
+}
