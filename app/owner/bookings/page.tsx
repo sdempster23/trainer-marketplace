@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 
 import { CancelBookingButton } from "@/components/bookings/transition-buttons";
 import { MessageButton } from "@/components/messages/message-button";
+import { PaymentDetails } from "@/components/bookings/payment-details";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { createClient } from "@/lib/supabase/server";
@@ -42,7 +43,19 @@ export default async function OwnerBookingsPage() {
     redirect("/account");
   }
 
-  const { bookings, error } = await getOwnerBookings(supabase, claims.sub);
+  // The two reads are independent — run them concurrently (one round-trip of
+  // latency, not two). Payment info for CONFIRMED bookings (M17): RLS returns
+  // ONLY the rows the owner may see (their CONFIRMED-booking trainers), so no
+  // extra filtering is needed; map it by trainer_id onto the confirmed cards.
+  const [{ bookings, error }, { data: paymentRows }] = await Promise.all([
+    getOwnerBookings(supabase, claims.sub),
+    supabase
+      .from("trainer_payment_info")
+      .select("trainer_id, instructions, venmo_handle, paypal_handle"),
+  ]);
+  const paymentByTrainer = new Map(
+    (paymentRows ?? []).map((p) => [p.trainer_id, p]),
+  );
 
   return (
     <main className="bg-muted min-h-screen px-6 py-12">
@@ -102,6 +115,15 @@ export default async function OwnerBookingsPage() {
                     · {booking.duration_minutes} min ·{" "}
                     {formatPrice(booking.price_cents)}
                   </span>
+                  {/* Payment shows once the trainer has CONFIRMED (M17): now
+                      there's a payee relationship, and RLS returned the row. */}
+                  {booking.status === "CONFIRMED" &&
+                  paymentByTrainer.has(booking.trainer_id) ? (
+                    <PaymentDetails
+                      info={paymentByTrainer.get(booking.trainer_id)!}
+                    />
+                  ) : null}
+
                   {/* Message rides every row — coordination isn't status-
                       gated (a completed session still gets a "thanks", a
                       cancelled one a "can we rebook?"). Find-or-create, so

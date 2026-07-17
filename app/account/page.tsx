@@ -4,6 +4,7 @@ import { redirect } from "next/navigation";
 import { signOut } from "@/app/(auth)/actions";
 import { CalendarFeedManager } from "@/components/account/calendar-feed-manager";
 import { ExternalCalendarManager } from "@/components/account/external-calendar-manager";
+import { PaymentInfoEditor } from "@/components/account/payment-info-editor";
 import { DisplayNameEditor } from "@/components/account/display-name-editor";
 import { getExternalCalendarStatus } from "@/lib/trainer/external-calendar-status";
 import { Button } from "@/components/ui/button";
@@ -143,8 +144,14 @@ export default async function AccountPage() {
   // feed card (a swallowed error would offer paste-over — a destructive
   // replace — against a subscription that may exist). The url column is
   // never selected (it's granted to no api role anyway).
-  const [trainerCta, ownerDogs, unreadCount, feedStatus, externalCalendar] =
-    await Promise.all([
+  const [
+    trainerCta,
+    ownerDogs,
+    unreadCount,
+    feedStatus,
+    externalCalendar,
+    paymentInfo,
+  ] = await Promise.all([
       profile.role === "trainer"
         ? getOnboardingState(supabase, claims.sub).then((s) => TRAINER_CTA[s])
         : Promise.resolve(null),
@@ -173,6 +180,16 @@ export default async function AccountPage() {
         : Promise.resolve(null),
       profile.role === "trainer"
         ? getExternalCalendarStatus(supabase, claims.sub)
+        : Promise.resolve(null),
+      // The trainer's own payment info (own-row RLS). Metadata read; the
+      // owner-facing render lives on the CONFIRMED-booking path.
+      profile.role === "trainer"
+        ? supabase
+            .from("trainer_payment_info")
+            .select("instructions, venmo_handle, paypal_handle")
+            .eq("trainer_id", claims.sub)
+            .maybeSingle()
+            .then((r) => r.data)
         : Promise.resolve(null),
     ]);
   const messagesLabel =
@@ -234,6 +251,24 @@ export default async function AccountPage() {
                 lastFetchedAt={externalCalendar?.lastFetchedAt ?? null}
                 failingSince={externalCalendar?.failingSince ?? null}
                 blockCount={externalCalendar?.blockCount ?? 0}
+              />
+            </CardContent>
+          </Card>
+        ) : null}
+
+        {profile.role === "trainer" ? (
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-xl">Payment</CardTitle>
+              <CardDescription>
+                How your clients pay you — off-platform, your way.
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <PaymentInfoEditor
+                instructions={paymentInfo?.instructions ?? null}
+                venmo={paymentInfo?.venmo_handle ?? null}
+                paypal={paymentInfo?.paypal_handle ?? null}
               />
             </CardContent>
           </Card>

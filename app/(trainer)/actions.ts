@@ -7,6 +7,7 @@ import { lookup } from "zipcodes";
 import { createClient } from "@/lib/supabase/server";
 import { siteUrl } from "@/lib/site-url";
 import { externalCalendarUrlSchema } from "@/lib/validators/feed";
+import { paymentInfoSchema } from "@/lib/validators/payment";
 import { getWeeklyPattern } from "@/lib/trainer/availability";
 import { getOnboardingState } from "@/lib/trainer/onboarding";
 import {
@@ -795,6 +796,57 @@ export async function removeExternalCalendar(): Promise<ExternalCalendarState> {
 
   if (!deleted) {
     return { error: "No calendar to remove — refresh and try again." };
+  }
+
+  revalidatePath("/account");
+  return { success: true };
+}
+
+// ============================================================================
+// Payment info (M17) — the trainer's off-platform "how I take payment"
+// ============================================================================
+
+export type PaymentInfoState = { error: string } | { success: true } | null;
+
+/**
+ * Upsert the caller's payment info. Own-row RLS scopes the write; the DB
+ * CHECK charsets mirror the zod handle validation. Empty fields clear a rail
+ * (stored NULL). INFORMATION DISPLAY ONLY — no money moves.
+ */
+export async function updatePaymentInfo(
+  _prevState: PaymentInfoState,
+  formData: FormData,
+): Promise<PaymentInfoState> {
+  const supabase = await createClient();
+  const { data: claimsData } = await supabase.auth.getClaims();
+  const userId = claimsData?.claims?.sub;
+  if (!userId) {
+    redirect("/login");
+  }
+
+  const parsed = paymentInfoSchema.safeParse({
+    instructions: formData.get("instructions") ?? "",
+    venmo: formData.get("venmo") ?? "",
+    paypal: formData.get("paypal") ?? "",
+  });
+  if (!parsed.success) {
+    return { error: parsed.error.issues[0]?.message ?? VALIDATION_ERROR };
+  }
+
+  try {
+    const { error } = await supabase.from("trainer_payment_info").upsert({
+      trainer_id: userId,
+      instructions: parsed.data.instructions ?? null,
+      venmo_handle: parsed.data.venmo ?? null,
+      paypal_handle: parsed.data.paypal ?? null,
+    });
+    if (error) {
+      console.error("[PAYMENT] upsert failed:", error.message);
+      return { error: GENERIC_ERROR };
+    }
+  } catch (e) {
+    console.error("[PAYMENT] upsert threw:", e);
+    return { error: GENERIC_ERROR };
   }
 
   revalidatePath("/account");

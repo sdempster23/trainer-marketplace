@@ -510,6 +510,41 @@ export type Database = {
           },
         ]
       }
+      trainer_payment_info: {
+        Row: {
+          created_at: string
+          instructions: string | null
+          paypal_handle: string | null
+          trainer_id: string
+          updated_at: string
+          venmo_handle: string | null
+        }
+        Insert: {
+          created_at?: string
+          instructions?: string | null
+          paypal_handle?: string | null
+          trainer_id: string
+          updated_at?: string
+          venmo_handle?: string | null
+        }
+        Update: {
+          created_at?: string
+          instructions?: string | null
+          paypal_handle?: string | null
+          trainer_id?: string
+          updated_at?: string
+          venmo_handle?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "trainer_payment_info_trainer_id_fkey"
+            columns: ["trainer_id"]
+            isOneToOne: true
+            referencedRelation: "trainers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       trainer_services: {
         Row: {
           created_at: string
