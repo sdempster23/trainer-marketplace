@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 
+import { siteUrl } from "@/lib/site-url";
 import { createClient } from "@/lib/supabase/server";
 import { loginSchema, signUpSchema } from "@/lib/validators/auth";
 
@@ -67,7 +68,7 @@ export async function signUp(
         // Dormant while email confirmation is OFF (signUp returns a session
         // immediately). When confirmation is enabled, the emailed link routes
         // through /auth/confirm and lands the user here.
-        emailRedirectTo: `${process.env.NEXT_PUBLIC_SITE_URL}${POST_AUTH_REDIRECT}`,
+        emailRedirectTo: siteUrl(POST_AUTH_REDIRECT),
       },
     });
     authError = error?.message ?? null;

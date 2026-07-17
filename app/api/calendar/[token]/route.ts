@@ -1,5 +1,6 @@
 import { buildTrainerFeedCalendar } from "@/lib/feed/ics";
 import { getFeedEvents } from "@/lib/supabase/admin";
+import { siteOrigin } from "@/lib/site-url";
 import { feedTokenSchema } from "@/lib/validators/feed";
 
 /**
@@ -45,19 +46,9 @@ export async function GET(
   }
 
   // A missing origin is a LOUD misconfiguration, not a silent one — but it
-  // must not take the feed down either: the builder omits the Manage link
-  // (never a dead relative path) and the error lands in logs every poll
-  // until fixed.
-  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? null;
-  if (!siteUrl) {
-    console.error(
-      "[FEED] NEXT_PUBLIC_SITE_URL is not set — feed served without Manage links",
-    );
-  }
-
-  // valid + empty serves an EMPTY CALENDAR (the M15 §6 fork): a new
-  // trainer's feed has no bookings yet and must not present as broken.
-  const ics = buildTrainerFeedCalendar(feed.events, siteUrl);
+  // siteOrigin() is never empty (precedence: SITE_URL > VERCEL_URL >
+  // localhost), so the Manage link always resolves to a real origin.
+  const ics = buildTrainerFeedCalendar(feed.events, siteOrigin());
 
   return new Response(ics, {
     status: 200,

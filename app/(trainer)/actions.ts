@@ -5,6 +5,7 @@ import { redirect } from "next/navigation";
 import { lookup } from "zipcodes";
 
 import { createClient } from "@/lib/supabase/server";
+import { siteUrl } from "@/lib/site-url";
 import { externalCalendarUrlSchema } from "@/lib/validators/feed";
 import { getWeeklyPattern } from "@/lib/trainer/availability";
 import { getOnboardingState } from "@/lib/trainer/onboarding";
@@ -626,14 +627,6 @@ export async function rotateFeedToken(): Promise<FeedRotateState> {
     redirect("/login");
   }
 
-  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL;
-  if (!siteUrl) {
-    // Validate-at-startup rule, applied at the boundary that needs it: a
-    // feed URL built on a missing origin would be copyable garbage.
-    console.error("[FEED] NEXT_PUBLIC_SITE_URL is not set");
-    return { error: GENERIC_ERROR };
-  }
-
   let token: string | null = null;
   try {
     const { data, error } = await supabase.rpc("rotate_feed_token");
@@ -656,7 +649,7 @@ export async function rotateFeedToken(): Promise<FeedRotateState> {
   }
 
   revalidatePath("/account");
-  return { url: `${siteUrl}/api/calendar/${token}` };
+  return { url: siteUrl(`/api/calendar/${token}`) };
 }
 
 /**

@@ -1,3 +1,4 @@
+import { siteOrigin } from "@/lib/site-url";
 import { truncatePreview } from "@/lib/utils";
 import { formatBookingStart } from "@/lib/validators/booking";
 import {
@@ -14,8 +15,9 @@ import {
  * in the schema, so owner-received mail cannot be owner-local (owner-tz
  * collection is a horizon item). Consistent with every surface.
  *
- * Deep links come from NEXT_PUBLIC_SITE_URL (the Phase-0 env var — already
- * required per environment).
+ * Deep links come from siteOrigin() (lib/site-url) — one origin source with
+ * the precedence NEXT_PUBLIC_SITE_URL > VERCEL_URL > localhost, never empty,
+ * so no bare relative link can land in an email.
  */
 
 export type BookingMailContext = {
@@ -36,7 +38,9 @@ const zoneLabel = (tz: string) =>
 const when = (c: BookingMailContext) =>
   `${formatBookingStart(c.startsAtIso, c.trainerTimezone)} (${zoneLabel(c.trainerTimezone)})`;
 
-const siteUrl = () => process.env.NEXT_PUBLIC_SITE_URL ?? "";
+// Deep links via the single origin source (never empty — SITE_URL >
+// VERCEL_URL > localhost — so no bare relative links land in email).
+const origin = () => siteOrigin();
 
 /** → the TRAINER: a new PENDING request landed. */
 export function requestReceived(c: BookingMailContext): RenderedMail {
@@ -48,7 +52,7 @@ export function requestReceived(c: BookingMailContext): RenderedMail {
 When: ${when(c)}
 Price: ${formatPrice(c.priceCents)}
 
-Confirm or decline: ${siteUrl()}/trainer/bookings`,
+Confirm or decline: ${origin()}/trainer/bookings`,
   };
 }
 
@@ -62,7 +66,7 @@ export function confirmed(c: BookingMailContext): RenderedMail {
 When: ${when(c)}
 Price: ${formatPrice(c.priceCents)}
 
-Your bookings: ${siteUrl()}/owner/bookings`,
+Your bookings: ${origin()}/owner/bookings`,
   };
 }
 
@@ -76,7 +80,7 @@ export function declinedByTrainer(c: BookingMailContext): RenderedMail {
     subject: `Cancelled — ${c.serviceName}, ${when(c)}`,
     text: `${trainer} can't make ${c.serviceName} for ${c.dogName} on ${when(c)}.
 
-Nothing was charged. Find another time or trainer: ${siteUrl()}/trainers`,
+Nothing was charged. Find another time or trainer: ${origin()}/trainers`,
   };
 }
 
@@ -89,7 +93,7 @@ export function cancelledByOwner(c: BookingMailContext): RenderedMail {
 
 The slot is open again: ${when(c)}
 
-Your bookings: ${siteUrl()}/trainer/bookings`,
+Your bookings: ${origin()}/trainer/bookings`,
   };
 }
 
@@ -116,7 +120,7 @@ export function newMessage(c: NewMessageMailContext): RenderedMail {
 
 "${preview}"
 
-Read and reply: ${siteUrl()}/messages`,
+Read and reply: ${origin()}/messages`,
   };
 }
 
@@ -130,6 +134,6 @@ export function completed(c: BookingMailContext): RenderedMail {
 When: ${when(c)}
 Price: ${formatPrice(c.priceCents)}
 
-Your bookings: ${siteUrl()}/owner/bookings`,
+Your bookings: ${origin()}/owner/bookings`,
   };
 }
