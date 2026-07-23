@@ -52,13 +52,55 @@ export async function updateSession(request: NextRequest) {
   // client. Removing it (or delaying it) causes SSR users to be randomly
   // logged out. We use `getClaims()` per current Supabase guidance (`getUser()`
   // is the drop-in fallback if we ever hit JWT signing-key friction).
-  await supabase.auth.getClaims();
+  const { data: claimsData } = await supabase.auth.getClaims();
 
-  // Auth-gating (redirect unauthenticated users away from protected routes)
-  // will live here once auth pages exist — read the claims from `getClaims()`
-  // and branch on `request.nextUrl.pathname`. Intentionally a no-op for now:
-  // this is the client layer only, with no protected routes yet.
+  // BLOCKING NAME STEP (front-door arc): a signed-in user with no
+  // display_name is redirected to /welcome before ANY in-app transact
+  // surface — this is the real chokepoint that makes the step "no skip"
+  // (a per-page /account bounce is bypassable by direct URL). Scoped to the
+  // authed surfaces only (public browse, the auth flow, and /welcome itself
+  // are exempt), so the profiles read happens only where a name is required.
+  const userId = claimsData?.claims?.sub;
+  const path = request.nextUrl.pathname;
+  if (userId && requiresName(path)) {
+    const { data: profile } = await supabase
+      .from("profiles")
+      .select("display_name")
+      .eq("id", userId)
+      .maybeSingle();
+    // Only redirect on a definite NULL name (a failed/absent read must not
+    // trap the user in a bounce — let the page handle it).
+    if (profile && profile.display_name === null) {
+      const url = request.nextUrl.clone();
+      url.pathname = "/welcome";
+      const redirectResponse = NextResponse.redirect(url);
+      // Carry the rotated auth cookies onto the redirect (the same-object
+      // invariant, extended to the redirect case).
+      supabaseResponse.cookies.getAll().forEach((c) => {
+        redirectResponse.cookies.set(c.name, c.value);
+      });
+      return redirectResponse;
+    }
+  }
 
   // IMPORTANT: return the SAME object whose cookies were synced above.
   return supabaseResponse;
+}
+
+/** The authed surfaces that require a display_name. Public pages
+ * (/, /trainers — note the trailing-slash prefixes below EXCLUDE the public
+ * /trainers directory), the auth flow (/login, /sign-up, /auth), /welcome,
+ * and /api are all exempt — a nameless user may browse and complete the name
+ * step, but not transact. */
+function requiresName(pathname: string): boolean {
+  return (
+    pathname === "/account" ||
+    pathname.startsWith("/account/") ||
+    pathname === "/owner" ||
+    pathname.startsWith("/owner/") ||
+    pathname === "/trainer" ||
+    pathname.startsWith("/trainer/") || // NOT /trainers (public directory)
+    pathname === "/messages" ||
+    pathname.startsWith("/messages/")
+  );
 }

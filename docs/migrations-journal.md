@@ -1183,3 +1183,99 @@ behind `LIVE_PROOF=1` + `EXTCAL_URL`, so CI never depends on Google.
 - Import authenticates by pasted ICS URL only; an OAuth-based source
   (Google API push, sub-minute freshness) would be a later arc if the
   advisory cadence proves too slow.
+
+---
+
+## M17 + Front Door — the arc a STRANGER meets (payment info, origin, homepage, signup)
+
+The last arc before the first real trainer onboards: the product as a
+stranger first meets it. Four threads under one theme.
+
+**M17 — trainer_payment_info (off-platform payments, INFO DISPLAY ONLY).**
+A trainer says how they take payment; the owner sees it after a booking
+is CONFIRMED. PawMatch never touches the money.
+
+DEVIATION FROM THE RULING, confirmed at the gate: ruling 6 said
+`trainers.payment_instructions` columns. The probe showed that breaks
+anti-harvest — a payment column on the anon-readable `trainers` table
+(M7's anon table-SELECT) can only be hidden from anon by converting that
+grant to column-scoped, which flips `has_table_privilege(anon, trainers,
+SELECT)` false and breaks the M7-1 contract. A dedicated table gets
+anti-harvest BY CONSTRUCTION (no anon grant — the M5 trainer_stripe_
+accounts sibling) and leaves M7 untouched. Shane confirmed: "the
+deviation is the ruling's intent surviving the probe."
+
+Read model = the M11 booking-scoped counterparty precedent (house rule:
+floor ≠ view spec): the owner reads a trainer's payment IFF they hold a
+CONFIRMED booking (EXISTS over bookings — pure column comparisons, no
+42P17). Trainer reads/writes own row. anon nothing; a non-client
+authenticated user harvests ZERO. Handles are validated SLUGS (CHECK
+charset); the app builds the href from a fixed host (venmo.com/u/,
+paypal.me/) — no user-supplied url to sanitize. 11-case suite; M14
+matrix now 16 tables (service_role DML {} auto-asserted).
+
+**siteOrigin() — the localhost-origin bug, fixed at the root (ridden
+since M15).** One origin source with precedence NEXT_PUBLIC_SITE_URL >
+VERCEL_URL > localhost, unit-tested, never empty. All four construction
+sites migrated (the feed copy URL, the in-feed Manage link, six
+transactional-email deep links — the `?? ""` one had emitted BARE
+RELATIVE links into email — and the email-confirm redirect). Falls back
+to localhost only off-Vercel with nothing set, and then logs LOUD in
+production (the alarm the ad-hoc guards had).
+
+**Homepage.** The Phase-0 scaffold (theme card, dead buttons) → a real
+front door: owner hero → /trainers, a truthful three-capability strip,
+the trainer pitch verbatim + free-for-founding-trainers → /sign-up. The
+header carries a STANDING truthful-copy contract: no reviews, no in-app
+payment, no social-proof/volume claims until built (there are no real
+trainers yet — the point of the launch).
+
+**Signup hardening** (the flow only admin-created users had exercised):
+Turnstile bot gate (fail closed + visible — a missing/spent/invalid
+token, a Cloudflare outage, or an unset secret all block signup with a
+message, never fail-open); a BLOCKING name step (/welcome, one field, no
+skip) enforced in MIDDLEWARE across every authed surface (the review
+caught that a per-page /account bounce was bypassable by direct URL);
+the email-verification path made complete (resend with no enumeration
+oracle, confirm route origin fixed). Verification-ON itself is a Supabase
+dashboard toggle + the config below.
+
+### Review (high-effort workflow, 21 agents, 8 distinct findings, all
+### applied except one consciously declined)
+
+- **The blocking name step was bypassable** — only /account bounced; a
+  nameless user could deep-link to /messages, /owner/bookings,
+  /trainer/bookings and transact (the counterparty then saw "An owner").
+  Fixed in middleware: a display_name check on the authed-surface
+  prefixes (public browse and the auth flow exempt), the real chokepoint.
+  LESSON: "blocking, no skip" means one enforced chokepoint, not N
+  per-page guards that miss a page.
+- **Turnstile token is single-use** — never reset after a failed submit,
+  so a legit human was permanently blocked after any downstream signup
+  error (email taken, weak password). Fixed: the widget resets on a
+  parent reset signal; it also renders idempotently on mount (SPA
+  soft-nav where onLoad won't refire).
+- **/welcome dead-end** — no escape if the name-write kept failing
+  (missing profiles row). Added a sign-out escape hatch (mirrors
+  /account's).
+- **siteOrigin silently emitting localhost** — the old per-site guards
+  omitted the link + logged loudly; the helper now restores the loud
+  production alarm.
+- Cleanups: resend gained its zod boundary; owner/bookings' two
+  independent reads now Promise.all. DECLINED: dedup the two
+  display-name actions — they diverge in post-condition (redirect vs
+  success), a shared helper would net-neutral.
+
+### Outcome + config gate
+
+Fresh-reset M6→M17: **213 PASS, 0 fail** (m17 12; m7/m12 unamended;
+m14 matrix 16 tables). App gates typecheck/lint/113 tests/build green.
+Five clean commits (M17 db / origin / home / signup / payment).
+
+External deps Shane completed pre-proof: domain live
+(https://joinpawmatch.com, SSL/DNS), prod NEXT_PUBLIC_SITE_URL set,
+Turnstile keys in Vercel Production, redeployed. REMAINING: the Supabase
+auth config (email-confirmation toggle + template + redirect allow-list;
+exact values in docs/manual-steps.md §Auth). The arc's live proof — a
+COMPLETE STRANGER WALKTHROUGH on the deployed site — runs after that
+config lands, and precedes PR #35 (live-proof-before-PR).
