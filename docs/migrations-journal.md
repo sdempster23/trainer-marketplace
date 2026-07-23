@@ -1279,3 +1279,57 @@ auth config (email-confirmation toggle + template + redirect allow-list;
 exact values in docs/manual-steps.md §Auth). The arc's live proof — a
 COMPLETE STRANGER WALKTHROUGH on the deployed site — runs after that
 config lands, and precedes PR #35 (live-proof-before-PR).
+
+### Front Door — hosted push + production walkthrough (2026-07-23)
+
+**M17 hosted push + catalog verification — ALL ✅** (heavier class: new
+table + RLS + CHECKs). From hosted pg_dump: `trainer_payment_info`
+present, RLS enabled; exactly 4 policies all `TO authenticated`
+(booking-owner read, trainer own read/insert/update); grants
+authenticated {SELECT,INSERT,UPDATE}, **anon NONE** (anti-harvest by
+construction), **service_role housekeeping-only = DML {}** (M14 contract,
+remote); all 3 CHECKs present. Sweep: only bookings +
+trainer_stripe_accounts hold service_role DML across 16 tables. Anti-
+harvest confirmed live: anon reading trainer_payment_info via the public
+API → 401.
+
+**Production walkthrough on joinpawmatch.com — the HOSTED POSITIVE PROOF**
+(the rehearsal was the pre-merge proof; this closes it). A complete
+stranger funnel, zero admin hands, Shane driving browser + inbox, with
+backend evidence verified per leg:
+- **L1** homepage + real CTAs.
+- **L2** signup — the REAL Turnstile challenge appeared and passed →
+  auth.users created UNCONFIRMED, role=owner (proves confirmation is
+  genuinely on; admin API).
+- **L3** confirmation email arrived, link origin = joinpawmatch.com (the
+  siteOrigin fix, live) → email_confirmed_at set after the click.
+- **L4 — the name gate (the review-fixed bypass, proven closed on prod):**
+  landed on /welcome (not /account); BOTH deep-links (/owner/bookings,
+  /messages) bounced to /welcome.
+- **L5** name set → /account (staying there is itself proof the write
+  landed — a null name re-bounces).
+- **L6** browse (Willow Creek K9 the only listable trainer) → message →
+  thread opened.
+- **L7** a CONFIRMED booking → the "How to pay" block + app-built
+  venmo.com/u/ + paypal.me/ links rendered to the owner (booking-scoped
+  RLS), long-press-verified.
+- **L8** (resend + bad-token error surface) — covered by the rehearsal.
+
+**LESSON — hosted seeds use the REAL lifecycle, never trigger-disable.**
+Leg 7's first seed used `ALTER TABLE ... DISABLE TRIGGER` (fine locally)
+to insert a CONFIRMED booking directly. On the hosted Supavisor pooler
+the DDL did not take and the whole transaction ROLLED BACK — yet the
+in-session SELECT (evaluated before the rollback) printed
+"SEEDED | CONFIRMED", masking the failure; /owner/bookings then showed
+nothing. Independent REST read-back (service_role SELECT on bookings —
+one of the two tables M14 leaves it readable) exposed the empty table.
+Fix: seed via the genuine lifecycle — insert PENDING (passes the insert
+trigger), then confirm AS THE TRAINER via a scoped `request.jwt.claims`
+GUC (the trigger's real trainer path). Two rules banked: (1) hosted
+seeds never disable triggers — drive the real flow; (2) an in-session
+SELECT is not persistence proof — always read back on a fresh connection.
+
+**Residual CLOSED** (M13/M15/M16 pattern, one notch further): the
+rehearsal made the funnel a near-certainty; this production walkthrough
+is the hosted positive proof. The Front Door arc — and the pre-first-
+trainer launch readiness — is complete.
