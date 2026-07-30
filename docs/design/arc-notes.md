@@ -1,5 +1,26 @@
 # Design arc — working notes
 
+## CURRENT POSITION (updated 2026-07-29, end of day)
+
+HOLDING AT THE PHASE-3 VERDICT GATE. Shane re-walks the full page in the
+morning; nothing builds until his verdict.
+
+- Branch: design/homepage, clean at a815b58 (phases 1-3 all committed).
+- Walkthrough server: PRODUCTION build on http://localhost:3000 (dev
+  server deliberately killed; a dev-server + rebuild collision served
+  unstyled HTML once. Do NOT run pnpm build while any server is serving
+  from .next). Supabase local is up (docker).
+- Awaiting from Shane: phase-3 verdict, felt-motion notes, then phase 4
+  (motion polish, responsive nits, Lighthouse re-check, arc cleanup
+  list including the two /design review routes).
+- Also queued: Shane's real Malinois field shots (shoot spec in
+  image-manifest.md; hero slot is now cast pet-forward per the
+  re-weight, so the field shots map to the community sport slots and
+  any hero candidate must match the warmth + attention casting).
+- Known app-side nit (out of scope this phase): /account "Your
+  calendar" connected-state Replace row overflows at 390px viewports;
+  fits at 414px.
+
 ## Cleanup list (delete before the arc closes)
 
 - [ ] `app/design/identity/page.tsx` — identity gate sample (noindex'd; no
