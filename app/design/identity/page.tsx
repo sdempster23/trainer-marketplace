@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { Geist_Mono } from "next/font/google";
 
 import { MarketingHero } from "@/components/marketing/hero";
 import { Button } from "@/components/ui/button";
@@ -14,6 +15,14 @@ export const metadata: Metadata = {
   robots: { index: false, follow: false },
 };
 
+// Mono loads route-locally (root layout deliberately doesn't preload it;
+// see the comment in app/layout.tsx). Sections that use font-mono classes
+// must sit under an element carrying this variable class.
+const geistMono = Geist_Mono({
+  subsets: ["latin"],
+  variable: "--font-geist-mono",
+});
+
 const GRAPHITE_RAMP = [
   { name: "background", hex: "#fafafa", className: "bg-background border" },
   { name: "muted", hex: "#f4f4f5", className: "bg-muted border" },
@@ -25,7 +34,7 @@ const GRAPHITE_RAMP = [
 
 export default function IdentitySamplePage() {
   return (
-    <main className="bg-background min-h-screen">
+    <main className={`bg-background min-h-screen ${geistMono.variable}`}>
       {/* The identity applied to the real thing: the homepage hero. */}
       <MarketingHero />
 

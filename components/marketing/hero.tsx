@@ -47,7 +47,9 @@ export function MarketingHero({
   const { image, alt } = MARKETING_IMAGES.heroField;
 
   return (
-    <section className="relative flex min-h-[100dvh] flex-col">
+    // overflow-hidden contains the scroll-linked zoom on .hero-media.
+    // The hero-media / hero-promise classes are GSAP hooks for HeroScene.
+    <section className="relative flex min-h-[100dvh] flex-col overflow-hidden">
       <Image
         src={image}
         alt={alt}
@@ -55,7 +57,7 @@ export function MarketingHero({
         priority={priorityImage}
         placeholder="blur"
         sizes="100vw"
-        className="object-cover object-[65%_35%]"
+        className="hero-media object-cover object-[65%_35%]"
       />
       {/* Mood layer: keeps the photo cinematic without crushing the top. */}
       <div
@@ -84,7 +86,7 @@ export function MarketingHero({
       </header>
 
       {/* Promise block, anchored to the quiet lower-left of the frame. */}
-      <div className="relative z-10 mt-auto flex w-full max-w-[1400px] flex-col gap-6 self-center px-6 pb-16 sm:px-10 sm:pb-24">
+      <div className="hero-promise relative z-10 mt-auto flex w-full max-w-[1400px] flex-col gap-6 self-center px-6 pb-16 sm:px-10 sm:pb-24">
         <h1 className="font-display max-w-4xl text-5xl leading-[0.95] font-bold tracking-[-0.035em] text-balance text-white sm:text-7xl lg:text-8xl">
           {headline}
         </h1>

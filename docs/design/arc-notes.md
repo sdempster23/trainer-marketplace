@@ -39,6 +39,27 @@ standing directive for all copy and image casting:
   follow this weighting. Do not lead with PSA/Schutzhund/PPD vocabulary;
   it appears in specialty lists and the community strip, not headlines.
 
+## Phase 2 state (2026-07-29)
+
+- Homepage rebuilt: hero (scroll-linked zoom + promise parallax handoff),
+  section 1 (transformation, asymmetric split), section 2 (product angles:
+  pinned horizontal pan through four REAL app screenshots in graphite
+  device frames; native scroll-snap strip on mobile and reduced-motion).
+- GSAP + @gsap/react installed, used ONLY by components under
+  components/marketing/ imported by app/page.tsx (route-split: homepage
+  160kB first load, booking funnel unchanged at baseline).
+- UI screenshots provenance in lib/marketing/ui-shots.ts (captured from
+  the running app; the message thread was created by driving the real
+  messaging flow; Sofia's services added via the real services form).
+- Lighthouse (prod build): BEFORE (main, text-only page) mobile 99 /
+  desktop 100, a11y 98. AFTER mobile 92 / desktop 99, a11y 100, CLS 0.
+  Mobile LCP 3.4s throttled: acceptable-green; candidate for phase-4
+  polish.
+- LCP GUARD (do not regress): the hero H1 is the LCP element. GSAP must
+  NOT touch .hero-promise / .hero-media at hydration; HeroScene creates
+  its tweens on first scroll intent (see comment there). Animating the
+  LCP element at load costs ~2s of mobile LCP.
+
 ## Standing constraints (phase 2+)
 
 - GSAP code-split to the homepage route only; booking funnel untouched.

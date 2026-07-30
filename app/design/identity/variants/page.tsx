@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { Geist_Mono } from "next/font/google";
 import Image from "next/image";
 
 import { MarketingHero } from "@/components/marketing/hero";
@@ -16,6 +17,12 @@ export const metadata: Metadata = {
   title: "PawMatch — hero and accent variants",
   robots: { index: false, follow: false },
 };
+
+// Route-local mono (root layout deliberately doesn't preload it).
+const geistMono = Geist_Mono({
+  subsets: ["latin"],
+  variable: "--font-geist-mono",
+});
 
 const PROMISE_VARIANTS = [
   { tag: "a", headline: "Every dog deserves the right trainer." },
@@ -91,7 +98,7 @@ export default function VariantsPage() {
   const { image, alt } = MARKETING_IMAGES.heroField;
 
   return (
-    <main className="bg-background min-h-screen">
+    <main className={`bg-background min-h-screen ${geistMono.variable}`}>
       {/* 1. Promise line: full heroes, scroll through and compare. */}
       {PROMISE_VARIANTS.map(({ tag, headline }, i) => (
         <div key={tag} className="relative">

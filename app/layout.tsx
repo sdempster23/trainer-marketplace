@@ -1,11 +1,14 @@
 import type { Metadata } from "next";
-import { Archivo, Geist_Mono, Inter } from "next/font/google";
+import { Archivo, Inter } from "next/font/google";
 import "./globals.css";
 
 // Body stays Inter (crisp, neutral). Archivo is the display voice: large,
 // tightly-tracked headlines; its width axis gives the wordmark its expanded
-// cut without a second font family. Geist Mono is reserved for truthful
-// numbers and data labels (sync intervals, prices, credentials).
+// cut without a second font family. Geist Mono (truthful numbers / data
+// labels) is deliberately NOT loaded here: root-layout fonts preload on
+// every route and the mono only appears on specific sections, so those
+// components instantiate it themselves (see app/design/identity/page.tsx).
+// The H1 is the homepage LCP element and every font byte here delays it.
 const inter = Inter({
   subsets: ["latin"],
   variable: "--font-inter",
@@ -15,11 +18,6 @@ const archivo = Archivo({
   subsets: ["latin"],
   variable: "--font-archivo",
   axes: ["wdth"],
-});
-
-const geistMono = Geist_Mono({
-  subsets: ["latin"],
-  variable: "--font-geist-mono",
 });
 
 export const metadata: Metadata = {
@@ -40,7 +38,7 @@ export default function RootLayout({
     <html
       lang="en"
       suppressHydrationWarning
-      className={`${inter.variable} ${archivo.variable} ${geistMono.variable}`}
+      className={`${inter.variable} ${archivo.variable}`}
     >
       <body className="font-sans antialiased">{children}</body>
     </html>
