@@ -1,6 +1,7 @@
 import type { StaticImageData } from "next/image";
 
 import uiCalendar from "@/public/marketing/ui/ui-calendar.png";
+import uiDesktop from "@/public/marketing/ui/ui-desktop.png";
 import uiDirectory from "@/public/marketing/ui/ui-directory.png";
 import uiProfile from "@/public/marketing/ui/ui-profile.png";
 import uiThread from "@/public/marketing/ui/ui-thread.png";
@@ -58,6 +59,13 @@ export const UI_SHOTS = {
     caption:
       "No new accounts, no new logins. Clients pay you the way they already do, and PawMatch syncs with the calendar you already run.",
     route: "/account",
+  },
+  desktop: {
+    image: uiDesktop,
+    alt: "The PawMatch trainer directory at desktop width with search filters and specialty checkboxes",
+    title: "The big screen",
+    caption: "The same PawMatch on any screen.",
+    route: "/trainers (1440px viewport)",
   },
 } as const satisfies Record<string, UiShot>;
 

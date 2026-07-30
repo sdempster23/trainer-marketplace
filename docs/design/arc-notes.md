@@ -84,6 +84,24 @@ standing directive for all copy and image casting:
   you already run. Booked sessions appear there; busy times block new
   requests. (Claimable: M15/M16 calendar bridge + off-platform payment.)
 
+## Phase 3 state (2026-07-29)
+
+- Full scroll story shipped: hero / transformation / product-angles pan /
+  features one-at-a-time (typographic rows) / desktop device / DARK ACT
+  (truthful numbers with count-up, old-way comparison ledger,
+  founding-trainer finale on the dusk photo) / footer.
+- The light-to-dark transition is a pure-CSS 45vh gradient band at the
+  dark act's top (the one composed theme switch per page): survives
+  no-JS and reduced motion, zero jank.
+- Numbers are the only "stats" and each is a shipped fact: 15-min sync
+  (gate ruling 3, matches trainer-facing app copy), 0 double-books by
+  design, $0 platform fees. NEVER add volume/user stats until real.
+- Section 7 scaffold: components/marketing/social-proof.tsx returns null
+  with mounting instructions; do not fill with placeholder quotes.
+- Lighthouse (prod): mobile 98 / desktop 100, a11y 100 both, CLS 0.
+  Mobile LCP 2.0s (under the 2.5s target; the re-cast hero image is
+  lighter than the old one, which is most of the phase-2 -> 3 gain).
+
 ## Standing constraints (phase 2+)
 
 - GSAP code-split to the homepage route only; booking funnel untouched.

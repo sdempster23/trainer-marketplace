@@ -1,12 +1,18 @@
+import { ComparisonSection } from "@/components/marketing/comparison";
+import { DevicesSection } from "@/components/marketing/devices";
+import { FeaturesSection } from "@/components/marketing/features";
+import { FinaleSection } from "@/components/marketing/finale";
 import { MarketingHero } from "@/components/marketing/hero";
 import { HeroScene } from "@/components/marketing/hero-scene";
+import { NumbersSection } from "@/components/marketing/numbers";
 import { ProductAnglesSection } from "@/components/marketing/product-angles";
+import { SocialProofSection } from "@/components/marketing/social-proof";
 import { TransformationSection } from "@/components/marketing/transformation";
 
 /**
- * PawMatch launch homepage (design arc, phase 2: hero + sections 1-2).
- * Sections 3-6 and 8 arrive in phase 3; section 7 (social proof) stays
- * scaffolded-hidden until real proof exists.
+ * PawMatch launch homepage (design arc, phase 3: full scroll story).
+ * Section 7 (social proof) stays scaffolded-hidden until real proof
+ * exists (components/marketing/social-proof.tsx).
  *
  * TRUTHFUL-COPY CONTRACT (standing — every claim on this page MUST be true
  * TODAY; do not add a claim until the feature ships):
@@ -44,9 +50,33 @@ export default function Home() {
 
       <ProductAnglesSection />
 
-      <footer className="border-border text-muted-foreground border-t px-6 py-8 text-center text-sm">
-        PawMatch — dog owners and professional trainers.
-      </footer>
+      <FeaturesSection />
+
+      <DevicesSection />
+
+      {/* The dark act (sections 5, 6, 8). One composed light-to-dark scene
+          transition per page (the tasteskill theme-switch exception): the
+          band below fades the page floor to the dark scene over ~45vh of
+          scroll. Pure CSS so the transition survives no-JS and reduced
+          motion. Inside the .dark scope, text-foreground re-declares color
+          (children otherwise inherit body's light-mode computed color). */}
+      <div className="dark bg-background text-foreground">
+        <div
+          aria-hidden
+          className="h-[45vh] bg-gradient-to-b from-[#fafafa] to-[#0a0a0b]"
+        />
+        <NumbersSection />
+
+        <ComparisonSection />
+
+        <SocialProofSection />
+
+        <FinaleSection />
+
+        <footer className="text-muted-foreground border-t border-white/10 px-6 py-8 text-center text-sm">
+          PawMatch. Dog owners and professional trainers.
+        </footer>
+      </div>
     </main>
   );
 }
