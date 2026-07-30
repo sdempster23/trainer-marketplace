@@ -18,10 +18,26 @@
   working K9s."
   Note: the locked wording contains an em-dash, which the design skill
   bans as an AI tell. Shane's wording overrides the skill; do not "fix" it.
-- Promise line and accent color: pending Shane's pick from the variants
-  page (`/design/identity/variants`).
-- Field orange (#f14e07) is OUT as the accent unless the control wins the
-  side-by-side.
+- Promise line locked: "Find the trainer your dog needs." (variant b).
+- Accent locked: amber-gold #f5a623, black label (10.4:1 AAA); #ffb224 in
+  dark mode. Field orange #f14e07 is RETIRED everywhere.
+
+## Strategic re-weight (locked 2026-07-29 — do not re-tilt)
+
+PawMatch's volume market is everyday pet owners; the sport/working-K9
+community is the differentiating niche, NOT the lead voice. This is a
+standing directive for all copy and image casting:
+
+- Tone: warm competence. Professional, welcoming, never tactical.
+- Sections speak pet-owner-first; the sport niche is present and proud but
+  secondary. The community strip carries the sport identity (its two sport
+  slots stay).
+- Hero casting is a handler-and-pet-dog training moment (warmth +
+  competence in one frame). No bite work, no prong-forward imagery in the
+  hero or section leads.
+- Any future session that drafts homepage copy or casts imagery must
+  follow this weighting. Do not lead with PSA/Schutzhund/PPD vocabulary;
+  it appears in specialty lists and the community strip, not headlines.
 
 ## Standing constraints (phase 2+)
 

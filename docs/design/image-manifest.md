@@ -18,17 +18,23 @@ the manifest module.
 ## Slots and shot specs
 
 ### 1. `hero-field.jpg` — the opening scene (highest priority swap)
+
+> **Re-cast 2026-07-29 (strategic re-weight):** the hero leads
+> pet-owner-first. Warmth + competence in one frame. NOT bite work, NOT
+> prong-forward or tactical imagery; sport lives in the community strip.
+
 - **Where:** full-viewport hero, image fills the screen behind the headline.
 - **Format:** landscape, 3:2, minimum 2800px wide (shoot wider, we crop).
-- **Cast as:** a working Malinois with its handler on the field. Alert, in
-  drive or on task. Leash tension, equipment visible. NOT posed, NOT smiling
-  at camera.
+- **Cast as:** a handler-and-pet-dog training moment. Think heeling golden
+  with eye contact, a focused sit at the owner's side, attention work.
+  Engaged and working, NOT posed, NOT stock-smiling at camera.
 - **Composition:** dog sharp, background soft. Leave breathable negative
   space (sky, field, or defocused ground) on at least one side or the lower
   third: the headline and CTAs sit over the quiet part of the frame. Avoid
   busy backgrounds behind where text will sit.
-- **Light:** overcast or golden hour both work; avoid harsh midday contrast.
-- **Interim:** G-R Mottez, Malinois held on leash (very close to the target).
+- **Light:** golden hour or soft overcast; warm beats dramatic.
+- **Interim:** Beth Macdonald, lab in a focused sit looking up at its owner
+  in an open field (very close to the target).
 
 ### 2. `transformation.jpg` — "the right trainer, found"
 - **Where:** section 1, large image beside/behind a short claim.

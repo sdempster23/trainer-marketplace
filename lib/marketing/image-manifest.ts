@@ -42,14 +42,15 @@ const UNSPLASH_LICENSE =
 export const MARKETING_IMAGES = {
   heroField: {
     image: heroField,
-    alt: "A Belgian Malinois on a leash held by its handler, alert on a training field",
+    alt: "A dog sitting attentively at its owner's side in an open field, looking up at them",
     section: "Hero (full-viewport opening scene)",
     orientation: "landscape",
-    subject: "Working Malinois with handler, leash tension, field setting",
+    subject:
+      "Owner and pet dog, focused attention, open field. Re-cast 2026-07-29: pet-owner-first (warm competence), sport imagery moved to the community strip.",
     status: "interim-stock",
     source: {
-      photographer: "G-R Mottez",
-      url: "https://unsplash.com/photos/oU9tVBNp-lU",
+      photographer: "Beth Macdonald",
+      url: "https://unsplash.com/photos/RW68ZD7nQyg",
       license: UNSPLASH_LICENSE,
     },
   },

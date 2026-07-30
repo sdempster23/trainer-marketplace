@@ -58,7 +58,7 @@ export default function IdentitySamplePage() {
         {/* Palette */}
         <section className="flex flex-col gap-6">
           <h2 className="text-muted-foreground text-sm font-medium">
-            Palette. Graphite monochrome, one accent: field orange, actions
+            Palette. Graphite monochrome, one accent: amber-gold, actions
             only.
           </h2>
           <div className="grid grid-cols-3 gap-3 sm:grid-cols-6">
@@ -76,8 +76,8 @@ export default function IdentitySamplePage() {
           <div className="flex flex-col gap-2">
             <div className="bg-action h-20 rounded-lg sm:w-1/2" />
             <p className="text-muted-foreground font-mono text-xs">
-              action (field orange) #f14e07. The color of long lines, harness
-              gear, and the one button that matters.
+              action (amber-gold) #f5a623, black label 10.4:1 AAA. Locked at
+              the identity gate; the one button that matters.
             </p>
           </div>
         </section>

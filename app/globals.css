@@ -7,10 +7,10 @@
  * PawMatch identity tokens (design arc, phase 1).
  *
  * Palette: true-neutral graphite monochrome + ONE accent.
- * The accent is "field orange" (blaze/safety orange, the color of long
- * lines, harnesses, and bite-sleeve gear). It lives in the --action token
- * and is used ONLY for important actions (primary CTAs). It is NOT the
- * shadcn --accent token: shadcn uses "accent" as a quiet hover tint on
+ * The accent is amber-gold (locked at the identity gate, 2026-07-29;
+ * field orange is retired). It lives in the --action token and is used
+ * ONLY for important actions (primary CTAs). It is NOT the shadcn
+ * --accent token: shadcn uses "accent" as a quiet hover tint on
  * ghost/outline components, so putting a loud brand color there would set
  * every hover on fire. Keep the two roles separate.
  *
@@ -41,8 +41,8 @@
   --accent: #f4f4f5;
   --accent-foreground: #18181b;
 
-  /* Field orange. Black label text: white fails AA on this hue. */
-  --action: #f14e07;
+  /* Amber-gold. Black label: 10.4:1 AAA (white fails at 2.0:1). */
+  --action: #f5a623;
   --action-foreground: #0a0a0b;
 
   --destructive: #dc2626;
@@ -75,8 +75,8 @@
   --accent: #1f1f23;
   --accent-foreground: #fafafa;
 
-  /* Slightly hotter on dark so it reads at the same perceived intensity. */
-  --action: #ff5a0d;
+  /* Slightly brighter on dark so it reads at the same perceived intensity. */
+  --action: #ffb224;
   --action-foreground: #0a0a0b;
 
   --destructive: #ef4444;
