@@ -4,7 +4,6 @@ import { FeaturesSection } from "@/components/marketing/features";
 import { FinaleSection } from "@/components/marketing/finale";
 import { MarketingHero } from "@/components/marketing/hero";
 import { HeroScene } from "@/components/marketing/hero-scene";
-import { NumbersSection } from "@/components/marketing/numbers";
 import { ProductAnglesSection } from "@/components/marketing/product-angles";
 import { SocialProofSection } from "@/components/marketing/social-proof";
 import { TransformationSection } from "@/components/marketing/transformation";
@@ -54,19 +53,19 @@ export default function Home() {
 
       <DevicesSection />
 
-      {/* The dark act (sections 5, 6, 8). One composed light-to-dark scene
-          transition per page (the tasteskill theme-switch exception): the
-          band below fades the page floor to the dark scene over ~45vh of
-          scroll. Pure CSS so the transition survives no-JS and reduced
-          motion. Inside the .dark scope, text-foreground re-declares color
-          (children otherwise inherit body's light-mode computed color). */}
+      {/* The dark act (comparison + finale; the numbers section was cut at
+          the phase-3 verdict: format fine, content not a buying reason).
+          One composed light-to-dark scene transition per page (the
+          tasteskill theme-switch exception): the band below fades the page
+          floor to the dark scene over ~45vh of scroll. Pure CSS so the
+          transition survives no-JS and reduced motion. Inside the .dark
+          scope, text-foreground re-declares color (children otherwise
+          inherit body's light-mode computed color). */}
       <div className="dark bg-background text-foreground">
         <div
           aria-hidden
           className="h-[45vh] bg-gradient-to-b from-[#fafafa] to-[#0a0a0b]"
         />
-        <NumbersSection />
-
         <ComparisonSection />
 
         <SocialProofSection />

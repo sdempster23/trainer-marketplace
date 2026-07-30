@@ -72,7 +72,9 @@ export function MarketingHero({
 
       {/* Overlay nav: wordmark + the one non-hero action. */}
       <header className="relative z-10 flex items-center justify-between px-6 py-5 sm:px-10">
-        <span className="font-display text-lg font-bold tracking-tight text-white uppercase [font-stretch:115%]">
+        {/* Wordmark uses the tiny PAWMATCH-subset wide instance (see
+            layout.tsx); falls back to the main display font. */}
+        <span className="text-lg font-bold tracking-tight text-white uppercase [font-family:var(--font-archivo-wide),var(--font-archivo),ui-sans-serif] [font-stretch:115%]">
           PawMatch
         </span>
         <Button

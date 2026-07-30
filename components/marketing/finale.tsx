@@ -13,10 +13,13 @@ import { MARKETING_IMAGES } from "@/lib/marketing/image-manifest";
 gsap.registerPlugin(ScrollTrigger, useGSAP);
 
 /**
- * Section 8: the founding-trainer finale, the launch's actual ask. Dusk
- * photo carries the dark act to its close; the pitch is the old homepage's
- * trainer panel promoted to the closing scene, claims unchanged (all
- * shipped: calendar bridge both directions, no double-books, free today).
+ * Section 8: the trainer finale, the launch's actual ask. Dusk photo
+ * carries the dark act to its close.
+ *
+ * Copy ruling (phase-3 verdict): NO pricing claims anywhere on this page
+ * until the founding-offer mechanics are settled; the word "founding"
+ * appears nowhere on the page. Headline and pitch are Shane's locked
+ * lines; the CTA matches the hero's trainer CTA verbatim.
  *
  * Motion, and why: the photo settles from a slight zoom as the scene
  * enters (the last camera move, mirroring the hero's first) and the pitch
@@ -77,15 +80,13 @@ export function FinaleSection() {
           data-finale-line
           className="font-display max-w-3xl text-4xl leading-none font-bold tracking-[-0.035em] text-balance text-white sm:text-6xl lg:text-7xl"
         >
-          Free for founding trainers.
+          Your next client is already searching.
         </h2>
         <p
           data-finale-line
           className="max-w-xl text-lg leading-relaxed text-balance text-white/90"
         >
-          We send you clients that fit the tools you already use. Bookings
-          land in your calendar, your real schedule blocks the times you are
-          not available, and no one asks you to babysit a new app.
+          We send you clients that fit into the tools you already use.
         </p>
         <div data-finale-line className="pt-2">
           <Button asChild variant="action" size="lg" className="text-base">

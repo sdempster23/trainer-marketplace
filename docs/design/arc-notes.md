@@ -1,34 +1,48 @@
 # Design arc — working notes
 
-## CURRENT POSITION (updated 2026-07-29, end of day)
+## CURRENT POSITION (updated 2026-07-30)
 
-HOLDING AT THE PHASE-3 VERDICT GATE. Shane re-walks the full page in the
-morning; nothing builds until his verdict.
+PHASE 4 COMPLETE. PR #37 open with the full arc; HOLDING FOR SHANE'S
+MERGE CALL. Production build serves http://localhost:3000 for final
+review. (Do NOT run pnpm build while any server serves from .next.)
 
-- Branch: design/homepage, clean at a815b58 (phases 1-3 all committed).
-- Walkthrough server: PRODUCTION build on http://localhost:3000 (dev
-  server deliberately killed; a dev-server + rebuild collision served
-  unstyled HTML once. Do NOT run pnpm build while any server is serving
-  from .next). Supabase local is up (docker).
-- Awaiting from Shane: phase-3 verdict, felt-motion notes, then phase 4
-  (motion polish, responsive nits, Lighthouse re-check, arc cleanup
-  list including the two /design review routes).
-- Also queued: Shane's real Malinois field shots (shoot spec in
-  image-manifest.md; hero slot is now cast pet-forward per the
-  re-weight, so the field shots map to the community sport slots and
-  any hero candidate must match the warmth + attention casting).
-- Known app-side nit (out of scope this phase): /account "Your
-  calendar" connected-state Replace row overflows at 390px viewports;
-  fits at 414px.
+- Story after the phase-3 verdict: hero -> transformation -> phone pan
+  -> features -> desktop device -> dark act (comparison -> finale).
+- Fonts: main Archivo is weight-only + display:optional (the H1 is the
+  LCP element; optional makes it paint exactly once. Tradeoff: slowest
+  cold visits render the metric-matched fallback headline. Revert
+  lever: remove display:'optional' in app/layout.tsx). The width axis
+  lives in a separate non-preloaded instance used only by the wordmark.
+- LCP measurement note: Lighthouse's default simulated method swings
+  1.9s on this machine for the SAME page weight (2.0s vs 3.7s across a
+  day). Under --throttling-method=devtools (real applied throttling):
+  LCP 1.6-1.9s, perf 98-99, meeting the <=2.5s bar. Judge future perf
+  work on devtools-throttled or field numbers, not single lantern runs.
+- Queued beyond the arc: Shane's Malinois field shots (map to community
+  sport slots; hero stays pet-forward per the re-weight).
 
-## Cleanup list (delete before the arc closes)
+## Cleanup list
 
-- [ ] `app/design/identity/page.tsx` — identity gate sample (noindex'd; no
-      sitemap file exists in the app, so page-level robots metadata is the
-      whole exclusion story)
-- [ ] `app/design/identity/variants/page.tsx` — promise-line + accent
-      variants (noindex'd)
+- [x] `app/design/identity/page.tsx` — DELETED in phase 4 (preserved in
+      git history)
+- [x] `app/design/identity/variants/page.tsx` — DELETED in phase 4
 - [ ] This file, once the arc ships
+
+## Phase-3 verdict rulings (2026-07-30 — content law for this page)
+
+- Section 5 (animated numbers) CUT entirely: format fine, content not a
+  buying reason. No replacement; the story tightens to features ->
+  devices -> comparison -> finale. Do not resurrect a stats section
+  without a new ruling.
+- NO PRICING CLAIMS anywhere on the page pending the founding-offer
+  decision. The word "founding" appears nowhere on the rendered page.
+  "Free for founding trainers" survives as OFF-SITE marketing language
+  only. Finale locked: H2 "Your next client is already searching." /
+  pitch "We send you clients that fit into the tools you already use." /
+  CTA "Join as a trainer" (verbatim match with the hero CTA).
+- Dark act transition approved as built (CSS gradient band).
+- /account Replace-row overflow at 390px FIXED in phase 4
+  (external-calendar-manager.tsx: form wraps, input full-width below sm).
 
 ## Locked at the identity gate (2026-07-29)
 

@@ -16,7 +16,7 @@ const ROWS = [
   },
   {
     old: "Text tag until a time finally sticks",
-    now: "Request a time that is actually free. The trainer confirms",
+    now: "Request a time that is actually open. The trainer confirms",
   },
   {
     old: "Another app, another account, a cut off the top",
