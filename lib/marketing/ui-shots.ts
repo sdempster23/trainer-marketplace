@@ -53,10 +53,10 @@ export const UI_SHOTS = {
   },
   calendar: {
     image: uiCalendar,
-    alt: "PawMatch calendar connection card where a trainer links their own calendar",
-    title: "The calendar bridge",
+    alt: "A trainer's PawMatch account showing calendar connected with busy times syncing, and payment set up their own way",
+    title: "Already yours",
     caption:
-      "Trainers connect the calendar they already use. Booked sessions sync out; busy times block new requests.",
+      "No new accounts, no new logins. Clients pay you the way they already do, and PawMatch syncs with the calendar you already run.",
     route: "/account",
   },
 } as const satisfies Record<string, UiShot>;

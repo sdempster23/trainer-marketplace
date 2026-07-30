@@ -42,15 +42,15 @@ const UNSPLASH_LICENSE =
 export const MARKETING_IMAGES = {
   heroField: {
     image: heroField,
-    alt: "A dog sitting attentively at its owner's side in an open field, looking up at them",
+    alt: "A golden retriever giving its paw to its owner's raised hand at golden hour",
     section: "Hero (full-viewport opening scene)",
     orientation: "landscape",
     subject:
-      "Owner and pet dog, focused attention, open field. Re-cast 2026-07-29: pet-owner-first (warm competence), sport imagery moved to the community strip.",
+      "Owner and golden retriever, paw-target moment, golden hour. Dog is unmistakably co-subject (re-cast at the phase-2 walkthrough: the prior frame hid the dog under the headline). Mirrored horizontally so the pair sits right of the lower-left text block; Unsplash license permits modification.",
     status: "interim-stock",
     source: {
-      photographer: "Beth Macdonald",
-      url: "https://unsplash.com/photos/RW68ZD7nQyg",
+      photographer: "Richard Brutyo",
+      url: "https://unsplash.com/photos/xvYxGcwFvuE",
       license: UNSPLASH_LICENSE,
     },
   },

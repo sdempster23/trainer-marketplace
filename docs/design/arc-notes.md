@@ -60,6 +60,30 @@ standing directive for all copy and image casting:
   its tweens on first scroll intent (see comment there). Animating the
   LCP element at load costs ~2s of mobile LCP.
 
+## Phase-2 walkthrough corrections (2026-07-29)
+
+- REPORT-VS-BUILT RECONCILIATION: the phase-2 report described the hero
+  interim as "lab in a focused sit, eyes up at owner". What actually
+  rendered (manifest entry heroField, Beth Macdonald RW68ZD7nQyg) was a
+  walking-away landscape where the dark dog disappeared into the dark
+  grass under the headline. The description came from reading a 640px
+  preview too generously and was not re-checked against the full-bleed
+  render. Lesson recorded: judge hero casting on the composed full-frame
+  render, not the preview thumbnail.
+- Hero re-cast (Richard Brutyo xvYxGcwFvuE, mirrored): dog unmistakably
+  co-subject, warmth + attention at hero scale. Shoot spec unchanged (it
+  already demanded this; the interim now matches it).
+- Calendar-bridge device slide re-shot: marketing shows OUTCOMES (calendar
+  connected, payment set), never settings plumbing (ICS paste
+  instructions, feed-URL generation). Standing rule for all product
+  imagery: promise level, not instruction level.
+- Locked benefit framing for calendar + payment features (Shane's, use
+  as lead language): NO new accounts, NO new logins. No Stripe account to
+  create, no separate payment app; clients pay you the way they already
+  do, and PawMatch syncs with the business calendar and kennel software
+  you already run. Booked sessions appear there; busy times block new
+  requests. (Claimable: M15/M16 calendar bridge + off-platform payment.)
+
 ## Standing constraints (phase 2+)
 
 - GSAP code-split to the homepage route only; booking funnel untouched.
