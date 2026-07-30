@@ -33,8 +33,13 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
+    // suppressHydrationWarning: browser extensions (Grammarly-class) inject
+    // attributes on the root element before React hydrates, throwing a
+    // hydration mismatch for real users. This suppresses attribute-level
+    // mismatch warnings on <html> only, not for children.
     <html
       lang="en"
+      suppressHydrationWarning
       className={`${inter.variable} ${archivo.variable} ${geistMono.variable}`}
     >
       <body className="font-sans antialiased">{children}</body>
