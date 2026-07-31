@@ -1,7 +1,10 @@
 import type { StaticImageData } from "next/image";
 
-import uiCalendar from "@/public/marketing/ui/ui-calendar.png";
-import uiDesktop from "@/public/marketing/ui/ui-desktop.png";
+import cropCalendar from "@/public/marketing/ui/crops/crop-calendar.png";
+import cropPayment from "@/public/marketing/ui/crops/crop-payment.png";
+import cropSearch from "@/public/marketing/ui/crops/crop-search.png";
+import cropThread from "@/public/marketing/ui/crops/crop-thread.png";
+import searchDemoPoster from "@/public/marketing/ui/search-demo-poster.jpg";
 import uiDirectory from "@/public/marketing/ui/ui-directory.png";
 import uiProfile from "@/public/marketing/ui/ui-profile.png";
 import uiThread from "@/public/marketing/ui/ui-thread.png";
@@ -52,21 +55,42 @@ export const UI_SHOTS = {
       "Talk before you book. Ask about your dog, your goals, your schedule.",
     route: "/messages/[threadId]",
   },
-  calendar: {
-    image: uiCalendar,
-    alt: "A trainer's PawMatch account showing calendar connected with busy times syncing, and payment set up their own way",
-    title: "Already yours",
-    caption:
-      "No new accounts, no new logins. Clients pay you the way they already do, and PawMatch syncs with the calendar you already run.",
-    route: "/account",
-  },
-  desktop: {
-    image: uiDesktop,
-    alt: "The PawMatch trainer directory at desktop width with search filters and specialty checkboxes",
-    title: "The big screen",
-    caption: "The same PawMatch on any screen.",
-    route: "/trainers (1440px viewport)",
-  },
 } as const satisfies Record<string, UiShot>;
+
+/**
+ * Small proof crops for the feature sections (element screenshots from
+ * the running app, same truthful-imagery provenance as UI_SHOTS).
+ */
+export const UI_CROPS = {
+  search: {
+    image: cropSearch,
+    alt: "PawMatch search filters: ZIP code, radius, and specialty checkboxes from puppy to protection sport",
+  },
+  thread: {
+    image: cropThread,
+    alt: "An owner and trainer messaging about puppy training sessions",
+  },
+  calendar: {
+    image: cropCalendar,
+    alt: "A trainer's calendar card showing calendar connected with busy times blocking slots",
+  },
+  payment: {
+    image: cropPayment,
+    alt: "A trainer's payment card: clients pay directly, PawMatch never handles the money",
+  },
+} as const;
+
+/**
+ * Section 4's live demo: a REAL search recorded against the production
+ * build (Playwright-driven: type ZIP 37203, check Puppy, search, open the
+ * matching profile). VP8 WebM (no H.264 encoder available headlessly);
+ * browsers without WebM support and prefers-reduced-motion users get the
+ * poster frame. Re-record by re-running the flow at 1280x800.
+ */
+export const SEARCH_DEMO = {
+  videoSrc: "/marketing/ui/search-demo.webm",
+  poster: searchDemoPoster,
+  alt: "Screen recording of a real PawMatch search: typing a ZIP code, choosing the puppy specialty, and opening the matching trainer profile",
+} as const;
 
 export type UiShotKey = keyof typeof UI_SHOTS;
