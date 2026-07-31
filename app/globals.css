@@ -127,4 +127,11 @@
   body {
     @apply bg-background text-foreground;
   }
+  /* Anchor navigation (e.g. the header's "For trainers" link) glides
+     instead of jumping, but never against a reduced-motion preference. */
+  @media (prefers-reduced-motion: no-preference) {
+    html {
+      scroll-behavior: smooth;
+    }
+  }
 }

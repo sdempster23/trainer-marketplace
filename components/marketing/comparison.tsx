@@ -34,17 +34,31 @@ export function ComparisonSection() {
         >
           Skip the old way
         </h2>
-        <div className="flex flex-col gap-10">
-          <div data-line className="text-muted-foreground grid grid-cols-2 gap-6 text-sm font-medium">
+        {/* Restyled at the friend-feedback pass: pairs read as tight
+            units, the old way fades, PawMatch carries full contrast plus
+            an amber rule (the accent's one non-CTA appearance, sanctioned
+            for this section). Deliberately NOT red/green: SaaS-matrix
+            language, and a colorblind failure (decline recorded in
+            arc-notes). Mobile stacks old-over-new inside each pair with
+            wide gaps BETWEEN pairs, so couples stay visually coupled. */}
+        <div className="flex flex-col gap-9 sm:gap-8">
+          <div
+            data-line
+            className="text-muted-foreground hidden grid-cols-2 gap-8 text-sm font-medium sm:grid"
+          >
             <p>The old way</p>
             <p>With PawMatch</p>
           </div>
           {ROWS.map((row) => (
-            <div key={row.now} data-line className="grid grid-cols-2 gap-6">
-              <p className="text-muted-foreground text-base leading-relaxed sm:text-lg">
+            <div
+              key={row.now}
+              data-line
+              className="flex flex-col gap-2.5 sm:grid sm:grid-cols-2 sm:items-center sm:gap-8"
+            >
+              <p className="text-muted-foreground/70 text-base leading-relaxed sm:text-lg">
                 {row.old}
               </p>
-              <p className="text-base leading-relaxed font-medium sm:text-lg">
+              <p className="border-action border-l-2 pl-4 text-base leading-relaxed font-medium sm:text-lg">
                 {row.now}
               </p>
             </div>

@@ -1,5 +1,27 @@
 # Design arc — working notes
 
+## Friend-feedback pass (2026-07-31, PR #40) — accepts and DECLINES
+
+Accepted: (1) mobile phone-pan sizing (frames height-budgeted to 240px
+so frame + caption fit one viewport per slide at 390/430; desktop
+untouched); (2) comparison prominence (paired rows, old way faded,
+PawMatch full-contrast with an amber rule — the accent's one sanctioned
+non-CTA use; pairs stay coupled when mobile stacks them); (3) a single
+"For trainers" header link, smooth-scrolling to the dark act
+(reduced-motion gated).
+
+DECLINED, with reasoning that must survive:
+- SECTION TABS: declined. The page is a narrative, not docs; tabs would
+  let readers skip the audience turn, which is the page's hinge. The
+  single "For trainers" link is the sanctioned shortcut.
+- RED/GREEN COMPARISON COLORING: declined. SaaS-matrix language, and a
+  colorblind failure. Prominence comes from contrast + the amber rule.
+- COLOR-CODED SPECIALTY CHIPS: declined. Breaks the monochrome + amber
+  system; chips are metadata and quiet by design.
+- OPEN-ENDED PALETTE EXPERIMENTATION: declined. The palette was decided
+  through the variants process at the identity gate; imagery warmth is
+  the real lever and arrives with Shane's field photos.
+
 ## CURRENT POSITION (updated 2026-07-30)
 
 PHASE 4 COMPLETE. PR #37 open with the full arc; HOLDING FOR SHANE'S

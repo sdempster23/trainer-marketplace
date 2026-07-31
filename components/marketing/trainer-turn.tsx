@@ -9,7 +9,10 @@ import { Reveal } from "@/components/marketing/reveal";
  */
 export function TrainerTurnSection() {
   return (
-    <section className="mx-auto w-full max-w-[1400px] px-6 pt-10 pb-4 sm:px-10 sm:pt-16">
+    <section
+      id="for-trainers"
+      className="mx-auto w-full max-w-[1400px] scroll-mt-10 px-6 pt-10 pb-4 sm:px-10 sm:pt-16"
+    >
       <Reveal>
         <h2
           data-line
