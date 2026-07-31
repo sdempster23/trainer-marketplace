@@ -179,15 +179,19 @@ export function ExternalCalendarManager({
       ) : null}
 
       <div className="flex flex-wrap gap-2">
-        {/* Re-paste to replace (e.g. after a Google secret reset). */}
-        <form action={handleSubmit} className="flex items-center gap-2">
+        {/* Re-paste to replace (e.g. after a Google secret reset).
+            flex-wrap + w-full-below-sm: at narrow viewports (390px) a fixed
+            w-64 input plus the button overflowed the card and clipped
+            "Replace" off the right edge. The input now takes the full row
+            on phones and the button wraps beneath it. */}
+        <form action={handleSubmit} className="flex flex-wrap items-center gap-2">
           <Input
             name="url"
             type="url"
             inputMode="url"
             placeholder="Paste a new URL to replace"
             aria-label="Replace calendar ICS URL"
-            className="w-64"
+            className="w-full sm:w-64"
           />
           <Button type="submit" size="sm" variant="outline" disabled={isSetting}>
             {isSetting ? "Replacing…" : "Replace"}

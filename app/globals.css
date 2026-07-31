@@ -3,66 +3,88 @@
 
 @custom-variant dark (&:is(.dark *));
 
+/*
+ * PawMatch identity tokens (design arc, phase 1).
+ *
+ * Palette: true-neutral graphite monochrome + ONE accent.
+ * The accent is amber-gold (locked at the identity gate, 2026-07-29;
+ * field orange is retired). It lives in the --action token and is used
+ * ONLY for important actions (primary CTAs). It is NOT the shadcn
+ * --accent token: shadcn uses "accent" as a quiet hover tint on
+ * ghost/outline components, so putting a loud brand color there would set
+ * every hover on fire. Keep the two roles separate.
+ *
+ * No pure #000 / #fff surfaces: off-black (#0a0a0b) and off-white (#fafafa)
+ * keep depth in both scenes.
+ */
 :root {
   --radius: 0.5rem;
 
-  --background: #ffffff;
-  --foreground: #0f172a;
+  --background: #fafafa;
+  --foreground: #0a0a0b;
 
   --card: #ffffff;
-  --card-foreground: #0f172a;
+  --card-foreground: #0a0a0b;
 
   --popover: #ffffff;
-  --popover-foreground: #0f172a;
+  --popover-foreground: #0a0a0b;
 
-  --primary: #0f1d3a;
-  --primary-foreground: #f8fafc;
+  --primary: #131316;
+  --primary-foreground: #fafafa;
 
-  --secondary: #f1f5f9;
-  --secondary-foreground: #0f172a;
+  --secondary: #f4f4f5;
+  --secondary-foreground: #18181b;
 
-  --muted: #f8fafc;
-  --muted-foreground: #475569;
+  --muted: #f4f4f5;
+  --muted-foreground: #52525b;
 
-  --accent: #d97706;
-  --accent-foreground: #ffffff;
+  --accent: #f4f4f5;
+  --accent-foreground: #18181b;
+
+  /* Amber-gold. Black label: 10.4:1 AAA (white fails at 2.0:1). */
+  --action: #f5a623;
+  --action-foreground: #0a0a0b;
 
   --destructive: #dc2626;
   --destructive-foreground: #ffffff;
 
-  --border: #e2e8f0;
-  --input: #e2e8f0;
-  --ring: #0f1d3a;
+  --border: #e4e4e7;
+  --input: #e4e4e7;
+  --ring: #131316;
 }
 
 .dark {
-  --background: #0f172a;
-  --foreground: #f8fafc;
+  --background: #0a0a0b;
+  --foreground: #fafafa;
 
-  --card: #1e293b;
-  --card-foreground: #f8fafc;
+  --card: #131316;
+  --card-foreground: #fafafa;
 
-  --popover: #1e293b;
-  --popover-foreground: #f8fafc;
+  --popover: #131316;
+  --popover-foreground: #fafafa;
 
-  --primary: #f8fafc;
-  --primary-foreground: #0f1d3a;
+  --primary: #fafafa;
+  --primary-foreground: #0a0a0b;
 
-  --secondary: #334155;
-  --secondary-foreground: #f8fafc;
+  --secondary: #1f1f23;
+  --secondary-foreground: #fafafa;
 
-  --muted: #334155;
-  --muted-foreground: #94a3b8;
+  --muted: #1f1f23;
+  --muted-foreground: #a1a1aa;
 
-  --accent: #d97706;
-  --accent-foreground: #ffffff;
+  --accent: #1f1f23;
+  --accent-foreground: #fafafa;
+
+  /* Slightly brighter on dark so it reads at the same perceived intensity. */
+  --action: #ffb224;
+  --action-foreground: #0a0a0b;
 
   --destructive: #ef4444;
-  --destructive-foreground: #f8fafc;
+  --destructive-foreground: #fafafa;
 
-  --border: #334155;
-  --input: #334155;
-  --ring: #94a3b8;
+  --border: #26262b;
+  --input: #26262b;
+  --ring: #a1a1aa;
 }
 
 @theme inline {
@@ -80,6 +102,8 @@
   --color-muted-foreground: var(--muted-foreground);
   --color-accent: var(--accent);
   --color-accent-foreground: var(--accent-foreground);
+  --color-action: var(--action);
+  --color-action-foreground: var(--action-foreground);
   --color-destructive: var(--destructive);
   --color-destructive-foreground: var(--destructive-foreground);
   --color-border: var(--border);
@@ -87,6 +111,8 @@
   --color-ring: var(--ring);
 
   --font-sans: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
+  --font-display: var(--font-archivo), ui-sans-serif, system-ui, sans-serif;
+  --font-mono: var(--font-geist-mono), ui-monospace, monospace;
 
   --radius-sm: calc(var(--radius) - 4px);
   --radius-md: calc(var(--radius) - 2px);
