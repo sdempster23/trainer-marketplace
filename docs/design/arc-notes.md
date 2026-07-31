@@ -28,6 +28,29 @@ review. (Do NOT run pnpm build while any server serves from .next.)
 - [x] `app/design/identity/variants/page.tsx` — DELETED in phase 4
 - [ ] This file, once the arc ships
 
+## THE TWO-ACT CONSTITUTION (2026-07-30 — structural law for this page)
+
+Adopted after the first real-user review flagged audience confusion
+(owner content and trainer content interleaved). This is now the page's
+constitution; do not restructure without a new ruling:
+
+- ACT 1 (LIGHT) = the OWNER journey: transformation, product pan, owner
+  features (search, message-first), the live search demo, the
+  comparison (owner-facing pains).
+- THE LIGHT-TO-DARK TRANSITION IS THE AUDIENCE TURN. The dark act opens
+  with the explicit "For trainers." beat.
+- DARK ACT = the TRAINER's half: trainer features (calendar runs the
+  show; no new accounts / no new logins), flowing into the finale
+  ("Your next client is already searching." -> Join as a trainer).
+- Never mix audiences across acts. New owner content goes in act 1; new
+  trainer content goes in the dark act.
+- Feature claims carry REAL-UI proof crops (element screenshots, same
+  provenance rules as the device screens). The devices section is a
+  REAL recorded search loop (VP8 WebM, poster-only under
+  reduced-motion/no-JS/no-WebM; re-record per lib/marketing/ui-shots.ts
+  notes). No H.264 encoder is available headlessly on this machine;
+  ship WebM unless system ffmpeg gets installed.
+
 ## Phase-3 verdict rulings (2026-07-30 — content law for this page)
 
 - Section 5 (animated numbers) CUT entirely: format fine, content not a

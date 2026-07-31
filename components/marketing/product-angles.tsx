@@ -10,12 +10,9 @@ import { UI_SHOTS } from "@/lib/marketing/ui-shots";
 
 gsap.registerPlugin(ScrollTrigger, useGSAP);
 
-const SHOTS = [
-  UI_SHOTS.directory,
-  UI_SHOTS.profile,
-  UI_SHOTS.thread,
-  UI_SHOTS.calendar,
-];
+// Owner touchpoints only (two-act constitution): the calendar-bridge
+// screen moved to the trainer act, where its audience lives.
+const SHOTS = [UI_SHOTS.directory, UI_SHOTS.profile, UI_SHOTS.thread];
 
 /**
  * Section 2: the product from multiple angles. Real screenshots (see
@@ -75,8 +72,8 @@ export function ProductAnglesSection() {
             This is PawMatch.
           </h2>
           <p className="text-muted-foreground mt-5 max-w-xl text-lg leading-relaxed">
-            The directory, a profile, a conversation, and the calendar
-            bridge. Real screens from the app as it works today.
+            The directory, a profile, and a conversation. Real screens from
+            the app as it works today.
           </p>
         </div>
 
