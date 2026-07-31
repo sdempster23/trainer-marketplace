@@ -51,6 +51,24 @@ constitution; do not restructure without a new ruling:
   notes). No H.264 encoder is available headlessly on this machine;
   ship WebM unless system ffmpeg gets installed.
 
+## Headline voice rule (2026-07-30 — part of the page constitution)
+
+NO TERMINAL PUNCTUATION on ANY display headline, page-wide and uniform.
+- Applies to: the hero H1, every section head, the "For trainers" beat,
+  the comparison head, the finale.
+- Two-sentence headlines keep the INTERNAL period, drop only the
+  terminal one ("Message first. Book when it fits" / "No new accounts.
+  No new logins").
+- Scope: display headlines ONLY. Body copy, subheads, and captions keep
+  normal sentence punctuation.
+- The "For trainers" beat carries no subhead: the dark turn and the two
+  words do the work alone.
+- EXTEND at the interior-polish pass (arc phase 2): app section heads
+  and email subjects/headings adopt the same rule so the brand stays
+  one voice.
+- Any check or test asserting exact headline strings must not expect
+  terminal periods.
+
 ## Phase-3 verdict rulings (2026-07-30 — content law for this page)
 
 - Section 5 (animated numbers) CUT entirely: format fine, content not a

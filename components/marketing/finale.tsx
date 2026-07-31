@@ -80,7 +80,7 @@ export function FinaleSection() {
           data-finale-line
           className="font-display max-w-3xl text-4xl leading-none font-bold tracking-[-0.035em] text-balance text-white sm:text-6xl lg:text-7xl"
         >
-          Your next client is already searching.
+          Your next client is already searching
         </h2>
         <p
           data-finale-line

@@ -69,7 +69,7 @@ export function ProductAnglesSection() {
       <div className="flex min-h-[100dvh] flex-col justify-center gap-12">
         <div className="mx-auto w-full max-w-[1400px] px-6 sm:px-10">
           <h2 className="font-display max-w-2xl text-4xl leading-none font-bold tracking-[-0.035em] text-balance sm:text-6xl">
-            This is PawMatch.
+            This is PawMatch
           </h2>
           <p className="text-muted-foreground mt-5 max-w-xl text-lg leading-relaxed">
             The directory, a profile, and a conversation. Real screens from

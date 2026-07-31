@@ -22,12 +22,12 @@ type Feature = {
 
 const OWNER_FEATURES: Feature[] = [
   {
-    headline: "Search by what matters.",
+    headline: "Search by what matters",
     body: "Specialty, distance, and price up front. Working-dog credentials are first-class, not a footnote.",
     crop: UI_CROPS.search,
   },
   {
-    headline: "Message first. Book when it fits.",
+    headline: "Message first. Book when it fits",
     body: "Talk it through before you commit. Request a time; the trainer confirms it.",
     crop: UI_CROPS.thread,
   },
@@ -35,12 +35,12 @@ const OWNER_FEATURES: Feature[] = [
 
 const TRAINER_FEATURES: Feature[] = [
   {
-    headline: "Your calendar runs the show.",
+    headline: "Your calendar runs the show",
     body: "Bookings land in the calendar you already use, and your busy times block new requests. Both directions, automatically.",
     crop: UI_CROPS.calendar,
   },
   {
-    headline: "No new accounts. No new logins.",
+    headline: "No new accounts. No new logins",
     body: "No payment platform in the middle. Clients pay the way they already do, and the money never touches PawMatch.",
     crop: UI_CROPS.payment,
   },

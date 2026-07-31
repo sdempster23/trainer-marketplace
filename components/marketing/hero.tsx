@@ -32,7 +32,7 @@ const LOCKED_CONTEXT_SENTENCE =
   "Search professional trainers by location, specialty, and price — for every dog, from family pets to working K9s.";
 
 /** Locked at the identity gate: promise line (b). */
-const DEFAULT_HEADLINE = "Find the trainer your dog needs.";
+const DEFAULT_HEADLINE = "Find the trainer your dog needs";
 
 type MarketingHeroProps = {
   headline?: string;

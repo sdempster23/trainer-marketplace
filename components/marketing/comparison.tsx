@@ -32,7 +32,7 @@ export function ComparisonSection() {
           data-line
           className="font-display text-4xl leading-none font-bold tracking-[-0.035em] text-balance sm:text-6xl"
         >
-          Skip the old way.
+          Skip the old way
         </h2>
         <div className="flex flex-col gap-10">
           <div data-line className="text-muted-foreground grid grid-cols-2 gap-6 text-sm font-medium">
