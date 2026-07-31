@@ -66,7 +66,7 @@ export function ProductAnglesSection() {
 
   return (
     <section ref={wrap} className="bg-muted/60 overflow-hidden py-20 sm:py-0">
-      <div className="flex min-h-[100dvh] flex-col justify-center gap-12">
+      <div className="flex min-h-[100dvh] flex-col justify-center gap-8 sm:gap-12">
         <div className="mx-auto w-full max-w-[1400px] px-6 sm:px-10">
           <h2 className="font-display max-w-2xl text-4xl leading-none font-bold tracking-[-0.035em] text-balance sm:text-6xl">
             This is PawMatch
@@ -85,10 +85,15 @@ export function ProductAnglesSection() {
               slide is ~640px wide: four slides overflow the viewport and
               give the pinned pan a real journey (a 4x300px phone row fits
               in 1440px and pans nowhere). */}
+          {/* Mobile frame width is height-budgeted, not width-budgeted:
+              at 240px the frame (240 x 2.16 = 519px) plus caption fits a
+              real phone viewport per slide, so captions never sever from
+              their screens (friend-feedback fix, verified at 390/430).
+              Desktop untouched. */}
           {SHOTS.map((shot) => (
             <figure
               key={shot.title}
-              className="flex w-[78vw] max-w-[320px] shrink-0 snap-center flex-col gap-5 lg:w-[640px] lg:max-w-none lg:flex-row lg:items-center lg:gap-10"
+              className="flex w-[62vw] max-w-[240px] shrink-0 snap-center flex-col gap-4 lg:w-[640px] lg:max-w-none lg:flex-row lg:items-center lg:gap-10"
             >
               {/* Minimal graphite bezel; the screen content is a real
                   capture, the frame is presentation chrome. */}

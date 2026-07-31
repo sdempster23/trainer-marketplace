@@ -77,14 +77,28 @@ export function MarketingHero({
         <span className="text-lg font-bold tracking-tight text-white uppercase [font-family:var(--font-archivo-wide),var(--font-archivo),ui-sans-serif] [font-stretch:115%]">
           PawMatch
         </span>
-        <Button
-          asChild
-          variant="ghost"
-          size="sm"
-          className="text-white hover:bg-white/15 hover:text-white"
-        >
-          <Link href="/login">Log in</Link>
-        </Button>
+        <nav className="flex items-center gap-1">
+          {/* One audience shortcut, not section tabs (decline recorded in
+              arc-notes: the page is a narrative, tabs would let readers
+              skip the audience turn). Smooth scroll via CSS, gated behind
+              prefers-reduced-motion in globals.css. */}
+          <Button
+            asChild
+            variant="ghost"
+            size="sm"
+            className="text-white hover:bg-white/15 hover:text-white"
+          >
+            <a href="#for-trainers">For trainers</a>
+          </Button>
+          <Button
+            asChild
+            variant="ghost"
+            size="sm"
+            className="text-white hover:bg-white/15 hover:text-white"
+          >
+            <Link href="/login">Log in</Link>
+          </Button>
+        </nav>
       </header>
 
       {/* Promise block, anchored to the quiet lower-left of the frame. */}
