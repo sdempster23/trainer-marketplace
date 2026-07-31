@@ -63,7 +63,7 @@ export function TransformationSection() {
     >
       <div className="flex max-w-xl flex-col gap-6">
         <h2 className="tf-line font-display text-4xl leading-none font-bold tracking-[-0.035em] text-balance sm:text-6xl">
-          The right match changes the whole journey.
+          The right match changes the whole journey
         </h2>
         <p className="tf-line text-muted-foreground text-lg leading-relaxed">
           Puppy basics, leash manners, or trial-ready precision. See the
