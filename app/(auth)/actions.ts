@@ -4,11 +4,17 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 
 import { siteUrl } from "@/lib/site-url";
+import { safeInternalPath } from "@/lib/auth/safe-internal-path";
 import { verifyTurnstile } from "@/lib/auth/turnstile";
 import { createClient } from "@/lib/supabase/server";
 import { z } from "zod";
 
-import { loginSchema, signUpSchema } from "@/lib/validators/auth";
+import {
+  loginSchema,
+  newPasswordSchema,
+  passwordResetRequestSchema,
+  signUpSchema,
+} from "@/lib/validators/auth";
 
 /**
  * Auth Server Actions — the trusted boundary. Forms are convenience; THIS is
@@ -31,8 +37,9 @@ export type AuthActionState = { error: string } | null;
 const POST_AUTH_REDIRECT = "/account";
 /**
  * Where signup sends a user who has NO session yet — i.e. email confirmation is
- * enabled and they must confirm before logging in. Dormant while confirmation
- * is OFF (signUp returns a session immediately, so this branch never runs).
+ * enabled and they must confirm before logging in. LIVE in production: hosted
+ * has mailer_autoconfirm=false (confirmation ON), verified 2026-08-10 against
+ * the Management API. The code still handles confirmation-off gracefully.
  */
 const CHECK_EMAIL_REDIRECT = "/sign-up/check-email";
 /** Where sign-out returns the user. */
@@ -80,9 +87,9 @@ export async function signUp(
         // The M1 `handle_new_user` trigger reads role from raw_user_meta_data
         // and creates the matching profiles row. Lowercase — matches the enum.
         data: { role: parsed.data.role },
-        // Dormant while email confirmation is OFF (signUp returns a session
-        // immediately). When confirmation is enabled, the emailed link routes
-        // through /auth/confirm and lands the user here.
+        // Confirmation is ON in production (hosted mailer_autoconfirm=false):
+        // the emailed link routes through /auth/confirm and lands the user
+        // here. Under confirmation-off this is simply unused.
         emailRedirectTo: siteUrl(POST_AUTH_REDIRECT),
       },
     });
@@ -105,9 +112,9 @@ export async function signUp(
   // NEXT_REDIRECT that a catch would swallow.
   revalidatePath("/", "layout");
   if (hasSession) {
-    redirect(POST_AUTH_REDIRECT); // confirmation off (today): straight in
+    redirect(POST_AUTH_REDIRECT); // confirmation off (local option): straight in
   }
-  redirect(CHECK_EMAIL_REDIRECT); // confirmation on (later): confirm via email
+  redirect(CHECK_EMAIL_REDIRECT); // confirmation on (production): confirm via email
 }
 
 export async function signIn(
@@ -142,23 +149,6 @@ export async function signIn(
   redirect(safeInternalPath(formData.get("next")) ?? POST_AUTH_REDIRECT);
 }
 
-/**
- * Post-login return path (`?next=` → hidden input → here). SECURITY: this
- * value is attacker-suppliable, so it must never become an open redirect —
- * only a same-origin PATH is honored: leading "/", not "//" (protocol-
- * relative URL) and no "\" (browsers normalize "/\" to "//"). Anything else
- * falls back to the default landing.
- */
-function safeInternalPath(value: FormDataEntryValue | null): string | null {
-  if (typeof value !== "string" || value === "") {
-    return null;
-  }
-  if (!value.startsWith("/") || value.startsWith("//") || value.includes("\\")) {
-    return null;
-  }
-  return value;
-}
-
 export async function signOut(): Promise<void> {
   const supabase = await createClient();
   await supabase.auth.signOut();
@@ -167,6 +157,85 @@ export async function signOut(): Promise<void> {
 }
 
 export type ResendState = { error: string } | { sent: true } | null;
+
+/**
+ * Forgot-password request (launch-gate ruling 3). Same no-enumeration
+ * posture as resendConfirmation: whether the address exists, is
+ * unconfirmed, or the send failed transiently, the caller sees the same
+ * "sent" state — the form copy says "if an account exists". A returned
+ * (non-thrown) Supabase error — including a rate limit — is deliberately
+ * swallowed too: GoTrue only actually sends (and therefore only
+ * rate-limits) for addresses that EXIST, so surfacing "please wait"
+ * would itself be an enumeration oracle. The emailed link uses the
+ * recovery template's token_hash flow through /auth/confirm, which lands
+ * the (now-authenticated) user on /reset-password.
+ *
+ * Turnstile-gated like signup (review finding): without it this form is a
+ * free mailbox-bombing + email-quota-burning endpoint.
+ */
+export async function requestPasswordReset(
+  _prevState: ResendState,
+  formData: FormData,
+): Promise<ResendState> {
+  const parsed = passwordResetRequestSchema.safeParse({
+    email: formData.get("email"),
+  });
+  if (!parsed.success) {
+    return { error: "Enter the email you signed up with." };
+  }
+
+  const turnstile = await verifyTurnstile(formData.get("cf-turnstile-response"));
+  if (!turnstile.ok) {
+    return { error: turnstile.error };
+  }
+
+  const supabase = await createClient();
+  try {
+    await supabase.auth.resetPasswordForEmail(parsed.data.email);
+  } catch {
+    // Never leak whether the address exists; a transient failure still
+    // reports "sent" (the user can retry).
+  }
+  return { sent: true };
+}
+
+/**
+ * Set the new password (the /reset-password form). Requires the session the
+ * recovery link just established via /auth/confirm — without one, updateUser
+ * fails and we point the user back at the request page (link expired, used
+ * twice, or opened in a different browser).
+ */
+export async function updatePassword(
+  _prevState: AuthActionState,
+  formData: FormData,
+): Promise<AuthActionState> {
+  const parsed = newPasswordSchema.safeParse({
+    password: formData.get("password"),
+  });
+  if (!parsed.success) {
+    return { error: parsed.error.issues[0]?.message ?? VALIDATION_ERROR };
+  }
+
+  const supabase = await createClient();
+
+  let authError: string | null = null;
+  try {
+    const { error } = await supabase.auth.updateUser({
+      password: parsed.data.password,
+    });
+    // Supabase's messages here are user-appropriate ("New password should be
+    // different from the old password.", session-missing) — pass through.
+    authError = error?.message ?? null;
+  } catch {
+    authError = GENERIC_ERROR;
+  }
+  if (authError) {
+    return { error: authError };
+  }
+
+  revalidatePath("/", "layout");
+  redirect(POST_AUTH_REDIRECT);
+}
 
 /**
  * Resend the signup confirmation email (the check-email page's button; the

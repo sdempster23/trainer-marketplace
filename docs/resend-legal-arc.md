@@ -92,7 +92,20 @@ Variables, **Production AND Preview**):
    **"Confirm your PawMatch account"**, body pasted from
    `supabase/templates/confirmation.html` (token_hash flow;
    `/auth/confirm` is already live in prod).
-   Recovery template: keep Supabase's default (ruling 3).
+4. Authentication → Email Templates → Reset password: subject stays
+   **"Reset Your Password"** (stock), body pasted from
+   `supabase/templates/recovery.html`. NOTE — deviation from ruling
+   3's letter, mechanics-forced: the stock template's
+   `{{ .ConfirmationURL }}` needs the PKCE `?code=` callback the repo
+   deliberately deferred (and breaks when the link opens in a
+   different browser). The paste keeps Supabase's stock copy and
+   subject; only the link switches to the repo-canonical
+   token_hash → `/auth/confirm` flow the confirmation template
+   already uses.
+5. Authentication → toggle **"Secure password change"** ON (review
+   finding, mirrored in local config.toml: without it, any stolen
+   session cookie can silently set a new password; the reset flow is
+   unaffected because its recovery session is seconds old).
 
 Rollback if SMTP misbehaves: clear the SMTP host — the built-in
 mailer resumes (at 2/hour) within a minute.
