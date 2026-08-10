@@ -1,5 +1,7 @@
 import { lookup } from "zipcodes";
 
+import { SiteFooter } from "@/components/shared/site-footer";
+
 import { DirectoryFilters } from "@/components/trainer/directory-filters";
 import {
   TrainerCard,
@@ -209,6 +211,7 @@ export default async function TrainersPage({
   }
 
   return (
+    <>
     <main className="bg-muted min-h-screen px-6 py-12">
       <div className="mx-auto flex w-full max-w-3xl flex-col gap-6">
         <header className="flex flex-col gap-1">
@@ -256,5 +259,7 @@ export default async function TrainersPage({
         )}
       </div>
     </main>
+    <SiteFooter />
+    </>
   );
 }
