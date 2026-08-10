@@ -96,6 +96,7 @@ Six specialized subagents are available in `.claude/agents/`. **Use them.** Don'
 - **All timestamps stored as UTC** — timezone conversion happens at display time
 - **Server Components by default** — `"use client"` only when interactivity requires it
 - **Commit messages explain the "why"**, not just "added X"
+- **No "there is no X" claims from filtered output** — before asserting something is absent (an env var, a config value, a dependency), confirm you saw the FULL listing, not a grepped/filtered view. A filtered command reported as a full read is a method error (learned 2026-07-31: a `RESEND|EMAIL|SUPABASE`-filtered env grep "proved" Turnstile keys were absent from Vercel — they were there all along)
 
 ## Definition of done (for every feature)
 
