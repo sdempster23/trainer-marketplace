@@ -55,6 +55,7 @@ export async function signUp(
     email: formData.get("email"),
     password: formData.get("password"),
     role: formData.get("role"),
+    consent: formData.get("consent"),
   });
   if (!parsed.success) {
     return { error: parsed.error.issues[0]?.message ?? VALIDATION_ERROR };
