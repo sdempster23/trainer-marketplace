@@ -1333,3 +1333,103 @@ SELECT is not persistence proof — always read back on a fresh connection.
 rehearsal made the funnel a near-certainty; this production walkthrough
 is the hosted positive proof. The Front Door arc — and the pre-first-
 trainer launch readiness — is complete.
+
+## Email + Legal Gate — the last launch-gating arc (squash `92a2808`, PR #41)
+
+The arc that retires the two launch blockers: hosted auth email riding
+the built-in mailer's 2/hour cap, and a marketplace with no legal pages,
+no consent, and no self-serve way back in from a forgotten password.
+Closed 2026-08-13 with a three-rail production proof.
+
+**The seven rulings — and the lesson that opens this entry.** The
+rulings (sender split hello@/noreply@, dashboard-only Supabase config,
+forgot-password joins, 18+, consent checkbox, privacy@, self-draft with
+lawyer flags carried) were issued in chat on a prior sitting and NEVER
+LANDED ON DISK — the next session could not find them anywhere and
+rightly refused to infer them. They were re-issued and written into
+`docs/resend-legal-arc.md` before any drafting. Rule banked: **a ruling
+that only exists in conversation doesn't exist — record rulings in a
+durable file in the same sitting they're issued.**
+
+**Legal pages, drafted FROM the schema.** /privacy + /terms written
+against the actual inventory (16 RLS'd tables, the processor list with
+Turnstile ACTIVE, off-platform payments, no analytics), not a template.
+The review gate caught one overclaim worth remembering: "the pasted
+calendar URL is never readable through our API layer by any role" — the
+repo's own migration gives service_role an RPC lane
+(`external_calendar_to_fetch`, the fetch path). Reworded to what is
+true: no CLIENT-facing role can select it; only the server's dedicated
+fetch lane can. A privacy policy is a truthful-copy surface like the
+homepage: every sentence must survive a hostile diff against the code.
+Deliberate absence: NO arbitration clause — that, the injury/
+assumption-of-risk language, and contractor status are the pre-club-
+pitch lawyer list.
+
+**Consent + forgot-password, and what the security gate caught.**
+Consent is a zod `literal("on")` at the boundary (absence and tampering
+both fail server-side; the checkbox is UX). The reset flow reuses the
+repo-canonical token_hash → /auth/confirm mechanics — the stock
+recovery template's ConfirmationURL needs the deferred PKCE callback
+and breaks cross-browser, so hosted got the stock COPY with the
+token_hash LINK (deviation from ruling 3's letter, recorded at the
+time). Review-gate catches, all fixed pre-merge: (1) /auth/confirm's
+`next` param was an OPEN REDIRECT fired at the session-minting moment —
+an attacker's own valid recovery token + `next=https://evil` is
+phishing plus session fixation; it now runs through the same
+safeInternalPath guard as login. (2) `secure_password_change` ON (a
+stolen session cookie must not convert to a silent password swap).
+(3) Turnstile on the reset request (an ungated reset form is a free
+mailbox-bombing endpoint). One reviewer suggestion REJECTED with
+reasoning: surfacing GoTrue rate-limit errors on the request form would
+itself be an enumeration oracle — GoTrue only rate-limits sends for
+addresses that EXIST.
+
+**The sitting (Shane's hands, one pass, five stops).** Resend domain
+verified us-east-1 + sending-access key; Cloudflare DNS (MX/SPF on
+`send`, DKIM, DMARC p=none, all gray-cloud, verified ~12 min); Email
+Routing live for hello@ + privacy@; Vercel env (RESEND_API_KEY,
+EMAIL_FROM=hello@, EMAIL_FROM_NAME) Production+Preview; Supabase SMTP
+smtp.resend.com:465 sender noreply@, rate limit 2 → 100/hr, both
+templates pasted, Secure password change ON. Every value read back via
+the Management API afterward and confirmed. Stale-doc correction: the
+hosted confirmation template was ALREADY the custom token_hash version
+(front-door arc) — the investigation's "still default" reading was
+stale; replaced for the copy fix only.
+
+**Three-rail production proof (2026-08-13, Shane driving, backend
+verified per leg).**
+- **Auth rail:** fresh-alias signup → confirmation delivered via Resend
+  FROM noreply@joinpawmatch.com → token_hash confirm → account works
+  (`email_confirmed_at` stamped at the /auth/confirm exchange).
+- **App rail — first production app email EVER delivered.** Until this
+  arc production app mail was silently in log-mode (no RESEND_API_KEY
+  in Vercel). A real owner→trainer message fired the doorbell FROM
+  hello@joinpawmatch.com, Resend delivery record + thread/message rows
+  verified.
+- **Recovery rail:** request → email → /reset-password (first
+  production render) → old password FAILED, new password WORKED.
+
+**LAUNCH ITEM — deliverability of a new domain.** The recovery email
+was Resend-DELIVERED (Gmail 250) but landed in SPAM — while both
+confirmation emails inboxed fine. New domain + "Reset Your Password" +
+a link is the classic filter profile; `recovery_sent_at` proved the
+send, Resend proved acceptance, Gmail did the rest. Mitigations
+carried: keep DMARC p=none for now (revisit p=quarantine in a couple
+weeks once reputation accrues); tell founding trainers to check spam
+and mark not-spam on their first PawMatch email; Resend dedicated
+sending IP if it persists. Also banked from the hunt: Gmail's default
+search AND "All Mail" exclude Spam and Trash — `in:anywhere` or
+nothing.
+
+**Cleanup.** FK-ordered sweep of both proof accounts AND the four
+early-phase test accounts (owner-test, trainer-test, trainer-test-2,
+trainer-a/b) via Management API SQL; read-back: annie (Stranger Test)
+is the sole remaining user, trainers table empty, live /trainers
+renders the honest empty state.
+
+**Residual CLOSED.** Both mail rails and the recovery path hold hosted
+positive proof; legal pages live and linked (footer + signup consent);
+the e2e suite grew the reset round trip and reconciled the home spec
+that had been stale since the design arc's hero change. The product is
+launch-ready with real email. Next: interior polish, then the
+pre-club-pitch pair.
