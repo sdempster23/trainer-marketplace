@@ -11,6 +11,7 @@ import { SearchDemoSection } from "@/components/marketing/search-demo";
 import { SocialProofSection } from "@/components/marketing/social-proof";
 import { TrainerTurnSection } from "@/components/marketing/trainer-turn";
 import { TransformationSection } from "@/components/marketing/transformation";
+import { SiteFooter } from "@/components/shared/site-footer";
 
 /**
  * PawMatch launch homepage.
@@ -86,9 +87,9 @@ export default function Home() {
 
         <FinaleSection />
 
-        <footer className="text-muted-foreground border-t border-white/10 px-6 py-8 text-center text-sm">
-          PawMatch. Dog owners and professional trainers.
-        </footer>
+        {/* Inside the dark scope so the footer closes the dark act (the
+            two-act law allows exactly one theme transition per page). */}
+        <SiteFooter />
       </div>
     </main>
   );

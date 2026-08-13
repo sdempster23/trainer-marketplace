@@ -86,6 +86,8 @@ test("the complete stranger funnel, headless", async ({ page }) => {
   await page.goto("/sign-up");
   await page.fill("input[name=email]", email);
   await page.fill("input[name=password]", password);
+  // Consent checkbox (launch gate): unchecked by default, must be checked.
+  await page.check("input[name=consent]");
   // Wait for the always-pass test widget to populate the response token.
   await expect
     .poll(

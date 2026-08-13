@@ -2,6 +2,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 
 import { signOut } from "@/app/(auth)/actions";
+import { SiteFooter } from "@/components/shared/site-footer";
 import { CalendarFeedManager } from "@/components/account/calendar-feed-manager";
 import { ExternalCalendarManager } from "@/components/account/external-calendar-manager";
 import { PaymentInfoEditor } from "@/components/account/payment-info-editor";
@@ -196,6 +197,7 @@ export default async function AccountPage() {
     unreadCount > 0 ? `Messages (${unreadCount} new)` : "Messages";
 
   return (
+    <>
     <main className="bg-muted flex min-h-screen items-center justify-center px-6 py-12">
       <div className="flex w-full max-w-md flex-col gap-6">
         {trainerCta ? (
@@ -329,5 +331,7 @@ export default async function AccountPage() {
         </Card>
       </div>
     </main>
+    <SiteFooter />
+    </>
   );
 }

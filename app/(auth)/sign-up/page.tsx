@@ -99,6 +99,38 @@ export default function SignUpPage() {
               </div>
             </fieldset>
 
+            {/* Consent (launch-gate ruling 5): checkbox, UNCHECKED by
+                default — agree-by-signup was explicitly rejected. The
+                server action re-validates; `required` here is just UX.
+                Links open in a new tab so the half-filled form survives. */}
+            <label className="flex cursor-pointer items-start gap-3 text-sm">
+              <input
+                type="checkbox"
+                name="consent"
+                required
+                className="mt-0.5"
+              />
+              <span className="text-muted-foreground">
+                I&apos;m 18 or older and agree to the{" "}
+                <Link
+                  href="/terms"
+                  target="_blank"
+                  className="text-primary underline"
+                >
+                  Terms of Service
+                </Link>{" "}
+                and{" "}
+                <Link
+                  href="/privacy"
+                  target="_blank"
+                  className="text-primary underline"
+                >
+                  Privacy Policy
+                </Link>
+                .
+              </span>
+            </label>
+
             {/* Bot gate — the token rides the form to the action, which
                 verifies it server-side (fails closed + visible). Reset on a
                 failed submit so the single-use token doesn't block retries. */}
