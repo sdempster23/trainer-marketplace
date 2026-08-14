@@ -103,7 +103,20 @@ export default async function BookPage({
     notFound();
   }
 
-  const { dogs } = await getActiveDogs(supabase, claims.sub);
+  // The error field must be read (investigation bug-class fix): a failed
+  // dogs read previously fell through to "Add a dog first" — a false
+  // statement to an owner who HAS dogs, pointing at a page that would
+  // also fail. Degraded ≠ empty.
+  const { dogs, error: dogsError } = await getActiveDogs(supabase, claims.sub);
+  if (dogsError) {
+    return (
+      <main className="bg-muted flex min-h-screen items-center justify-center px-6 py-12">
+        <p role="alert" className="text-destructive text-sm">
+          Your dogs couldn&apos;t be loaded. Please refresh to try again.
+        </p>
+      </main>
+    );
+  }
   if (dogs.length === 0) {
     return (
       <main className="bg-muted flex min-h-screen items-center justify-center px-6 py-12">
@@ -125,7 +138,10 @@ export default async function BookPage({
     );
   }
 
-  const { services } = await getActiveServices(supabase, id);
+  const { services, error: servicesError } = await getActiveServices(
+    supabase,
+    id,
+  );
 
   // Shared slot inputs, fetched once; one pure computation per service.
   const { slots: pattern } = await getWeeklyPattern(supabase, id);
@@ -177,7 +193,13 @@ export default async function BookPage({
           </p>
         </header>
 
-        {services.length === 0 ? (
+        {servicesError ? (
+          // Failed read ≠ zero services — the false "hasn't listed any"
+          // statement was the investigation's bug-class find here.
+          <p role="alert" className="text-destructive text-sm">
+            Services couldn&apos;t be loaded. Please refresh to try again.
+          </p>
+        ) : services.length === 0 ? (
           <p className="text-muted-foreground text-sm">
             This trainer hasn&apos;t listed any bookable services yet.
           </p>

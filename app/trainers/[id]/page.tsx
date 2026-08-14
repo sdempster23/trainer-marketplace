@@ -136,7 +136,7 @@ export default async function TrainerDetailPage({
   // rides free) and the viewer probe are independent, and this is the
   // directory's click-through, the hottest public page: no stacked awaits.
   const supabase = await createClient();
-  const [{ services }, viewer] = await Promise.all([
+  const [{ services, error: servicesError }, viewer] = await Promise.all([
     getActiveServices(supabase, id),
     getViewer(supabase),
   ]);
@@ -210,7 +210,13 @@ export default async function TrainerDetailPage({
           <h2 className="text-muted-foreground text-xs font-medium">
             Services
           </h2>
-          {services.length === 0 ? (
+          {servicesError ? (
+            // Failed read ≠ "No services listed yet." (bug-class fix):
+            // never present a read failure as a fact about the trainer.
+            <p role="alert" className="text-destructive text-sm">
+              Services couldn&apos;t be loaded. Please refresh to try again.
+            </p>
+          ) : services.length === 0 ? (
             <p className="text-muted-foreground text-sm">
               No services listed yet.
             </p>

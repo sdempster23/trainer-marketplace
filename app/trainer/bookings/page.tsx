@@ -214,7 +214,7 @@ export default async function TrainerBookingsPage() {
                                 ? "Cancelled by the owner"
                                 : "Cancelled"}
                         </span>
-                      {messageButton(b)}
+                        {messageButton(b)}
                       </div>
                     </CardContent>
                   </Card>

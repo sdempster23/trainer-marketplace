@@ -47,15 +47,29 @@ export default async function TrainerListingPage() {
     redirect("/account");
   }
 
-  const { data: trainer } = await supabase
+  const { data: trainer, error: trainerError } = await supabase
     .from("trainers")
     .select("bio, service_radius_meters, timezone")
     .eq("id", claims.sub)
     .maybeSingle();
-  const { data: assignments } = await supabase
+  const { data: assignments, error: assignmentsError } = await supabase
     .from("trainer_specialty_assignments")
     .select("specialty")
     .eq("trainer_id", claims.sub);
+
+  // Failed read ≠ not onboarded (investigation bug-class fix): a transient
+  // read failure previously redirected a COMPLETE trainer into the
+  // onboarding form — the exact "failed read ≠ absence" discipline the
+  // calendar cards are hardened with. Degrade honestly instead.
+  if (trainerError || assignmentsError) {
+    return (
+      <main className="bg-muted flex min-h-screen items-center justify-center px-6 py-12">
+        <p role="alert" className="text-destructive text-sm">
+          Your listing couldn&apos;t be loaded. Please refresh to try again.
+        </p>
+      </main>
+    );
+  }
 
   // Not onboarded (none) or unfinished (partial) → send them to finish.
   if (!trainer || !assignments || assignments.length === 0) {

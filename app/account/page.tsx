@@ -252,7 +252,11 @@ export default async function AccountPage() {
                 status={externalCalendar?.status ?? "none"}
                 lastFetchedAt={externalCalendar?.lastFetchedAt ?? null}
                 failingSince={externalCalendar?.failingSince ?? null}
-                blockCount={externalCalendar?.blockCount ?? 0}
+                // null must SURVIVE to the card: it means the count read
+                // FAILED, and coalescing it to 0 renders the exact "no busy
+                // times" false all-clear the status helper documents
+                // against (investigation bug-class fix).
+                blockCount={externalCalendar?.blockCount ?? null}
               />
             </CardContent>
           </Card>

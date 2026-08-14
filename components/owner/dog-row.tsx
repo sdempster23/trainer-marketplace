@@ -8,6 +8,7 @@ import { DogForm } from "@/components/owner/dog-form";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import type { ActiveDog } from "@/lib/owner/dogs";
+import { formatBirthDate } from "@/lib/utils/format-date";
 
 /**
  * One dog on the management page — the ServiceRow pattern verbatim: display
@@ -49,7 +50,9 @@ export function DogRow({ dog }: { dog: ActiveDog }) {
               <span className="text-muted-foreground text-sm">
                 {dog.breed}
                 {dog.breed && dog.date_of_birth ? " · " : ""}
-                {dog.date_of_birth ? `Born ${dog.date_of_birth}` : ""}
+                {dog.date_of_birth
+                  ? `Born ${formatBirthDate(dog.date_of_birth)}`
+                  : ""}
               </span>
             ) : null}
           </div>

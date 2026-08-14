@@ -9,6 +9,7 @@ import type {
   AvailabilityException,
   WeeklySlot,
 } from "@/lib/trainer/availability";
+import { formatPlainDate } from "@/lib/utils/format-date";
 import { formatTimeOfDay } from "@/lib/validators/availability";
 
 /**
@@ -93,15 +94,23 @@ export function ExceptionRow({
   return (
     <div className="flex items-center justify-between gap-2 text-sm">
       <span className="flex items-center gap-2">
-        <span className="font-medium">{exception.exception_date}</span>
+        <span className="font-medium">
+          {formatPlainDate(exception.exception_date)}
+        </span>
         {exception.is_blocked ? (
           <span className="bg-destructive/10 text-destructive inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium">
             Blocked
           </span>
-        ) : (
+        ) : exception.start_time && exception.end_time ? (
           <span className="bg-accent text-accent-foreground inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium">
-            Hours: {formatTimeOfDay(exception.start_time ?? "00:00")} –{" "}
-            {formatTimeOfDay(exception.end_time ?? "00:00")}
+            Hours: {formatTimeOfDay(exception.start_time)} –{" "}
+            {formatTimeOfDay(exception.end_time)}
+          </span>
+        ) : (
+          // Null times on a non-blocked exception: an honest degraded
+          // state, not a fabricated "12:00 AM – 12:00 AM" range.
+          <span className="bg-accent text-accent-foreground inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium">
+            Hours not set
           </span>
         )}
       </span>
