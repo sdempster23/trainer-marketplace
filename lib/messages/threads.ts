@@ -34,7 +34,7 @@ import type { Database } from "@/types/supabase";
  * one query shape for both roles (ruling 4: shared surface).
  */
 
-type MessageRow = {
+export type MessageRow = {
   id: string;
   sender_id: string;
   body: string;
@@ -108,6 +108,9 @@ export type ThreadDetail = {
   /** True when the caller sits in the owner_id column — the send/read verbs
    * don't need it, but the renderer aligns bubbles by it. */
   isOwnerSide: boolean;
+  /** The other participant's id — the header's profile link (trainer id
+   * when the viewer is the owner; owners have no public page). */
+  counterpartyId: string;
   /** Chronological, oldest first — the conversation order. */
   messages: MessageRow[];
 };
@@ -150,6 +153,7 @@ export async function getThread(
         ? (data.trainers?.profiles.display_name ?? null)
         : (data.profiles?.display_name ?? null),
       isOwnerSide,
+      counterpartyId: isOwnerSide ? data.trainer_id : data.owner_id,
       messages: data.messages,
     },
     error: null,

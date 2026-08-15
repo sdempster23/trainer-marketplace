@@ -1,11 +1,12 @@
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 
-import { EmptyState } from "@/components/shared/states";
+import { EmptyState, ErrorState } from "@/components/shared/states";
 import { ComposeForm } from "@/components/messages/compose-form";
-import { LocalTime } from "@/components/messages/local-time";
+import { MessageList } from "@/components/messages/message-list";
+import { ScrollToLatest } from "@/components/messages/scroll-to-latest";
 import { ThreadAutoRefresh } from "@/components/messages/thread-auto-refresh";
-import { Button } from "@/components/ui/button";
+import { geistMono } from "@/lib/fonts";
 import { getThread } from "@/lib/messages/threads";
 import { createClient } from "@/lib/supabase/server";
 import { dbIdSchema } from "@/lib/validators/id";
@@ -47,10 +48,10 @@ export default async function ThreadPage({
     return (
       <main className="bg-muted flex-1 px-6 py-12">
         <div className="mx-auto w-full max-w-2xl">
-          <p role="alert" className="text-destructive text-sm">
+          <ErrorState>
             This conversation couldn&apos;t be loaded. Please refresh to try
             again.
-          </p>
+          </ErrorState>
         </div>
       </main>
     );
@@ -63,25 +64,51 @@ export default async function ThreadPage({
     thread.counterpartyName ?? (thread.isOwnerSide ? "A trainer" : "An owner");
 
   return (
-    <main className="bg-muted flex-1 px-6 py-12">
+    <main
+      className={`bg-muted flex flex-1 flex-col px-6 pt-8 pb-0 ${geistMono.variable}`}
+    >
       <ThreadAutoRefresh threadId={thread.id} />
-      <div className="mx-auto flex w-full max-w-2xl flex-col gap-6">
+      <div className="mx-auto flex w-full max-w-2xl flex-1 flex-col gap-4">
         <header className="flex flex-col gap-1">
-          <h1 className="text-2xl font-semibold">{counterparty}</h1>
-          {thread.bookingId ? (
-            <p className="text-muted-foreground text-xs">
-              Linked to a booking —{" "}
-              <Link
-                href={thread.isOwnerSide ? "/owner/bookings" : "/trainer/bookings"}
-                className="underline"
-              >
-                view your bookings
-              </Link>
-            </p>
-          ) : null}
+          <Link
+            href="/messages"
+            className="text-muted-foreground hover:text-foreground text-sm transition-colors"
+          >
+            ← All messages
+          </Link>
+          <h1 className="font-display text-2xl font-semibold tracking-tight">
+            {counterparty}
+          </h1>
+          <p className="text-muted-foreground text-xs">
+            {thread.isOwnerSide ? "Trainer" : "Dog owner"}
+            {thread.isOwnerSide ? (
+              <>
+                {" · "}
+                <Link
+                  href={`/trainers/${thread.counterpartyId}`}
+                  className="underline"
+                >
+                  View profile
+                </Link>
+              </>
+            ) : null}
+            {thread.bookingId ? (
+              <>
+                {" · "}
+                <Link
+                  href={
+                    thread.isOwnerSide ? "/owner/bookings" : "/trainer/bookings"
+                  }
+                  className="underline"
+                >
+                  Linked to a booking
+                </Link>
+              </>
+            ) : null}
+          </p>
         </header>
 
-        <div className="flex flex-col gap-3">
+        <div className="flex-1 pb-4">
           {thread.messages.length === 0 ? (
             /* Copy kept VERBATIM per the gate (the on-voice keeper). */
             <EmptyState>
@@ -89,37 +116,26 @@ export default async function ThreadPage({
               looking for.
             </EmptyState>
           ) : (
-            thread.messages.map((message) => {
-              const isMine = message.sender_id === claims.sub;
-              return (
-                <div
-                  key={message.id}
-                  className={`flex flex-col gap-1 ${isMine ? "items-end" : "items-start"}`}
-                >
-                  <div
-                    className={`max-w-[80%] rounded-lg px-3 py-2 text-sm whitespace-pre-line ${
-                      isMine
-                        ? "bg-primary text-primary-foreground"
-                        : "bg-card border-border border"
-                    }`}
-                  >
-                    {message.body}
-                  </div>
-                  <span className="text-muted-foreground text-xs">
-                    <LocalTime iso={message.created_at} />
-                  </span>
-                </div>
-              );
-            })
+            <MessageList messages={thread.messages} viewerId={claims.sub} />
           )}
         </div>
 
-        <ComposeForm threadId={thread.id} />
-
-        <Button asChild variant="outline" className="w-full">
-          <Link href="/messages">All messages</Link>
-        </Button>
       </div>
+
+      {/* The composer DOCK: sticky-in-flow, a direct child of main so
+          -mx-6 reaches the real viewport edges (the Book-bar structure).
+          No vh anywhere (watch item c) — the shell column is dvh-based.
+          Keyboard honesty: AT FOCUS TIME the browser scrolls the textarea
+          above the mobile keyboard; scrolling the thread with the keyboard
+          open can leave the dock behind it until refocus (sticky is
+          layout-viewport-anchored) — a visualViewport listener is the
+          future fix if that gap ever matters. */}
+      <div className="bg-background/95 border-border sticky bottom-0 -mx-6 border-t px-6 py-3 backdrop-blur">
+        <div className="mx-auto w-full max-w-2xl">
+          <ComposeForm threadId={thread.id} />
+        </div>
+      </div>
+      <ScrollToLatest />
     </main>
   );
 }

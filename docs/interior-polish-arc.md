@@ -87,6 +87,12 @@ recorded at the hold)
 3. **Mechanical page passes** (quick pages first: welcome, messages
    list, entry points, dogs; then the layout pages that become
    mechanical once primitives exist).
+RECORDED DEVIATION (ruling 2): the thread page's h1 is `font-display
+text-2xl` — one notch under the interior 3xl→4xl law. Deliberate: the
+header of a live conversation is context, not a landing; a 4xl name
+over a chat column outshouts the messages. Approved shape, recorded so
+the scale isn't an unrecorded third value.
+
 4. **The four structural spots** — slot picker + directory filter
    (ruling 9 cheap versions), thread page (composer dock,
    scroll-to-latest, grouping), owner-bookings card (breaks at rest).
