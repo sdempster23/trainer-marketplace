@@ -199,7 +199,7 @@ export function ExternalCalendarManager({
         </form>
 
         {confirmingRemove ? (
-          <form action={removeAction} className="flex items-center gap-2">
+          <form action={removeAction} className="flex flex-wrap items-center gap-2">
             <span className="text-muted-foreground">
               Your external busy times will stop blocking slots.
             </span>

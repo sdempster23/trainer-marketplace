@@ -15,6 +15,9 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import { PageHeader } from "@/components/shared/page-header";
+import { Badge } from "@/components/ui/badge";
+import { getPendingRequestCount } from "@/lib/trainer/bookings";
 import { getUnreadThreadCount } from "@/lib/messages/threads";
 import { createClient } from "@/lib/supabase/server";
 import { getActiveDogs } from "@/lib/owner/dogs";
@@ -45,7 +48,7 @@ const TRAINER_CTA: Record<
     href: "/trainer/onboarding",
   },
   complete: {
-    title: "You're listed as a trainer ✓",
+    title: "You're listed as a trainer",
     body: "Dog owners can find you. View or edit your listing.",
     cta: "View listing",
     href: "/trainer/listing",
@@ -148,6 +151,7 @@ export default async function AccountPage() {
     trainerCta,
     ownerDogs,
     unreadCount,
+    pendingRequests,
     feedStatus,
     externalCalendar,
     paymentInfo,
@@ -160,6 +164,11 @@ export default async function AccountPage() {
         : Promise.resolve(null),
       profile.role === "owner" || profile.role === "trainer"
         ? getUnreadThreadCount(supabase, claims.sub)
+        : Promise.resolve(0),
+      // Flow ruling #4: a request must be visible from the hub the way
+      // unread messages are (email was the only signal before).
+      profile.role === "trainer"
+        ? getPendingRequestCount(supabase, claims.sub)
         : Promise.resolve(0),
       profile.role === "trainer"
         ? supabase
@@ -192,12 +201,32 @@ export default async function AccountPage() {
             .then((r) => r.data)
         : Promise.resolve(null),
     ]);
-  const messagesLabel =
-    unreadCount > 0 ? `Messages (${unreadCount} new)` : "Messages";
+  // The shell header carries Messages (+ unread badge); the hub's old
+  // per-card Messages buttons were pure duplication and are gone. unreadCount
+  // stays fetched: cache() dedupes it with the header's own call, and the
+  // subhead uses it for the one-line "what's waiting" summary.
+  const waiting: string[] = [];
+  if (pendingRequests > 0) {
+    waiting.push(
+      `${pendingRequests} booking ${pendingRequests === 1 ? "request" : "requests"}`,
+    );
+  }
+  if (unreadCount > 0) {
+    // getUnreadThreadCount counts CONVERSATIONS, not messages — say so
+    // (review catch: "1 new message" for a 5-message thread is untrue).
+    waiting.push(
+      `${unreadCount} unread ${unreadCount === 1 ? "conversation" : "conversations"}`,
+    );
+  }
 
   return (
-    <main className="bg-muted flex flex-1 items-center justify-center px-6 py-12">
-      <div className="flex w-full max-w-md flex-col gap-6">
+    <main className="bg-muted flex-1 px-6 py-12">
+      <div className="mx-auto flex w-full max-w-2xl flex-col gap-6">
+        <PageHeader title="Your account">
+          {waiting.length > 0
+            ? `Waiting on you: ${waiting.join(" · ")}.`
+            : "Your profile, your settings, and where to go next."}
+        </PageHeader>
         {trainerCta ? (
           <Card>
             <CardHeader>
@@ -210,18 +239,20 @@ export default async function AccountPage() {
               <Button asChild variant="action" className="w-full">
                 <Link href={trainerCta.href}>{trainerCta.cta}</Link>
               </Button>
-              {/* Mirror of the owner side's line: one link, zero queries. */}
               <Button asChild variant="outline" className="w-full">
-                <Link href="/trainer/bookings">Your bookings</Link>
-              </Button>
-              <Button asChild variant="outline" className="w-full">
-                <Link href="/messages">{messagesLabel}</Link>
+                <Link href="/trainer/bookings" className="flex items-center">
+                  Your bookings
+                  {pendingRequests > 0 ? (
+                    <Badge variant="strong">{pendingRequests}</Badge>
+                  ) : null}
+                </Link>
               </Button>
             </CardContent>
           </Card>
         ) : null}
 
         {profile.role === "trainer" ? (
+        <div className="grid gap-6 lg:grid-cols-2">
           <Card>
             <CardHeader>
               <CardTitle>Calendar feed</CardTitle>
@@ -237,9 +268,7 @@ export default async function AccountPage() {
               />
             </CardContent>
           </Card>
-        ) : null}
 
-        {profile.role === "trainer" ? (
           <Card>
             <CardHeader>
               <CardTitle>Your calendar</CardTitle>
@@ -260,10 +289,10 @@ export default async function AccountPage() {
               />
             </CardContent>
           </Card>
-        ) : null}
 
-        {profile.role === "trainer" ? (
-          <Card>
+          {/* Payment spans the grid: its two-column handle row needs the
+              width, and it's the card confirmed bookings depend on. */}
+          <Card className="lg:col-span-2">
             <CardHeader>
               <CardTitle>Payment</CardTitle>
               <CardDescription>
@@ -278,6 +307,7 @@ export default async function AccountPage() {
               />
             </CardContent>
           </Card>
+        </div>
         ) : null}
 
         {ownerDogs !== null ? (
@@ -301,30 +331,30 @@ export default async function AccountPage() {
               <Button asChild variant="outline" className="w-full">
                 <Link href="/owner/bookings">Your bookings</Link>
               </Button>
-              <Button asChild variant="outline" className="w-full">
-                <Link href="/messages">{messagesLabel}</Link>
-              </Button>
             </CardContent>
           </Card>
         ) : null}
 
+        {/* The dev scaffold ("auth round-trip works" + a raw UUID) is
+            retired — this is her account page, not our test rig. */}
         <Card>
           <CardHeader>
-            <CardTitle>You&apos;re signed in</CardTitle>
-            <CardDescription>
-              The auth round-trip works: session established, profile read
-              server-side.
-            </CardDescription>
+            <CardTitle>Profile</CardTitle>
+            <CardDescription>How you appear across PawMatch.</CardDescription>
           </CardHeader>
           <CardContent className="flex flex-col gap-4">
             <DisplayNameEditor displayName={profile.display_name} />
 
-            <dl className="grid grid-cols-[auto_1fr] gap-x-4 gap-y-2 text-sm">
-              <dt className="text-muted-foreground">Role</dt>
-              <dd className="font-medium capitalize">{profile.role}</dd>
-              <dt className="text-muted-foreground">User ID</dt>
-              <dd className="font-mono text-xs break-all">{claims.sub}</dd>
-            </dl>
+            <div className="flex items-center gap-4 text-sm">
+              <span className="text-muted-foreground">Account type</span>
+              <span className="font-medium">
+                {profile.role === "trainer"
+                  ? "Trainer"
+                  : profile.role === "owner"
+                    ? "Dog owner"
+                    : "Admin"}
+              </span>
+            </div>
 
             <form action={signOut}>
               <Button type="submit" variant="outline" className="w-full">

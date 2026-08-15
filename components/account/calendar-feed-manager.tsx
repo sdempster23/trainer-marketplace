@@ -167,7 +167,7 @@ export function CalendarFeedManager({
       ) : (
         <div className="flex flex-wrap gap-2">
           {confirmingRotate ? (
-            <form action={rotateAction} className="flex items-center gap-2">
+            <form action={rotateAction} className="flex flex-wrap items-center gap-2">
               <span className="text-muted-foreground">
                 Existing calendar subscriptions will stop working.
               </span>
@@ -200,7 +200,7 @@ export function CalendarFeedManager({
           )}
 
           {confirmingDisable ? (
-            <form action={disableAction} className="flex items-center gap-2">
+            <form action={disableAction} className="flex flex-wrap items-center gap-2">
               <span className="text-muted-foreground">
                 Subscribed calendars will stop updating.
               </span>
