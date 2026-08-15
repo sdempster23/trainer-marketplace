@@ -84,6 +84,11 @@ recorded at the hold)
 4. **The four structural spots** — slot picker + directory filter
    (ruling 9 cheap versions), thread page (composer dock,
    scroll-to-latest, grouping), owner-bookings card (breaks at rest).
+   Carried into these passes so they don't evaporate (review notes):
+   the trainer-detail h1 (still default Inter — rides the sticky-Book
+   pass), the thread h1, and the slot-input error discards
+   (getWeeklyPattern/getExceptions/getBusyRanges) fixed in the
+   slot-picker rebuild.
 5. **Flow items ride WITH their pages** (not a separate phase):
    listing edit ships with the listing re-conception; return-param
    with the book pass; confirmation moment with owner-bookings;

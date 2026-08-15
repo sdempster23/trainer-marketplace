@@ -40,7 +40,7 @@ export default function SignUpPage() {
     <main className="bg-muted flex min-h-screen items-center justify-center px-6 py-12">
       <Card className="w-full max-w-md">
         <CardHeader>
-          <CardTitle className="text-2xl">Create your account</CardTitle>
+          <CardTitle>Create your account</CardTitle>
           <CardDescription>
             Join PawMatch as a dog owner or a trainer.
           </CardDescription>

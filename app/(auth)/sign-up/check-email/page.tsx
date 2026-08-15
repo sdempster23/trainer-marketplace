@@ -20,7 +20,7 @@ export default function CheckEmailPage() {
     <main className="bg-muted flex min-h-screen items-center justify-center px-6 py-12">
       <Card className="w-full max-w-md text-center">
         <CardHeader>
-          <CardTitle className="text-2xl">Check your email</CardTitle>
+          <CardTitle>Check your email</CardTitle>
           <CardDescription>
             We sent you a confirmation link. Click it to activate your account,
             then log in.

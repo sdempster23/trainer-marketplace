@@ -22,9 +22,13 @@ CardHeader.displayName = "CardHeader";
 
 const CardTitle = React.forwardRef<HTMLHeadingElement, React.HTMLAttributes<HTMLHeadingElement>>(
   ({ className, ...props }, ref) => (
+    // THE one CardTitle scale (interior-polish ruling 2): display voice at
+    // text-xl, sized to sit under PageHeader's 3xl/4xl h1. The investigation
+    // found three competing per-site overrides because the old text-2xl
+    // default was never right — the fix is the default, not more overrides.
     <h3
       ref={ref}
-      className={cn("text-2xl leading-none font-semibold tracking-tight", className)}
+      className={cn("font-display text-xl leading-none font-semibold tracking-tight", className)}
       {...props}
     />
   )

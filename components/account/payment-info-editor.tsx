@@ -92,7 +92,7 @@ export function PaymentInfoEditor({
       ) : null}
 
       <div className="flex items-center gap-3">
-        <Button type="submit" size="sm" disabled={isPending}>
+        <Button type="submit" size="sm" variant="outline" disabled={isPending}>
           {isPending ? "Saving…" : "Save payment info"}
         </Button>
         {saved ? <span className="text-muted-foreground">Saved ✓</span> : null}

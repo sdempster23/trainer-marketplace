@@ -1,11 +1,15 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 
+import { PageHeader } from "@/components/shared/page-header";
 import { CancelBookingButton } from "@/components/bookings/transition-buttons";
 import { MessageButton } from "@/components/messages/message-button";
 import { PaymentDetails } from "@/components/bookings/payment-details";
+import { EmptyState } from "@/components/shared/states";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
+import { geistMono } from "@/lib/fonts";
 import { createClient } from "@/lib/supabase/server";
 import { getOwnerBookings } from "@/lib/owner/bookings";
 import {
@@ -58,28 +62,31 @@ export default async function OwnerBookingsPage() {
   );
 
   return (
-    <main className="bg-muted min-h-screen px-6 py-12">
+    <main className={`bg-muted min-h-screen px-6 py-12 ${geistMono.variable}`}>
       <div className="mx-auto flex w-full max-w-2xl flex-col gap-6">
-        <header className="flex flex-col gap-1">
-          <h1 className="text-3xl font-semibold">Your bookings</h1>
-          <p className="text-muted-foreground text-sm">
+        <PageHeader title="Your bookings">
             Requests and sessions, soonest first. Times are shown in the
             trainer&apos;s timezone.
-          </p>
-        </header>
+        </PageHeader>
 
         {error ? (
           <p role="alert" className="text-destructive text-sm">
             Your bookings couldn&apos;t be loaded. Please refresh to try again.
           </p>
         ) : bookings.length === 0 ? (
-          <p className="text-muted-foreground text-sm">
-            No bookings yet —{" "}
-            <Link href="/trainers" className="underline">
-              find a trainer
-            </Link>
-            .
-          </p>
+          // Ruling 1: the view's amber lives HERE, in the empty state —
+          // at rest the page has none. Copy survives as title + action.
+          <EmptyState
+            title="No bookings yet"
+            action={
+              <Button asChild variant="action">
+                <Link href="/trainers">Find a trainer</Link>
+              </Button>
+            }
+          >
+            When you book a session, it shows up here — requests first,
+            soonest first.
+          </EmptyState>
         ) : (
           <div className="flex flex-col gap-4">
             {bookings.map((booking) => (
@@ -97,7 +104,7 @@ export default async function OwnerBookingsPage() {
                         · for {booking.dogs?.name ?? "your dog"}
                       </span>
                     </div>
-                    <span className="bg-accent text-accent-foreground inline-flex shrink-0 items-center rounded-full px-2.5 py-1 text-xs font-medium">
+                    <Badge className="shrink-0">
                       {booking.status === "CANCELLED"
                         ? booking.cancelled_by === "owner"
                           ? "Cancelled by you"
@@ -105,9 +112,9 @@ export default async function OwnerBookingsPage() {
                             ? "Cancelled by the trainer"
                             : "Cancelled"
                         : BOOKING_STATUS_LABELS[booking.status]}
-                    </span>
+                    </Badge>
                   </div>
-                  <span className="text-muted-foreground text-sm">
+                  <span className="text-muted-foreground font-mono text-xs">
                     {formatBookingStart(
                       booking.starts_at,
                       booking.trainers?.timezone ?? "UTC",
@@ -117,11 +124,19 @@ export default async function OwnerBookingsPage() {
                   </span>
                   {/* Payment shows once the trainer has CONFIRMED (M17): now
                       there's a payee relationship, and RLS returned the row. */}
-                  {booking.status === "CONFIRMED" &&
-                  paymentByTrainer.has(booking.trainer_id) ? (
-                    <PaymentDetails
-                      info={paymentByTrainer.get(booking.trainer_id)!}
-                    />
+                  {booking.status === "CONFIRMED" ? (
+                    paymentByTrainer.has(booking.trainer_id) ? (
+                      <PaymentDetails
+                        info={paymentByTrainer.get(booking.trainer_id)!}
+                      />
+                    ) : (
+                      /* Gate addition A: an owner who owes money must NEVER
+                         see silence where payment details belong. */
+                      <EmptyState compact>
+                        The trainer hasn&apos;t added payment details yet —
+                        message them below to arrange payment.
+                      </EmptyState>
+                    )
                   ) : null}
 
                   {/* Message rides every row — coordination isn't status-

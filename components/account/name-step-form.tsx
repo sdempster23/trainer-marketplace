@@ -41,7 +41,7 @@ export function NameStepForm() {
           {state.error}
         </p>
       ) : null}
-      <Button type="submit" disabled={isPending}>
+      <Button type="submit" variant="action" disabled={isPending}>
         {isPending ? "Saving…" : "Continue"}
       </Button>
     </form>

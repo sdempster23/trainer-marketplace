@@ -1,6 +1,7 @@
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { NativeSelect } from "@/components/ui/native-select";
 import {
   DEFAULT_DIRECTORY_RADIUS,
   DIRECTORY_RADIUS_MILES,
@@ -8,9 +9,6 @@ import {
   SPECIALTY_LABELS,
   type Specialty,
 } from "@/lib/validators/trainer";
-
-const fieldClasses =
-  "border-input focus-visible:ring-ring w-full rounded-md border bg-transparent px-3 py-2 text-sm shadow-xs focus-visible:ring-2 focus-visible:outline-none";
 
 /**
  * Directory search controls — a plain GET form, deliberately: filters live in
@@ -54,21 +52,20 @@ export function DirectoryFilters({
         {/* Radius — only meaningful with a ZIP; harmless without one */}
         <div className="grid gap-2">
           <Label htmlFor="radius">Within</Label>
-          <select
+          <NativeSelect
             id="radius"
             name="radius"
             defaultValue={radiusMiles || DEFAULT_DIRECTORY_RADIUS}
-            className={fieldClasses}
           >
             {DIRECTORY_RADIUS_MILES.map((miles) => (
               <option key={miles} value={miles}>
                 {miles} miles
               </option>
             ))}
-          </select>
+          </NativeSelect>
         </div>
 
-        <Button type="submit">Search</Button>
+        <Button type="submit" variant="action">Search</Button>
       </div>
 
       {/* Specialty filter — canonical enum order, same as everywhere.
@@ -89,6 +86,7 @@ export function DirectoryFilters({
               <input
                 type="checkbox"
                 name="specialties"
+                className="accent-primary"
                 value={specialty}
                 defaultChecked={specialties.includes(specialty)}
               />

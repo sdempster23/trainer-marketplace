@@ -64,7 +64,7 @@ export function DisplayNameEditor({
           defaultValue={displayName ?? ""}
           placeholder="How others should see you"
         />
-        <Button type="submit" size="sm" disabled={isPending}>
+        <Button type="submit" size="sm" variant="outline" disabled={isPending}>
           {isPending ? "Saving…" : "Save"}
         </Button>
         <Button

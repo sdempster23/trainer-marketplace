@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 
+import { EmptyState } from "@/components/shared/states";
 import { ComposeForm } from "@/components/messages/compose-form";
 import { LocalTime } from "@/components/messages/local-time";
 import { ThreadAutoRefresh } from "@/components/messages/thread-auto-refresh";
@@ -82,10 +83,11 @@ export default async function ThreadPage({
 
         <div className="flex flex-col gap-3">
           {thread.messages.length === 0 ? (
-            <p className="text-muted-foreground text-sm">
+            /* Copy kept VERBATIM per the gate (the on-voice keeper). */
+            <EmptyState>
               Say hello — where to meet, what to bring, what you&apos;re
               looking for.
-            </p>
+            </EmptyState>
           ) : (
             thread.messages.map((message) => {
               const isMine = message.sender_id === claims.sub;

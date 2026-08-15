@@ -6,6 +6,8 @@ import type { ServiceActionState } from "@/app/(trainer)/actions";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { NativeSelect } from "@/components/ui/native-select";
+import { Textarea } from "@/components/ui/textarea";
 import {
   SERVICE_DESCRIPTION_MAX_LENGTH,
   SERVICE_DURATION_MAX_MINUTES,
@@ -15,9 +17,6 @@ import {
   SESSION_TYPES,
   type SessionType,
 } from "@/lib/validators/trainer";
-
-const fieldClasses =
-  "border-input focus-visible:ring-ring w-full rounded-md border bg-transparent px-3 py-2 text-sm shadow-xs focus-visible:ring-2 focus-visible:outline-none";
 
 export type ServiceFormInitial = {
   name: string;
@@ -87,13 +86,12 @@ export function ServiceForm({
         <Label htmlFor={`description-${serviceId ?? "new"}`}>
           Description (optional)
         </Label>
-        <textarea
+        <Textarea
           id={`description-${serviceId ?? "new"}`}
           name="description"
           rows={2}
           maxLength={SERVICE_DESCRIPTION_MAX_LENGTH}
           placeholder="What the session covers and who it's for."
-          className={fieldClasses}
           defaultValue={initial?.description}
         />
       </div>
@@ -131,12 +129,11 @@ export function ServiceForm({
 
         <div className="grid gap-2">
           <Label htmlFor={`type-${serviceId ?? "new"}`}>Where</Label>
-          <select
+          <NativeSelect
             id={`type-${serviceId ?? "new"}`}
             name="sessionType"
             required
             defaultValue={initial?.sessionType ?? ""}
-            className={fieldClasses}
           >
             <option value="" disabled>
               Session type
@@ -146,7 +143,7 @@ export function ServiceForm({
                 {SESSION_TYPE_LABELS[type]}
               </option>
             ))}
-          </select>
+          </NativeSelect>
         </div>
       </div>
 
@@ -157,7 +154,14 @@ export function ServiceForm({
       ) : null}
 
       <div className="flex gap-2">
-        <Button type="submit" disabled={isPending}>
+        {/* Amber on the CREATE submit only (map ruling: services -> Add
+            service). The edit-row Save keeps graphite until the services
+            pass lifts editing state to swap the primary properly. */}
+        <Button
+          type="submit"
+          variant={serviceId ? "default" : "action"}
+          disabled={isPending}
+        >
           {isPending ? "Saving…" : submitLabel}
         </Button>
         {onCancel ? (

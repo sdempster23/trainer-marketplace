@@ -42,7 +42,7 @@ export default async function WelcomePage() {
     <main className="bg-muted flex min-h-screen items-center justify-center px-6 py-12">
       <Card className="w-full max-w-md">
         <CardHeader>
-          <CardTitle className="text-2xl">One last thing</CardTitle>
+          <CardTitle>One last thing</CardTitle>
           <CardDescription>
             What should people see you as? Owners and trainers you book or
             message will see this name.

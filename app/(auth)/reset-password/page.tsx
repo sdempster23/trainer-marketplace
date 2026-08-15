@@ -29,7 +29,7 @@ export default async function ResetPasswordPage() {
         {hasSession ? (
           <>
             <CardHeader>
-              <CardTitle className="text-2xl">Choose a new password</CardTitle>
+              <CardTitle>Choose a new password</CardTitle>
               <CardDescription>
                 You&apos;re verified — set the new password for your account.
               </CardDescription>
@@ -41,7 +41,7 @@ export default async function ResetPasswordPage() {
         ) : (
           <>
             <CardHeader>
-              <CardTitle className="text-2xl">
+              <CardTitle>
                 This link didn&apos;t work
               </CardTitle>
               <CardDescription>

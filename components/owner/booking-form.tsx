@@ -6,13 +6,11 @@ import { createBooking } from "@/app/(owner)/actions";
 import type { BookingActionState } from "@/app/(owner)/actions";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
+import { NativeSelect } from "@/components/ui/native-select";
 import type { ActiveDog } from "@/lib/owner/dogs";
 import type { BookableSlot } from "@/lib/trainer/schedule";
 import type { ActiveService } from "@/lib/trainer/services";
 import { formatPrice, SESSION_TYPE_LABELS } from "@/lib/validators/trainer";
-
-const fieldClasses =
-  "border-input focus-visible:ring-ring w-full rounded-md border bg-transparent px-3 py-2 text-sm shadow-xs focus-visible:ring-2 focus-visible:outline-none";
 
 /**
  * The booking form. Slots arrive PRE-COMPUTED PER SERVICE from the server
@@ -59,7 +57,7 @@ export function BookingForm({
       <div className="grid gap-4 sm:grid-cols-2">
         <div className="grid gap-2">
           <Label htmlFor="booking-dog">Which dog?</Label>
-          <select id="booking-dog" name="dogId" required defaultValue="" className={fieldClasses}>
+          <NativeSelect id="booking-dog" name="dogId" required defaultValue="">
             <option value="" disabled>
               Choose a dog
             </option>
@@ -68,18 +66,17 @@ export function BookingForm({
                 {dog.name}
               </option>
             ))}
-          </select>
+          </NativeSelect>
         </div>
 
         <div className="grid gap-2">
           <Label htmlFor="booking-service">Which service?</Label>
-          <select
+          <NativeSelect
             id="booking-service"
             name="serviceId"
             required
             value={serviceId}
             onChange={(e) => setServiceId(e.target.value)}
-            className={fieldClasses}
           >
             {services.map((service) => (
               <option key={service.id} value={service.id}>
@@ -88,7 +85,7 @@ export function BookingForm({
                 {SESSION_TYPE_LABELS[service.session_type]}
               </option>
             ))}
-          </select>
+          </NativeSelect>
         </div>
       </div>
 
@@ -117,6 +114,7 @@ export function BookingForm({
                   >
                     <input
                       type="radio"
+                      className="accent-primary"
                       name="slotStartUtc"
                       value={slot.startUtc}
                       required
@@ -136,7 +134,11 @@ export function BookingForm({
         </p>
       ) : null}
 
-      <Button type="submit" disabled={isPending || slots.length === 0}>
+      <Button
+        type="submit"
+        variant="action"
+        disabled={isPending || slots.length === 0}
+      >
         {isPending ? "Requesting…" : "Request booking"}
       </Button>
     </form>

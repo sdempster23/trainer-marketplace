@@ -2,6 +2,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 
 import { createDog } from "@/app/(owner)/actions";
+import { PageHeader } from "@/components/shared/page-header";
 import { DogForm } from "@/components/owner/dog-form";
 import { DogRow } from "@/components/owner/dog-row";
 import { Button } from "@/components/ui/button";
@@ -52,13 +53,10 @@ export default async function OwnerDogsPage() {
   return (
     <main className="bg-muted min-h-screen px-6 py-12">
       <div className="mx-auto flex w-full max-w-2xl flex-col gap-6">
-        <header className="flex flex-col gap-1">
-          <h1 className="text-3xl font-semibold">Your dogs</h1>
-          <p className="text-muted-foreground text-sm">
+        <PageHeader title="Your dogs">
             Trainers see this when you book — name, breed, age, and what they
             should know before the first session.
-          </p>
-        </header>
+        </PageHeader>
 
         {error ? (
           <p role="alert" className="text-destructive text-sm">
@@ -78,7 +76,7 @@ export default async function OwnerDogsPage() {
 
         <Card>
           <CardHeader>
-            <CardTitle className="text-xl">Add a dog</CardTitle>
+            <CardTitle>Add a dog</CardTitle>
             <CardDescription>
               Only the name is required — the rest helps trainers prepare.
             </CardDescription>

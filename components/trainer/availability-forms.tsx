@@ -7,10 +7,8 @@ import type { AvailabilityActionState } from "@/app/(trainer)/actions";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { NativeSelect } from "@/components/ui/native-select";
 import { DAY_OF_WEEK_LABELS } from "@/lib/validators/availability";
-
-const fieldClasses =
-  "border-input focus-visible:ring-ring w-full rounded-md border bg-transparent px-3 py-2 text-sm shadow-xs focus-visible:ring-2 focus-visible:outline-none";
 
 /** Shared success/reset wiring (the { success } sentinel pattern). */
 function useResetOnSuccess(state: AvailabilityActionState) {
@@ -35,7 +33,7 @@ export function AddWeeklySlotForm() {
       <div className="grid gap-4 sm:grid-cols-3">
         <div className="grid gap-2">
           <Label htmlFor="slot-day">Day</Label>
-          <select id="slot-day" name="dayOfWeek" required defaultValue="" className={fieldClasses}>
+          <NativeSelect id="slot-day" name="dayOfWeek" required defaultValue="">
             <option value="" disabled>
               Choose a day
             </option>
@@ -44,7 +42,7 @@ export function AddWeeklySlotForm() {
                 {label}
               </option>
             ))}
-          </select>
+          </NativeSelect>
         </div>
         <div className="grid gap-2">
           <Label htmlFor="slot-start">From</Label>
@@ -62,7 +60,7 @@ export function AddWeeklySlotForm() {
         </p>
       ) : null}
 
-      <Button type="submit" disabled={isPending} className="self-start">
+      <Button type="submit" variant="action" disabled={isPending} className="self-start">
         {isPending ? "Adding…" : "Add hours"}
       </Button>
     </form>
@@ -101,6 +99,7 @@ export function AddExceptionForm() {
               >
                 <input
                   type="radio"
+                className="accent-primary"
                   name="kind"
                   value={value}
                   checked={kind === value}
@@ -132,7 +131,7 @@ export function AddExceptionForm() {
         </p>
       ) : null}
 
-      <Button type="submit" disabled={isPending} className="self-start">
+      <Button type="submit" variant="outline" disabled={isPending} className="self-start">
         {isPending ? "Adding…" : "Add exception"}
       </Button>
     </form>

@@ -6,9 +6,12 @@ import {
   CompleteBookingButton,
   ConfirmBookingButton,
 } from "@/components/bookings/transition-buttons";
+import { PageHeader } from "@/components/shared/page-header";
 import { MessageButton } from "@/components/messages/message-button";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
+import { geistMono } from "@/lib/fonts";
 import { createClient } from "@/lib/supabase/server";
 import {
   getTrainerBookings,
@@ -101,7 +104,8 @@ export default async function TrainerBookingsPage() {
       <span className="text-muted-foreground text-sm">
         {who(b)} · {b.dogs?.name ?? "their dog"}
       </span>
-      <span className="text-muted-foreground text-sm">
+      {/* The truthful-numbers line — Geist Mono per the identity. */}
+      <span className="text-muted-foreground font-mono text-xs">
         {formatBookingStart(b.starts_at, tz)} · {b.duration_minutes} min ·{" "}
         {formatPrice(b.price_cents)}
       </span>
@@ -109,14 +113,13 @@ export default async function TrainerBookingsPage() {
   );
 
   return (
-    <main className="bg-muted min-h-screen px-6 py-12">
+    // geistMono.variable scopes the data voice to this route (ruling 3:
+    // route-level, never root — the homepage H1 is the LCP element).
+    <main className={`bg-muted min-h-screen px-6 py-12 ${geistMono.variable}`}>
       <div className="mx-auto flex w-full max-w-2xl flex-col gap-8">
-        <header className="flex flex-col gap-1">
-          <h1 className="text-3xl font-semibold">Your bookings</h1>
-          <p className="text-muted-foreground text-sm">
+        <PageHeader title="Your bookings">
             Requests to answer, sessions coming up, and your record.
-          </p>
-        </header>
+        </PageHeader>
 
         {error ? (
           <p role="alert" className="text-destructive text-sm">
@@ -205,7 +208,7 @@ export default async function TrainerBookingsPage() {
                     <CardContent className="flex items-start justify-between gap-2 pt-6">
                       {cardBody(b)}
                       <div className="flex shrink-0 flex-col items-end gap-2">
-                        <span className="bg-accent text-accent-foreground inline-flex items-center rounded-full px-2.5 py-1 text-xs font-medium">
+                        <Badge>
                           {b.status === "COMPLETED"
                             ? "Completed"
                             : b.cancelled_by === "trainer"
@@ -213,7 +216,7 @@ export default async function TrainerBookingsPage() {
                               : b.cancelled_by === "owner"
                                 ? "Cancelled by the owner"
                                 : "Cancelled"}
-                        </span>
+                        </Badge>
                         {messageButton(b)}
                       </div>
                     </CardContent>

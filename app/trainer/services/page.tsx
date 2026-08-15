@@ -2,6 +2,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 
 import { createService } from "@/app/(trainer)/actions";
+import { PageHeader } from "@/components/shared/page-header";
 import { ServiceForm } from "@/components/trainer/service-form";
 import { ServiceRow } from "@/components/trainer/service-row";
 import { Button } from "@/components/ui/button";
@@ -59,13 +60,10 @@ export default async function TrainerServicesPage() {
   return (
     <main className="bg-muted min-h-screen px-6 py-12">
       <div className="mx-auto flex w-full max-w-2xl flex-col gap-6">
-        <header className="flex flex-col gap-1">
-          <h1 className="text-3xl font-semibold">Your services</h1>
-          <p className="text-muted-foreground text-sm">
+        <PageHeader title="Your services">
             What owners can book with you — each with a price, length, and
             where it happens.
-          </p>
-        </header>
+        </PageHeader>
 
         {error ? (
           <p role="alert" className="text-destructive text-sm">
@@ -85,7 +83,7 @@ export default async function TrainerServicesPage() {
 
         <Card>
           <CardHeader>
-            <CardTitle className="text-xl">Add a service</CardTitle>
+            <CardTitle>Add a service</CardTitle>
             <CardDescription>
               Name it the way an owner would look for it.
             </CardDescription>

@@ -16,6 +16,8 @@ import {
 } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { NativeSelect } from "@/components/ui/native-select";
+import { Textarea } from "@/components/ui/textarea";
 import { DISPLAY_NAME_MAX_LENGTH } from "@/lib/validators/profile";
 import {
   BIO_MAX_LENGTH,
@@ -27,9 +29,6 @@ import {
   TRAINER_TIMEZONES,
 } from "@/lib/validators/trainer";
 
-const fieldClasses =
-  "border-input focus-visible:ring-ring w-full rounded-md border bg-transparent px-3 py-2 text-sm shadow-xs focus-visible:ring-2 focus-visible:outline-none";
-
 export function OnboardingForm() {
   const [state, formAction, isPending] = useActionState<
     OnboardingActionState,
@@ -40,7 +39,7 @@ export function OnboardingForm() {
     <main className="bg-muted flex min-h-screen items-center justify-center px-6 py-12">
       <Card className="w-full max-w-lg">
         <CardHeader>
-          <CardTitle className="text-2xl">Create your trainer listing</CardTitle>
+          <CardTitle>Create your trainer listing</CardTitle>
           <CardDescription>
             This is what dog owners see when they find you. You can edit it later.
           </CardDescription>
@@ -62,14 +61,13 @@ export function OnboardingForm() {
             {/* Bio */}
             <div className="grid gap-2">
               <Label htmlFor="bio">About you</Label>
-              <textarea
+              <Textarea
                 id="bio"
                 name="bio"
                 required
                 rows={4}
                 maxLength={BIO_MAX_LENGTH}
                 placeholder="Your experience, approach, and the dogs you love to work with."
-                className={fieldClasses}
               />
             </div>
 
@@ -86,6 +84,7 @@ export function OnboardingForm() {
                   >
                     <input
                       type="checkbox"
+                      className="accent-primary"
                       name="specialties"
                       value={specialty}
                     />
@@ -116,12 +115,11 @@ export function OnboardingForm() {
             {/* Service radius */}
             <div className="grid gap-2">
               <Label htmlFor="serviceRadiusMiles">How far will you travel?</Label>
-              <select
+              <NativeSelect
                 id="serviceRadiusMiles"
                 name="serviceRadiusMiles"
                 required
                 defaultValue=""
-                className={fieldClasses}
               >
                 <option value="" disabled>
                   Select a distance
@@ -131,25 +129,24 @@ export function OnboardingForm() {
                     {miles} miles
                   </option>
                 ))}
-              </select>
+              </NativeSelect>
             </div>
 
             {/* Timezone */}
             <div className="grid gap-2">
               <Label htmlFor="timezone">Your timezone</Label>
-              <select
+              <NativeSelect
                 id="timezone"
                 name="timezone"
                 required
                 defaultValue={DEFAULT_TIMEZONE}
-                className={fieldClasses}
               >
                 {TRAINER_TIMEZONES.map((tz) => (
                   <option key={tz} value={tz}>
                     {TIMEZONE_LABELS[tz]}
                   </option>
                 ))}
-              </select>
+              </NativeSelect>
               <p className="text-muted-foreground text-xs">
                 Used to interpret your available hours. Change it if it&apos;s
                 not right.
@@ -162,7 +159,7 @@ export function OnboardingForm() {
               </p>
             ) : null}
 
-            <Button type="submit" disabled={isPending}>
+            <Button type="submit" variant="action" disabled={isPending}>
               {isPending ? "Creating your listing…" : "Create listing"}
             </Button>
           </form>

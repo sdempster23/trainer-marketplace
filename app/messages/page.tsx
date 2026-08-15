@@ -1,8 +1,10 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 
+import { PageHeader } from "@/components/shared/page-header";
 import { LocalTime } from "@/components/messages/local-time";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { getThreads } from "@/lib/messages/threads";
 import { createClient } from "@/lib/supabase/server";
@@ -71,12 +73,9 @@ export default async function MessagesPage() {
   return (
     <main className="bg-muted min-h-screen px-6 py-12">
       <div className="mx-auto flex w-full max-w-2xl flex-col gap-6">
-        <header className="flex flex-col gap-1">
-          <h1 className="text-3xl font-semibold">Messages</h1>
-          <p className="text-muted-foreground text-sm">
+        <PageHeader title="Messages">
             Your conversations, most recent first.
-          </p>
-        </header>
+        </PageHeader>
 
         {error ? (
           <p role="alert" className="text-destructive text-sm">
@@ -123,9 +122,9 @@ export default async function MessagesPage() {
                           : "No messages yet"}
                       </span>
                       {thread.isUnread ? (
-                        <span className="bg-primary text-primary-foreground inline-flex shrink-0 items-center rounded-full px-2 py-0.5 text-xs font-medium">
+                        <Badge variant="strong" className="shrink-0">
                           New
-                        </span>
+                        </Badge>
                       ) : null}
                     </div>
                     {thread.bookingId ? (

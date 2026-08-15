@@ -38,7 +38,7 @@ export default function ForgotPasswordPage() {
     <main className="bg-muted flex min-h-screen items-center justify-center px-6 py-12">
       <Card className="w-full max-w-md">
         <CardHeader>
-          <CardTitle className="text-2xl">Reset your password</CardTitle>
+          <CardTitle>Reset your password</CardTitle>
           <CardDescription>
             Enter the email you signed up with and we&apos;ll send you a reset
             link.

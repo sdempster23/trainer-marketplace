@@ -132,7 +132,7 @@ export function ExternalCalendarManager({
               placeholder="https://calendar.google.com/…/basic.ics"
               aria-label="Calendar ICS URL"
             />
-            <Button type="submit" size="sm" disabled={isSetting}>
+            <Button type="submit" size="sm" variant="outline" disabled={isSetting}>
               {isSetting ? "Connecting…" : "Connect"}
             </Button>
           </div>

@@ -4,6 +4,7 @@ import { useActionState, useEffect, useState } from "react";
 
 import { sendMessage, type MessageActionState } from "@/app/(messages)/actions";
 import { Button } from "@/components/ui/button";
+import { Textarea } from "@/components/ui/textarea";
 import { MESSAGE_BODY_MAX_LENGTH } from "@/lib/validators/message";
 
 /**
@@ -33,7 +34,7 @@ export function ComposeForm({ threadId }: { threadId: string }) {
   return (
     <form action={formAction} className="flex flex-col gap-2">
       <input type="hidden" name="threadId" value={threadId} />
-      <textarea
+      <Textarea
         name="body"
         required
         maxLength={MESSAGE_BODY_MAX_LENGTH}
@@ -41,7 +42,7 @@ export function ComposeForm({ threadId }: { threadId: string }) {
         value={body}
         onChange={(e) => setBody(e.target.value)}
         placeholder="Write a message…"
-        className="border-input bg-background focus-visible:ring-ring w-full resize-y rounded-md border px-3 py-2 text-sm focus-visible:ring-1 focus-visible:outline-none"
+        className="resize-y"
       />
       {state && "error" in state ? (
         <p role="alert" className="text-destructive text-xs">
@@ -49,7 +50,7 @@ export function ComposeForm({ threadId }: { threadId: string }) {
         </p>
       ) : null}
       <div className="flex justify-end">
-        <Button type="submit" size="sm" disabled={isPending}>
+        <Button type="submit" variant="action" size="sm" disabled={isPending}>
           {isPending ? "Sending…" : "Send"}
         </Button>
       </div>

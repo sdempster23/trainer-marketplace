@@ -4,6 +4,7 @@ import { useActionState, useState } from "react";
 
 import { deleteException, deleteWeeklySlot } from "@/app/(trainer)/actions";
 import type { AvailabilityActionState } from "@/app/(trainer)/actions";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import type {
   AvailabilityException,
@@ -97,21 +98,20 @@ export function ExceptionRow({
         <span className="font-medium">
           {formatPlainDate(exception.exception_date)}
         </span>
+        {/* "Blocked" is neutral, not destructive: a day off is a
+            preference, and the red/green-semantics ruling (arc-notes)
+            binds interiors too. */}
         {exception.is_blocked ? (
-          <span className="bg-destructive/10 text-destructive inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium">
-            Blocked
-          </span>
+          <Badge>Blocked</Badge>
         ) : exception.start_time && exception.end_time ? (
-          <span className="bg-accent text-accent-foreground inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium">
+          <Badge>
             Hours: {formatTimeOfDay(exception.start_time)} –{" "}
             {formatTimeOfDay(exception.end_time)}
-          </span>
+          </Badge>
         ) : (
           // Null times on a non-blocked exception: an honest degraded
           // state, not a fabricated "12:00 AM – 12:00 AM" range.
-          <span className="bg-accent text-accent-foreground inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium">
-            Hours not set
-          </span>
+          <Badge>Hours not set</Badge>
         )}
       </span>
       <TwoStepDelete

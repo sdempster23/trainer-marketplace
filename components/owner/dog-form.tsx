@@ -6,14 +6,12 @@ import type { DogActionState } from "@/app/(owner)/actions";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
 import {
   DOG_BREED_MAX_LENGTH,
   DOG_NAME_MAX_LENGTH,
   DOG_NOTES_MAX_LENGTH,
 } from "@/lib/validators/dog";
-
-const fieldClasses =
-  "border-input focus-visible:ring-ring w-full rounded-md border bg-transparent px-3 py-2 text-sm shadow-xs focus-visible:ring-2 focus-visible:outline-none";
 
 export type DogFormInitial = {
   name: string;
@@ -110,13 +108,12 @@ export function DogForm({
         <Label htmlFor={`dog-notes-${dogId ?? "new"}`}>
           Temperament notes (optional)
         </Label>
-        <textarea
+        <Textarea
           id={`dog-notes-${dogId ?? "new"}`}
           name="temperamentNotes"
           rows={2}
           maxLength={DOG_NOTES_MAX_LENGTH}
           placeholder="Reactive on leash, food-motivated, great with kids."
-          className={fieldClasses}
           defaultValue={initial?.temperamentNotes}
         />
       </div>

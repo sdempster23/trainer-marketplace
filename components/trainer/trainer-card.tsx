@@ -1,5 +1,6 @@
 import Link from "next/link";
 
+import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   METERS_PER_MILE,
@@ -39,7 +40,7 @@ export function TrainerCard({ trainer }: { trainer: TrainerCardData }) {
   return (
     <Card className="hover:border-primary/40 relative transition-colors">
       <CardHeader className="flex flex-row items-start justify-between gap-2">
-        <CardTitle className="text-lg">
+        <CardTitle>
           <Link
             href={`/trainers/${trainer.id}`}
             className="after:absolute after:inset-0"
@@ -48,9 +49,9 @@ export function TrainerCard({ trainer }: { trainer: TrainerCardData }) {
           </Link>
         </CardTitle>
         {trainer.distanceMeters !== undefined ? (
-          <span className="bg-primary/10 text-primary inline-flex shrink-0 items-center rounded-full px-2.5 py-1 text-xs font-medium">
+          <Badge className="shrink-0">
             {(trainer.distanceMeters / METERS_PER_MILE).toFixed(1)} mi away
-          </span>
+          </Badge>
         ) : null}
       </CardHeader>
       <CardContent className="flex flex-col gap-3">

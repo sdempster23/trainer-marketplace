@@ -112,7 +112,10 @@
 
   --font-sans: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
   --font-display: var(--font-archivo), ui-sans-serif, system-ui, sans-serif;
-  --font-mono: var(--font-geist-mono), ui-monospace, monospace;
+  /* Nested fallback: where a route doesn't load Geist Mono, an undefined
+     var() would invalidate the whole family and silently inherit Inter —
+     the nesting keeps ui-monospace honest off-route. */
+  --font-mono: var(--font-geist-mono, ui-monospace), monospace;
 
   --radius-sm: calc(var(--radius) - 4px);
   --radius-md: calc(var(--radius) - 2px);

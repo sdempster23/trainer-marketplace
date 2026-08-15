@@ -89,7 +89,7 @@ export default async function TrainerListingPage() {
     <main className="bg-muted flex min-h-screen items-center justify-center px-6 py-12">
       <Card className="w-full max-w-lg">
         <CardHeader>
-          <CardTitle className="text-2xl">You&apos;re listed as a trainer</CardTitle>
+          <CardTitle>You&apos;re listed as a trainer</CardTitle>
           <CardDescription>
             Dog owners can now find you. Here&apos;s what your listing shows.
           </CardDescription>

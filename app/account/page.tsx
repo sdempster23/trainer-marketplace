@@ -92,7 +92,7 @@ export default async function AccountPage() {
       <main className="bg-muted flex min-h-screen items-center justify-center px-6 py-12">
         <Card className="w-full max-w-md">
           <CardHeader>
-            <CardTitle className="text-2xl">Profile unavailable</CardTitle>
+            <CardTitle>Profile unavailable</CardTitle>
             <CardDescription>
               You&apos;re signed in, but we couldn&apos;t load your profile. Try
               signing out and back in.
@@ -203,11 +203,13 @@ export default async function AccountPage() {
         {trainerCta ? (
           <Card>
             <CardHeader>
-              <CardTitle className="text-xl">{trainerCta.title}</CardTitle>
+              <CardTitle>{trainerCta.title}</CardTitle>
               <CardDescription>{trainerCta.body}</CardDescription>
             </CardHeader>
             <CardContent className="flex flex-col gap-2">
-              <Button asChild className="w-full">
+              {/* The hub's ONE amber (map ruling): the trainer's next step.
+                  The embedded card submits are demoted to outline. */}
+              <Button asChild variant="action" className="w-full">
                 <Link href={trainerCta.href}>{trainerCta.cta}</Link>
               </Button>
               {/* Mirror of the owner side's line: one link, zero queries. */}
@@ -224,7 +226,7 @@ export default async function AccountPage() {
         {profile.role === "trainer" ? (
           <Card>
             <CardHeader>
-              <CardTitle className="text-xl">Calendar feed</CardTitle>
+              <CardTitle>Calendar feed</CardTitle>
               <CardDescription>
                 Your PawMatch bookings, in the calendar you already use.
               </CardDescription>
@@ -242,7 +244,7 @@ export default async function AccountPage() {
         {profile.role === "trainer" ? (
           <Card>
             <CardHeader>
-              <CardTitle className="text-xl">Your calendar</CardTitle>
+              <CardTitle>Your calendar</CardTitle>
               <CardDescription>
                 Block PawMatch slots with the times you&apos;re already busy.
               </CardDescription>
@@ -265,7 +267,7 @@ export default async function AccountPage() {
         {profile.role === "trainer" ? (
           <Card>
             <CardHeader>
-              <CardTitle className="text-xl">Payment</CardTitle>
+              <CardTitle>Payment</CardTitle>
               <CardDescription>
                 How your clients pay you — off-platform, your way.
               </CardDescription>
@@ -283,7 +285,7 @@ export default async function AccountPage() {
         {ownerDogs !== null ? (
           <Card>
             <CardHeader>
-              <CardTitle className="text-xl">Your dogs</CardTitle>
+              <CardTitle>Your dogs</CardTitle>
               <CardDescription>
                 {ownerDogs.length === 0
                   ? "Add your dog's profile to get ready for booking."
@@ -310,7 +312,7 @@ export default async function AccountPage() {
 
         <Card>
           <CardHeader>
-            <CardTitle className="text-2xl">You&apos;re signed in</CardTitle>
+            <CardTitle>You&apos;re signed in</CardTitle>
             <CardDescription>
               The auth round-trip works: session established, profile read
               server-side.

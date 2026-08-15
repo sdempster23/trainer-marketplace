@@ -1,5 +1,9 @@
+import Link from "next/link";
 import { lookup } from "zipcodes";
 
+import { PageHeader } from "@/components/shared/page-header";
+import { EmptyState } from "@/components/shared/states";
+import { Button } from "@/components/ui/button";
 import { SiteFooter } from "@/components/shared/site-footer";
 
 import { DirectoryFilters } from "@/components/trainer/directory-filters";
@@ -214,12 +218,9 @@ export default async function TrainersPage({
     <>
     <main className="bg-muted min-h-screen px-6 py-12">
       <div className="mx-auto flex w-full max-w-3xl flex-col gap-6">
-        <header className="flex flex-col gap-1">
-          <h1 className="text-3xl font-semibold">Find a dog trainer</h1>
-          <p className="text-muted-foreground text-sm">
+        <PageHeader title="Find a dog trainer">
             Browse everyone, filter by specialty, or search near a ZIP code.
-          </p>
-        </header>
+        </PageHeader>
 
         <DirectoryFilters
           zip={zip}
@@ -232,15 +233,30 @@ export default async function TrainersPage({
             We couldn&apos;t find that ZIP — please check it and search again.
           </p>
         ) : trainers.length === 0 ? (
-          <p className="text-muted-foreground text-sm">
-            {isProximity
-              ? `No trainers within ${radiusMiles} miles of ${zip}${
-                  specialties.length > 0 ? " matching those specialties" : ""
-                } — try widening the radius.`
-              : specialties.length > 0
-                ? "No trainers match those specialties yet — try removing one."
-                : "No trainers are listed yet — check back soon."}
-          </p>
+          isProximity || specialties.length > 0 ? (
+            <p className="text-muted-foreground text-sm">
+              {isProximity
+                ? `No trainers within ${radiusMiles} miles of ${zip}${
+                    specialties.length > 0 ? " matching those specialties" : ""
+                  } — try widening the radius.`
+                : "No trainers match those specialties yet — try removing one."}
+            </p>
+          ) : (
+            /* The launch-day state, re-drafted from the gate's cold dead
+               end ("check back soon"). Action is OUTLINE, not amber — the
+               view's one amber is Search (map ruling). */
+            <EmptyState
+              title="No trainers listed yet"
+              action={
+                <Button asChild variant="outline">
+                  <Link href="/sign-up">Join as a trainer</Link>
+                </Button>
+              }
+            >
+              PawMatch is just opening its doors — if you train dogs, owners
+              will find you here.
+            </EmptyState>
+          )
         ) : (
           <>
             <p className="text-muted-foreground text-sm">

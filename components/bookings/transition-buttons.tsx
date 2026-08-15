@@ -31,7 +31,9 @@ export function ConfirmBookingButton({ bookingId }: { bookingId: string }) {
           {state.error}
         </span>
       ) : null}
-      <Button type="submit" size="sm" disabled={isPending}>
+      {/* Amber per the map ruling: one per CARD on this page, Confirm
+          only — never Decline, and Mark-completed stays graphite. */}
+      <Button type="submit" variant="action" size="sm" disabled={isPending}>
         {isPending ? "Confirming…" : "Confirm"}
       </Button>
     </form>

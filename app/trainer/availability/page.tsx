@@ -9,6 +9,7 @@ import {
   ExceptionRow,
   WeeklySlotRow,
 } from "@/components/trainer/availability-rows";
+import { PageHeader } from "@/components/shared/page-header";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -87,17 +88,14 @@ export default async function TrainerAvailabilityPage() {
   return (
     <main className="bg-muted min-h-screen px-6 py-12">
       <div className="mx-auto flex w-full max-w-2xl flex-col gap-6">
-        <header className="flex flex-col gap-1">
-          <h1 className="text-3xl font-semibold">Your availability</h1>
-          <p className="text-muted-foreground text-sm">
+        <PageHeader title="Your availability">
             Your weekly hours, in your own timezone — owners will see them as
             bookable times. Exceptions override single dates.
-          </p>
-        </header>
+        </PageHeader>
 
         <Card>
           <CardHeader>
-            <CardTitle className="text-xl">Weekly hours</CardTitle>
+            <CardTitle>Weekly hours</CardTitle>
             <CardDescription>
               Repeats every week. Add more than one window for a split day.
             </CardDescription>
@@ -135,7 +133,7 @@ export default async function TrainerAvailabilityPage() {
 
         <Card>
           <CardHeader>
-            <CardTitle className="text-xl">Exceptions</CardTitle>
+            <CardTitle>Exceptions</CardTitle>
             <CardDescription>
               Days off or one-off different hours — an exception replaces that
               day&apos;s weekly pattern entirely.

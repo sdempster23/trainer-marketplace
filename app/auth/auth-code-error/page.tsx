@@ -18,7 +18,7 @@ export default function AuthCodeErrorPage() {
     <main className="bg-muted flex min-h-screen items-center justify-center px-6 py-12">
       <Card className="w-full max-w-md text-center">
         <CardHeader>
-          <CardTitle className="text-2xl">Link invalid or expired</CardTitle>
+          <CardTitle>Link invalid or expired</CardTitle>
           <CardDescription>
             This confirmation link couldn&apos;t be verified. It may have
             expired or already been used. Request a new one by logging in or

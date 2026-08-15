@@ -3,6 +3,7 @@ import { notFound, redirect } from "next/navigation";
 import { z } from "zod";
 
 import { BookingForm } from "@/components/owner/booking-form";
+import { PageHeader } from "@/components/shared/page-header";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -72,7 +73,7 @@ export default async function BookPage({
       <main className="bg-muted flex min-h-screen items-center justify-center px-6 py-12">
         <Card className="w-full max-w-md">
           <CardHeader>
-            <CardTitle className="text-2xl">
+            <CardTitle>
               Trainers can&apos;t book sessions
             </CardTitle>
             <CardDescription>
@@ -122,7 +123,7 @@ export default async function BookPage({
       <main className="bg-muted flex min-h-screen items-center justify-center px-6 py-12">
         <Card className="w-full max-w-md">
           <CardHeader>
-            <CardTitle className="text-2xl">Add a dog first</CardTitle>
+            <CardTitle>Add a dog first</CardTitle>
             <CardDescription>
               Bookings are for a specific dog — add your dog&apos;s profile and
               come back.
@@ -183,15 +184,10 @@ export default async function BookPage({
   return (
     <main className="bg-muted min-h-screen px-6 py-12">
       <div className="mx-auto flex w-full max-w-2xl flex-col gap-6">
-        <header className="flex flex-col gap-1">
-          <h1 className="text-3xl font-semibold">
-            Book with {trainer.profiles.display_name}
-          </h1>
-          <p className="text-muted-foreground text-sm">
-            Your request goes to the trainer to confirm — nothing is charged
-            yet.
-          </p>
-        </header>
+        <PageHeader title={`Book with ${trainer.profiles.display_name}`}>
+          Your request goes to the trainer to confirm — nothing is charged
+          yet.
+        </PageHeader>
 
         {servicesError ? (
           // Failed read ≠ zero services — the false "hasn't listed any"
