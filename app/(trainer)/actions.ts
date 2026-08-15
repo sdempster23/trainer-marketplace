@@ -18,10 +18,12 @@ import {
   weeklySlotSchema,
 } from "@/lib/validators/availability";
 import {
+  editListingSchema,
   METERS_PER_MILE,
   onboardingSchema,
   serviceIdSchema,
   serviceSchema,
+  SPECIALTIES,
 } from "@/lib/validators/trainer";
 
 /**
@@ -150,6 +152,163 @@ export async function completeOnboarding(
   }
   if (writeError) {
     return { error: writeError };
+  }
+
+  revalidatePath("/", "layout");
+  redirect(POST_ONBOARDING_REDIRECT);
+}
+
+// ---------------------------------------------------------------------------
+// Listing edit (interior-polish flow ruling #1) — the action that makes
+// onboarding's "You can edit it later." TRUE. Bio/radius/timezone update the
+// trainers row; a provided ZIP moves the service point (blank keeps it);
+// specialties reconcile by diff — INSERT the added (the add-only upsert
+// pattern from onboarding), DELETE the removed (the M3 policy comment's
+// intended path: "drop a specialty by removing the assignment row").
+// Insert BEFORE delete so a mid-sequence failure can never leave the
+// listing with fewer specialties than the trainer chose.
+// ---------------------------------------------------------------------------
+
+export async function updateTrainerListing(
+  _prevState: OnboardingActionState,
+  formData: FormData,
+): Promise<OnboardingActionState> {
+  const parsed = editListingSchema.safeParse({
+    bio: formData.get("bio"),
+    specialties: formData.getAll("specialties"),
+    zip: formData.get("zip") ?? "",
+    serviceRadiusMiles: formData.get("serviceRadiusMiles"),
+    timezone: formData.get("timezone"),
+  });
+  if (!parsed.success) {
+    return { error: parsed.error.issues[0]?.message ?? VALIDATION_ERROR };
+  }
+
+  const supabase = await createClient();
+  const { data: claimsData } = await supabase.auth.getClaims();
+  const userId = claimsData?.claims?.sub;
+  if (!userId) {
+    redirect("/login");
+  }
+  const { data: profile } = await supabase
+    .from("profiles")
+    .select("role")
+    .eq("id", userId)
+    .maybeSingle();
+  if (profile?.role !== "trainer") {
+    return { error: "Only trainer accounts can edit a listing." };
+  }
+  // The action is the trusted boundary — a direct caller with no trainers
+  // row would 0-row "succeed" the UPDATE and then hit the assignments FK
+  // with a raw Postgres message (review finding). Turn them away cleanly.
+  const onboardingState = await getOnboardingState(supabase, userId);
+  if (onboardingState === "none") {
+    return { error: "Create your trainer listing first — then edit it here." };
+  }
+
+  // A new ZIP geocodes exactly like onboarding; blank keeps the point.
+  let servicePoint: string | null = null;
+  if (parsed.data.zip) {
+    const place = lookup(parsed.data.zip);
+    if (!place) {
+      return { error: "We couldn't find that ZIP — please check and re-enter." };
+    }
+    servicePoint = `SRID=4326;POINT(${place.longitude} ${place.latitude})`;
+  }
+
+  let writeError: string | null = null;
+  try {
+    const { error } = await supabase
+      .from("trainers")
+      .update({
+        bio: parsed.data.bio,
+        service_radius_meters: milesToMeters(parsed.data.serviceRadiusMiles),
+        timezone: parsed.data.timezone,
+        ...(servicePoint ? { service_point: servicePoint } : {}),
+      })
+      .eq("id", userId);
+    writeError = error?.message ?? null;
+  } catch {
+    writeError = GENERIC_ERROR;
+  }
+  if (writeError) {
+    return { error: writeError };
+  }
+
+  // Reconcile specialties: read current, insert missing, delete dropped.
+  const { data: currentRows, error: readError } = await supabase
+    .from("trainer_specialty_assignments")
+    .select("specialty")
+    .eq("trainer_id", userId);
+  if (readError) {
+    return { error: GENERIC_ERROR };
+  }
+  const current = new Set((currentRows ?? []).map((r) => r.specialty));
+  const chosen = new Set(parsed.data.specialties);
+  const toAdd = parsed.data.specialties.filter((sp) => !current.has(sp));
+  const toRemove = SPECIALTIES.filter(
+    (sp) => current.has(sp) && !chosen.has(sp),
+  );
+
+  if (toAdd.length > 0) {
+    try {
+      const { error } = await supabase
+        .from("trainer_specialty_assignments")
+        .upsert(
+          toAdd.map((specialty) => ({ trainer_id: userId, specialty })),
+          { onConflict: "trainer_id,specialty", ignoreDuplicates: true },
+        );
+      writeError = error?.message ?? null;
+    } catch {
+      writeError = GENERIC_ERROR;
+    }
+    if (writeError) {
+      return { error: writeError };
+    }
+  }
+  if (toRemove.length > 0) {
+    try {
+      const { error } = await supabase
+        .from("trainer_specialty_assignments")
+        .delete()
+        .eq("trainer_id", userId)
+        .in("specialty", toRemove);
+      writeError = error?.message ?? null;
+    } catch {
+      writeError = GENERIC_ERROR;
+    }
+    if (writeError) {
+      return { error: writeError };
+    }
+  }
+
+  // The diff is read-modify-write without a transaction: two concurrent
+  // saves can each delete the other's keepers and strand ZERO specialties
+  // (review finding — the one path below the ≥1 floor the schema holds
+  // everywhere else). Re-assert the invariant: re-read, and if the race
+  // hit, re-insert this submit's chosen set (idempotent upsert).
+  const { count: finalCount } = await supabase
+    .from("trainer_specialty_assignments")
+    .select("specialty", { count: "exact", head: true })
+    .eq("trainer_id", userId);
+  if ((finalCount ?? 0) === 0) {
+    try {
+      const { error } = await supabase
+        .from("trainer_specialty_assignments")
+        .upsert(
+          parsed.data.specialties.map((specialty) => ({
+            trainer_id: userId,
+            specialty,
+          })),
+          { onConflict: "trainer_id,specialty", ignoreDuplicates: true },
+        );
+      writeError = error?.message ?? null;
+    } catch {
+      writeError = GENERIC_ERROR;
+    }
+    if (writeError) {
+      return { error: writeError };
+    }
   }
 
   revalidatePath("/", "layout");

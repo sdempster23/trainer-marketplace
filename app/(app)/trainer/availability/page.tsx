@@ -18,6 +18,8 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import { EmptyState, ErrorState } from "@/components/shared/states";
+import { geistMono } from "@/lib/fonts";
 import { createClient } from "@/lib/supabase/server";
 import {
   getExceptions,
@@ -25,6 +27,10 @@ import {
 } from "@/lib/trainer/availability";
 import { getOnboardingState } from "@/lib/trainer/onboarding";
 import { DAY_OF_WEEK_LABELS } from "@/lib/validators/availability";
+import {
+  TIMEZONE_LABELS,
+  type TrainerTimezone,
+} from "@/lib/validators/trainer";
 
 export const metadata = {
   title: "Your availability — PawMatch",
@@ -85,12 +91,21 @@ export default async function TrainerAvailabilityPage() {
     todayLocal,
   );
 
+  const zoneLabel = trainer?.timezone
+    ? (TIMEZONE_LABELS[trainer.timezone as TrainerTimezone] ?? trainer.timezone)
+    : null;
+
   return (
-    <main className="bg-muted flex-1 px-6 py-12">
+    <main className={`bg-muted flex-1 px-6 py-12 ${geistMono.variable}`}>
       <div className="mx-auto flex w-full max-w-2xl flex-col gap-6">
         <PageHeader title="Your availability">
-            Your weekly hours, in your own timezone — owners will see them as
-            bookable times. Exceptions override single dates.
+          Your weekly hours{zoneLabel ? ` in ${zoneLabel}` : ""} — owners will
+          see them as bookable times. Exceptions override single dates.
+          {" "}
+          <Link href="/trainer/listing/edit" className="underline">
+            Change your timezone
+          </Link>
+          {" "}if it&apos;s wrong.
         </PageHeader>
 
         <Card>
@@ -102,13 +117,13 @@ export default async function TrainerAvailabilityPage() {
           </CardHeader>
           <CardContent className="flex flex-col gap-4">
             {patternError ? (
-              <p role="alert" className="text-destructive text-sm">
+              <ErrorState>
                 Your hours couldn&apos;t be loaded. Please refresh to try again.
-              </p>
+              </ErrorState>
             ) : slots.length === 0 ? (
-              <p className="text-muted-foreground text-sm">
+              <EmptyState compact>
                 No hours yet — add your first window below.
-              </p>
+              </EmptyState>
             ) : (
               DAY_OF_WEEK_LABELS.map((label, day) => {
                 const daySlots = slots.filter((s) => s.day_of_week === day);
@@ -141,14 +156,16 @@ export default async function TrainerAvailabilityPage() {
           </CardHeader>
           <CardContent className="flex flex-col gap-4">
             {exceptionsError ? (
-              <p role="alert" className="text-destructive text-sm">
+              <ErrorState>
                 Your exceptions couldn&apos;t be loaded. Please refresh to try
                 again.
-              </p>
+              </ErrorState>
             ) : exceptions.length === 0 ? (
-              <p className="text-muted-foreground text-sm">
-                No upcoming exceptions.
-              </p>
+              // Grammar parity with its sibling (the audit's split): the
+              // zero state guides instead of dead-ending.
+              <EmptyState compact>
+                No upcoming exceptions — add a day off or one-off hours below.
+              </EmptyState>
             ) : (
               exceptions.map((exception) => (
                 <ExceptionRow key={exception.id} exception={exception} />
@@ -160,9 +177,15 @@ export default async function TrainerAvailabilityPage() {
           </CardContent>
         </Card>
 
-        <Button asChild variant="outline" className="w-full">
-          <Link href="/trainer/listing">Back to your listing</Link>
-        </Button>
+        {/* Lateral nav replaces the Back-to chain. */}
+        <div className="grid gap-2 sm:grid-cols-2">
+          <Button asChild variant="outline" className="w-full">
+            <Link href="/trainer/services">Manage services</Link>
+          </Button>
+          <Button asChild variant="outline" className="w-full">
+            <Link href="/trainer/listing">Your listing</Link>
+          </Button>
+        </div>
       </div>
     </main>
   );

@@ -20,9 +20,17 @@ import {
  * state, no routing); Cancel or a successful save restores the display,
  * which revalidation has refreshed by then.
  */
-export function ServiceRow({ service }: { service: ActiveService }) {
-  const [isEditing, setIsEditing] = useState(false);
-
+export function ServiceRow({
+  service,
+  isEditing,
+  onEdit,
+  onClose,
+}: {
+  service: ActiveService;
+  isEditing: boolean;
+  onEdit: () => void;
+  onClose: () => void;
+}) {
   if (isEditing) {
     return (
       <Card>
@@ -38,8 +46,9 @@ export function ServiceRow({ service }: { service: ActiveService }) {
               durationMinutes: service.duration_minutes,
               sessionType: service.session_type,
             }}
-            onSuccess={() => setIsEditing(false)}
-            onCancel={() => setIsEditing(false)}
+            submitVariant="action"
+            onSuccess={onClose}
+            onCancel={onClose}
           />
         </CardContent>
       </Card>
@@ -50,20 +59,15 @@ export function ServiceRow({ service }: { service: ActiveService }) {
     <Card>
       <CardContent className="flex flex-col gap-3 pt-6">
         <div className="flex items-start justify-between gap-2">
-          <div className="flex flex-col gap-1">
-            <span className="font-medium">{service.name}</span>
-            <span className="text-muted-foreground text-sm">
+          <div className="flex min-w-0 flex-col gap-1">
+            <span className="truncate font-medium">{service.name}</span>
+            <span className="text-muted-foreground font-mono text-xs">
               {formatPrice(service.price_cents)} · {service.duration_minutes}{" "}
               min · {SESSION_TYPE_LABELS[service.session_type]}
             </span>
           </div>
           <div className="flex shrink-0 gap-2">
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              onClick={() => setIsEditing(true)}
-            >
+            <Button type="button" variant="outline" size="sm" onClick={onEdit}>
               Edit
             </Button>
             <DeleteServiceButton serviceId={service.id} />
@@ -104,24 +108,31 @@ function DeleteServiceButton({ serviceId }: { serviceId: string }) {
   }
 
   return (
-    <form action={formAction} className="flex items-center gap-2">
+    // Grow DOWN, capped — the message-button rule (the sideways error span
+    // was this page's card-breaker at 390).
+    <form action={formAction} className="flex flex-col items-end gap-1">
       <input type="hidden" name="serviceId" value={serviceId} />
+      <div className="flex items-center gap-2">
+        <Button type="submit" variant="destructive" size="sm" disabled={isPending}>
+          {isPending ? "Deleting…" : "Confirm delete"}
+        </Button>
+        <Button
+          type="button"
+          variant="outline"
+          size="sm"
+          onClick={() => setIsArmed(false)}
+        >
+          Keep
+        </Button>
+      </div>
       {state && "error" in state ? (
-        <span role="alert" className="text-destructive text-xs">
+        <span
+          role="alert"
+          className="text-destructive max-w-40 text-right text-xs break-words"
+        >
           {state.error}
         </span>
       ) : null}
-      <Button type="submit" variant="destructive" size="sm" disabled={isPending}>
-        {isPending ? "Deleting…" : "Confirm delete"}
-      </Button>
-      <Button
-        type="button"
-        variant="outline"
-        size="sm"
-        onClick={() => setIsArmed(false)}
-      >
-        Keep
-      </Button>
     </form>
   );
 }

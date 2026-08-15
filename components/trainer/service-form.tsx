@@ -34,6 +34,7 @@ export type ServiceFormInitial = {
  * fresh object per completed submit, so the effect fires every save).
  */
 export function ServiceForm({
+  submitVariant = "action",
   action,
   submitLabel,
   serviceId,
@@ -41,6 +42,9 @@ export function ServiceForm({
   onSuccess,
   onCancel,
 }: {
+  /** The ruled save-swap: while a row edits, the create form demotes to
+   * default and the row's Save carries the view's amber. */
+  submitVariant?: "action" | "default";
   action: (
     prev: ServiceActionState,
     formData: FormData,
@@ -84,7 +88,7 @@ export function ServiceForm({
 
       <div className="grid gap-2">
         <Label htmlFor={`description-${serviceId ?? "new"}`}>
-          Description (optional)
+          Description <span className="text-muted-foreground font-normal">· optional</span>
         </Label>
         <Textarea
           id={`description-${serviceId ?? "new"}`}
@@ -125,6 +129,7 @@ export function ServiceForm({
             placeholder="60"
             defaultValue={initial?.durationMinutes}
           />
+          <p className="text-muted-foreground text-xs">15 min – 8 hours.</p>
         </div>
 
         <div className="grid gap-2">
@@ -136,7 +141,7 @@ export function ServiceForm({
             defaultValue={initial?.sessionType ?? ""}
           >
             <option value="" disabled>
-              Session type
+              Choose where
             </option>
             {SESSION_TYPES.map((type) => (
               <option key={type} value={type}>
@@ -154,14 +159,7 @@ export function ServiceForm({
       ) : null}
 
       <div className="flex gap-2">
-        {/* Amber on the CREATE submit only (map ruling: services -> Add
-            service). The edit-row Save keeps graphite until the services
-            pass lifts editing state to swap the primary properly. */}
-        <Button
-          type="submit"
-          variant={serviceId ? "default" : "action"}
-          disabled={isPending}
-        >
+        <Button type="submit" variant={submitVariant} disabled={isPending}>
           {isPending ? "Saving…" : submitLabel}
         </Button>
         {onCancel ? (

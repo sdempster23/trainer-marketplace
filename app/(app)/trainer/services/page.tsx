@@ -1,18 +1,11 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 
-import { createService } from "@/app/(trainer)/actions";
 import { PageHeader } from "@/components/shared/page-header";
-import { ServiceForm } from "@/components/trainer/service-form";
-import { ServiceRow } from "@/components/trainer/service-row";
+import { EmptyState, ErrorState } from "@/components/shared/states";
+import { ServicesManager } from "@/components/trainer/services-manager";
 import { Button } from "@/components/ui/button";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+import { geistMono } from "@/lib/fonts";
 import { createClient } from "@/lib/supabase/server";
 import { getOnboardingState } from "@/lib/trainer/onboarding";
 import { getActiveServices } from "@/lib/trainer/services";
@@ -58,7 +51,7 @@ export default async function TrainerServicesPage() {
   const { services, error } = await getActiveServices(supabase, claims.sub);
 
   return (
-    <main className="bg-muted flex-1 px-6 py-12">
+    <main className={`bg-muted flex-1 px-6 py-12 ${geistMono.variable}`}>
       <div className="mx-auto flex w-full max-w-2xl flex-col gap-6">
         <PageHeader title="Your services">
             What owners can book with you — each with a price, length, and
@@ -66,36 +59,24 @@ export default async function TrainerServicesPage() {
         </PageHeader>
 
         {error ? (
-          <p role="alert" className="text-destructive text-sm">
+          <ErrorState>
             Your services couldn&apos;t be loaded. Please refresh to try again.
-          </p>
+          </ErrorState>
         ) : services.length === 0 ? (
-          <p className="text-muted-foreground text-sm">
-            No services yet — add your first below.
-          </p>
-        ) : (
-          <div className="flex flex-col gap-4">
-            {services.map((service) => (
-              <ServiceRow key={service.id} service={service} />
-            ))}
-          </div>
-        )}
+          <EmptyState>No services yet — add your first below.</EmptyState>
+        ) : null}
 
-        <Card>
-          <CardHeader>
-            <CardTitle>Add a service</CardTitle>
-            <CardDescription>
-              Name it the way an owner would look for it.
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <ServiceForm action={createService} submitLabel="Add service" />
-          </CardContent>
-        </Card>
+        <ServicesManager services={error ? [] : services} />
 
-        <Button asChild variant="outline" className="w-full">
-          <Link href="/trainer/listing">Back to your listing</Link>
-        </Button>
+        {/* Lateral nav replaces the Back-to chain (shell carries Account). */}
+        <div className="grid gap-2 sm:grid-cols-2">
+          <Button asChild variant="outline" className="w-full">
+            <Link href="/trainer/availability">Manage availability</Link>
+          </Button>
+          <Button asChild variant="outline" className="w-full">
+            <Link href="/trainer/listing">Your listing</Link>
+          </Button>
+        </div>
       </div>
     </main>
   );

@@ -50,32 +50,39 @@ function TwoStepDelete({
   }
 
   return (
-    <form action={formAction} className="flex items-center gap-2">
+    // Grow DOWN, capped — the message-button rule; both armed rows on this
+    // page overflowed the card at 390 with the sideways error span.
+    <form action={formAction} className="flex flex-col items-end gap-1">
       <input type="hidden" name={fieldName} value={id} />
+      <div className="flex items-center gap-2">
+        <Button type="submit" variant="destructive" size="sm" disabled={isPending}>
+          {isPending ? "Deleting…" : "Confirm delete"}
+        </Button>
+        <Button
+          type="button"
+          variant="outline"
+          size="sm"
+          onClick={() => setIsArmed(false)}
+        >
+          Keep
+        </Button>
+      </div>
       {state && "error" in state ? (
-        <span role="alert" className="text-destructive text-xs">
+        <span
+          role="alert"
+          className="text-destructive max-w-40 text-right text-xs break-words"
+        >
           {state.error}
         </span>
       ) : null}
-      <Button type="submit" variant="destructive" size="sm" disabled={isPending}>
-        {isPending ? "Deleting…" : "Confirm delete"}
-      </Button>
-      <Button
-        type="button"
-        variant="outline"
-        size="sm"
-        onClick={() => setIsArmed(false)}
-      >
-        Keep
-      </Button>
     </form>
   );
 }
 
 export function WeeklySlotRow({ slot }: { slot: WeeklySlot }) {
   return (
-    <div className="flex items-center justify-between gap-2 text-sm">
-      <span>
+    <div className="flex flex-wrap items-center justify-between gap-2 text-sm">
+      <span className="font-mono text-xs">
         {formatTimeOfDay(slot.start_time)} – {formatTimeOfDay(slot.end_time)}
       </span>
       <TwoStepDelete
@@ -93,8 +100,8 @@ export function ExceptionRow({
   exception: AvailabilityException;
 }) {
   return (
-    <div className="flex items-center justify-between gap-2 text-sm">
-      <span className="flex items-center gap-2">
+    <div className="flex flex-wrap items-center justify-between gap-2 text-sm">
+      <span className="flex flex-wrap items-center gap-2">
         <span className="font-medium">
           {formatPlainDate(exception.exception_date)}
         </span>
