@@ -18,7 +18,12 @@ import {
   type TrainerBooking,
 } from "@/lib/trainer/bookings";
 import { getOnboardingState } from "@/lib/trainer/onboarding";
-import { formatBookingStart } from "@/lib/validators/booking";
+import { EmptyState, ErrorState } from "@/components/shared/states";
+import {
+  BOOKING_STATUS_LABELS,
+  cancelledByLabel,
+  formatBookingStart,
+} from "@/lib/validators/booking";
 import { formatPrice } from "@/lib/validators/trainer";
 
 export const metadata = { title: "Your bookings — PawMatch" };
@@ -83,9 +88,13 @@ export default async function TrainerBookingsPage() {
   const needsCompletion = bookings.filter(
     (b) => b.status === "CONFIRMED" && isPast(b),
   );
-  const history = bookings.filter(
-    (b) => b.status === "COMPLETED" || b.status === "CANCELLED",
-  );
+  // List arrives soonest-first; the record reads newest-first. Spread
+  // before reversing — the immutability rule, and no shared reference.
+  const history = [
+    ...bookings.filter(
+      (b) => b.status === "COMPLETED" || b.status === "CANCELLED",
+    ),
+  ].reverse();
 
   const who = (b: TrainerBooking) =>
     b.profiles?.display_name ?? "An owner"; // NULL-name fallback (investigation flag)
@@ -122,23 +131,42 @@ export default async function TrainerBookingsPage() {
         </PageHeader>
 
         {error ? (
-          <p role="alert" className="text-destructive text-sm">
+          <ErrorState>
             Your bookings couldn&apos;t be loaded. Please refresh to try again.
-          </p>
+          </ErrorState>
         ) : bookings.length === 0 ? (
-          <p className="text-muted-foreground text-sm">
-            No bookings yet — owners find you through the directory.
-          </p>
+          /* WATCH ITEM: the empty state is her onboarding for the queue —
+             a new trainer learns HERE that requests arrive on this page
+             and what she'll do with them. */
+          <EmptyState
+            title="No bookings yet"
+            action={
+              <Button asChild variant="outline">
+                <Link href="/trainer/listing">View your listing</Link>
+              </Button>
+            }
+          >
+            Owners find you through the directory. When one requests a
+            session it lands here in Requests — you confirm or decline, and
+            confirmed sessions move to Upcoming. Confirming is also what
+            shows the owner how to pay you, so add your payment details in
+            Account to have that step ready.
+          </EmptyState>
         ) : (
           <>
             <section className="flex flex-col gap-3">
-              <h2 className="text-lg font-semibold">
-                Requests{requests.length > 0 ? ` (${requests.length})` : ""}
+              <h2 className="font-display flex items-center gap-2 text-lg font-semibold tracking-tight">
+                Requests
+                {requests.length > 0 ? (
+                  <Badge variant="strong">
+                    {requests.length}
+                    <span className="sr-only"> waiting</span>
+                  </Badge>
+                ) : null}
               </h2>
               {requests.length === 0 ? (
-                <p className="text-muted-foreground text-sm">
-                  Nothing waiting on you.
-                </p>
+                /* The keeper, in the object. */
+                <EmptyState compact>Nothing waiting on you.</EmptyState>
               ) : (
                 requests.map((b) => (
                   <Card key={b.id}>
@@ -154,7 +182,7 @@ export default async function TrainerBookingsPage() {
                         </div>
                       </div>
                       {isPast(b) ? (
-                        <p className="text-muted-foreground text-xs">
+                        <p className="text-muted-foreground text-sm">
                           The start time has passed — this request can only be
                           declined.
                         </p>
@@ -165,10 +193,14 @@ export default async function TrainerBookingsPage() {
               )}
             </section>
 
-            {upcoming.length > 0 ? (
-              <section className="flex flex-col gap-3">
-                <h2 className="text-lg font-semibold">Upcoming</h2>
-                {upcoming.map((b) => (
+            <section className="flex flex-col gap-3">
+              <h2 className="font-display text-lg font-semibold tracking-tight">Upcoming</h2>
+              {upcoming.length === 0 ? (
+                <EmptyState compact>
+                  No confirmed sessions yet — requests you confirm land here.
+                </EmptyState>
+              ) : (
+                upcoming.map((b) => (
                   <Card key={b.id}>
                     <CardContent className="flex items-start justify-between gap-2 pt-6">
                       {cardBody(b)}
@@ -178,13 +210,19 @@ export default async function TrainerBookingsPage() {
                       </div>
                     </CardContent>
                   </Card>
-                ))}
-              </section>
-            ) : null}
+                ))
+              )}
+            </section>
 
             {needsCompletion.length > 0 ? (
               <section className="flex flex-col gap-3">
-                <h2 className="text-lg font-semibold">Needs completion</h2>
+                <h2 className="font-display text-lg font-semibold tracking-tight">
+                  Needs completion
+                </h2>
+                <p className="text-muted-foreground text-sm">
+                  Sessions past their start time — mark them completed, or
+                  cancel if they didn&apos;t happen.
+                </p>
                 {needsCompletion.map((b) => (
                   <Card key={b.id}>
                     <CardContent className="flex items-start justify-between gap-2 pt-6">
@@ -200,36 +238,32 @@ export default async function TrainerBookingsPage() {
               </section>
             ) : null}
 
-            {history.length > 0 ? (
-              <section className="flex flex-col gap-3">
-                <h2 className="text-lg font-semibold">History</h2>
-                {history.map((b) => (
+            <section className="flex flex-col gap-3">
+              <h2 className="font-display text-lg font-semibold tracking-tight">History</h2>
+              {history.length === 0 ? (
+                <EmptyState compact>
+                  Completed and cancelled sessions build your record here.
+                </EmptyState>
+              ) : (
+                history.map((b) => (
                   <Card key={b.id}>
                     <CardContent className="flex items-start justify-between gap-2 pt-6">
                       {cardBody(b)}
                       <div className="flex shrink-0 flex-col items-end gap-2">
                         <Badge>
                           {b.status === "COMPLETED"
-                            ? "Completed"
-                            : b.cancelled_by === "trainer"
-                              ? "Cancelled by you"
-                              : b.cancelled_by === "owner"
-                                ? "Cancelled by the owner"
-                                : "Cancelled"}
+                            ? BOOKING_STATUS_LABELS.COMPLETED
+                            : cancelledByLabel(b.cancelled_by, "trainer")}
                         </Badge>
                         {messageButton(b)}
                       </div>
                     </CardContent>
                   </Card>
-                ))}
-              </section>
-            ) : null}
+                ))
+              )}
+            </section>
           </>
         )}
-
-        <Button asChild variant="outline" className="w-full">
-          <Link href="/account">Back to account</Link>
-        </Button>
       </div>
     </main>
   );

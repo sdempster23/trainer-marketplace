@@ -14,6 +14,7 @@ import { createClient } from "@/lib/supabase/server";
 import { getOwnerBookings } from "@/lib/owner/bookings";
 import {
   BOOKING_STATUS_LABELS,
+  cancelledByLabel,
   formatBookingStart,
 } from "@/lib/validators/booking";
 import { formatPrice } from "@/lib/validators/trainer";
@@ -135,11 +136,7 @@ export default async function OwnerBookingsPage({
                     </div>
                     <Badge className="shrink-0">
                       {booking.status === "CANCELLED"
-                        ? booking.cancelled_by === "owner"
-                          ? "Cancelled by you"
-                          : booking.cancelled_by === "trainer"
-                            ? "Cancelled by the trainer"
-                            : "Cancelled"
+                        ? cancelledByLabel(booking.cancelled_by, "owner")
                         : BOOKING_STATUS_LABELS[booking.status]}
                     </Badge>
                   </div>
