@@ -3,6 +3,7 @@ import { notFound, redirect } from "next/navigation";
 import { z } from "zod";
 
 import { BookingForm } from "@/components/owner/booking-form";
+import { ErrorState } from "@/components/shared/states";
 import { PageHeader } from "@/components/shared/page-header";
 import { Button } from "@/components/ui/button";
 import {
@@ -131,7 +132,14 @@ export default async function BookPage({
           </CardHeader>
           <CardContent>
             <Button asChild className="w-full">
-              <Link href="/owner/dogs">Add your dog</Link>
+              {/* The return param is what stops the first-booking funnel
+                  from dying here (flow ruling #2); /owner/dogs validates
+                  it as a same-origin path. */}
+              <Link
+                href={`/owner/dogs?return=${encodeURIComponent(`/trainers/${id}/book`)}`}
+              >
+                Add your dog
+              </Link>
             </Button>
           </CardContent>
         </Card>
@@ -145,7 +153,12 @@ export default async function BookPage({
   );
 
   // Shared slot inputs, fetched once; one pure computation per service.
-  const { slots: pattern } = await getWeeklyPattern(supabase, id);
+  // ERRORS ARE READ (the carried step-1 finding): computing slots from a
+  // silently-failed input renders a false "no open times".
+  const { slots: pattern, error: patternError } = await getWeeklyPattern(
+    supabase,
+    id,
+  );
   const todayLocal = new Intl.DateTimeFormat("en-CA", {
     timeZone: trainer.timezone,
   }).format(new Date());
@@ -155,12 +168,17 @@ export default async function BookPage({
   )
     .toISOString()
     .slice(0, 10);
-  const { exceptions } = await getExceptions(supabase, id, todayLocal);
+  const { exceptions, error: exceptionsError } = await getExceptions(
+    supabase,
+    id,
+    todayLocal,
+  );
   // M16: the external calendar's fetch-on-read moment — never fetched →
   // synchronous (capped); stale → after() refresh; errors never break the
   // page (stale blocks keep serving through the RPC).
   await ensureExternalCalendarFresh(id, trainer.timezone);
-  const { busy } = await getBusyRanges(supabase, id);
+  const { busy, error: busyError } = await getBusyRanges(supabase, id);
+  const slotInputsError = patternError || exceptionsError || busyError;
 
   const slotsByService: Record<string, BookableSlot[]> = {};
   for (const service of services) {
@@ -192,13 +210,21 @@ export default async function BookPage({
         {servicesError ? (
           // Failed read ≠ zero services — the false "hasn't listed any"
           // statement was the investigation's bug-class find here.
-          <p role="alert" className="text-destructive text-sm">
+          <ErrorState>
             Services couldn&apos;t be loaded. Please refresh to try again.
-          </p>
+          </ErrorState>
         ) : services.length === 0 ? (
           <p className="text-muted-foreground text-sm">
             This trainer hasn&apos;t listed any bookable services yet.
           </p>
+        ) : slotInputsError ? (
+          // A failed slot input must never masquerade as "no open times"
+          // (the carried step-1 finding) — but a truthful zero-services
+          // state outranks it (review: precedence).
+          <ErrorState>
+            Available times couldn&apos;t be loaded. Please refresh to try
+            again.
+          </ErrorState>
         ) : (
           <Card>
             <CardContent className="pt-6">
@@ -208,6 +234,7 @@ export default async function BookPage({
                 slotsByService={slotsByService}
                 preselectServiceId={preselect}
                 zoneLabel={zoneLabel}
+                trainerId={id}
               />
             </CardContent>
           </Card>

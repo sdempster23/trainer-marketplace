@@ -30,7 +30,18 @@ export const metadata = { title: "Your bookings — PawMatch" };
  * Cancel (two-step) on PENDING and CONFIRMED rows — Arc D's owner half;
  * cancelled rows show attribution.
  */
-export default async function OwnerBookingsPage() {
+export default async function OwnerBookingsPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ requested?: string | string[] }>;
+}) {
+  const { requested } = await searchParams;
+  // Attacker-suppliable; used only as an equality key for the highlight —
+  // validate the shape anyway, never interpolate.
+  const requestedId =
+    typeof requested === "string" && /^[0-9a-f-]{36}$/.test(requested)
+      ? requested
+      : null;
   const supabase = await createClient();
 
   const { data } = await supabase.auth.getClaims();
@@ -69,6 +80,19 @@ export default async function OwnerBookingsPage() {
             trainer&apos;s timezone.
         </PageHeader>
 
+        {requestedId && (error || bookings.some((b) => b.id === requestedId)) ? (
+          <div className="bg-card border-border rounded-lg border p-4">
+            <p className="font-display font-semibold tracking-tight">
+              Request sent
+            </p>
+            <p className="text-muted-foreground mt-1 text-sm">
+              Your trainer has it now. When they confirm, you&apos;ll
+              arrange payment directly with them — right here on this page.
+              PawMatch never handles the money.
+            </p>
+          </div>
+        ) : null}
+
         {error ? (
           <p role="alert" className="text-destructive text-sm">
             Your bookings couldn&apos;t be loaded. Please refresh to try again.
@@ -90,10 +114,15 @@ export default async function OwnerBookingsPage() {
         ) : (
           <div className="flex flex-col gap-4">
             {bookings.map((booking) => (
-              <Card key={booking.id}>
+              <Card
+                key={booking.id}
+                className={
+                  booking.id === requestedId ? "border-primary" : undefined
+                }
+              >
                 <CardContent className="flex flex-col gap-2 pt-6">
-                  <div className="flex items-start justify-between gap-2">
-                    <div className="flex flex-col gap-1">
+                  <div className="flex flex-wrap items-start justify-between gap-2">
+                    <div className="flex min-w-0 flex-1 flex-col gap-1">
                       <span className="font-medium">
                         {booking.trainer_services?.name ??
                           "Service no longer offered"}

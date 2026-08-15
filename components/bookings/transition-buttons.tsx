@@ -24,18 +24,23 @@ export function ConfirmBookingButton({ bookingId }: { bookingId: string }) {
     FormData
   >(confirmBooking, null);
   return (
-    <form action={formAction} className="flex items-center gap-2">
+    // Errors grow DOWN, capped — the message-button rule, applied to the
+    // last holdouts (these sideways spans broke both bookings pages' rows).
+    <form action={formAction} className="flex flex-col items-end gap-1">
       <input type="hidden" name="bookingId" value={bookingId} />
-      {state && "error" in state ? (
-        <span role="alert" className="text-destructive text-xs">
-          {state.error}
-        </span>
-      ) : null}
       {/* Amber per the map ruling: one per CARD on this page, Confirm
           only — never Decline, and Mark-completed stays graphite. */}
       <Button type="submit" variant="action" size="sm" disabled={isPending}>
         {isPending ? "Confirming…" : "Confirm"}
       </Button>
+      {state && "error" in state ? (
+        <span
+          role="alert"
+          className="text-destructive max-w-40 text-right text-xs break-words"
+        >
+          {state.error}
+        </span>
+      ) : null}
     </form>
   );
 }
@@ -46,16 +51,19 @@ export function CompleteBookingButton({ bookingId }: { bookingId: string }) {
     FormData
   >(completeBooking, null);
   return (
-    <form action={formAction} className="flex items-center gap-2">
+    <form action={formAction} className="flex flex-col items-end gap-1">
       <input type="hidden" name="bookingId" value={bookingId} />
-      {state && "error" in state ? (
-        <span role="alert" className="text-destructive text-xs">
-          {state.error}
-        </span>
-      ) : null}
       <Button type="submit" size="sm" disabled={isPending}>
         {isPending ? "Completing…" : "Mark completed"}
       </Button>
+      {state && "error" in state ? (
+        <span
+          role="alert"
+          className="text-destructive max-w-40 text-right text-xs break-words"
+        >
+          {state.error}
+        </span>
+      ) : null}
     </form>
   );
 }
@@ -92,24 +100,29 @@ export function CancelBookingButton({
   }
 
   return (
-    <form action={formAction} className="flex items-center gap-2">
+    <form action={formAction} className="flex flex-col items-end gap-1">
       <input type="hidden" name="bookingId" value={bookingId} />
+      <div className="flex items-center gap-2">
+        <Button type="submit" variant="destructive" size="sm" disabled={isPending}>
+          {isPending ? "Working…" : `Confirm ${label.toLowerCase()}`}
+        </Button>
+        <Button
+          type="button"
+          variant="outline"
+          size="sm"
+          onClick={() => setIsArmed(false)}
+        >
+          Keep
+        </Button>
+      </div>
       {state && "error" in state ? (
-        <span role="alert" className="text-destructive text-xs">
+        <span
+          role="alert"
+          className="text-destructive max-w-40 text-right text-xs break-words"
+        >
           {state.error}
         </span>
       ) : null}
-      <Button type="submit" variant="destructive" size="sm" disabled={isPending}>
-        {isPending ? "Working…" : `Confirm ${label.toLowerCase()}`}
-      </Button>
-      <Button
-        type="button"
-        variant="outline"
-        size="sm"
-        onClick={() => setIsArmed(false)}
-      >
-        Keep
-      </Button>
     </form>
   );
 }

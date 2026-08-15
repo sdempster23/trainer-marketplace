@@ -145,7 +145,7 @@ export default async function TrainerBookingsPage() {
                     <CardContent className="flex flex-col gap-3 pt-6">
                       <div className="flex items-start justify-between gap-2">
                         {cardBody(b)}
-                        <div className="flex shrink-0 items-center gap-2">
+                        <div className="flex flex-wrap items-center justify-end gap-2">
                           {messageButton(b)}
                           {isPast(b) ? null : (
                             <ConfirmBookingButton bookingId={b.id} />
@@ -172,7 +172,7 @@ export default async function TrainerBookingsPage() {
                   <Card key={b.id}>
                     <CardContent className="flex items-start justify-between gap-2 pt-6">
                       {cardBody(b)}
-                      <div className="flex shrink-0 items-center gap-2">
+                      <div className="flex flex-wrap items-center justify-end gap-2">
                         {messageButton(b)}
                         <CancelBookingButton bookingId={b.id} label="Cancel" />
                       </div>
@@ -189,7 +189,7 @@ export default async function TrainerBookingsPage() {
                   <Card key={b.id}>
                     <CardContent className="flex items-start justify-between gap-2 pt-6">
                       {cardBody(b)}
-                      <div className="flex shrink-0 items-center gap-2">
+                      <div className="flex flex-wrap items-center justify-end gap-2">
                         {messageButton(b)}
                         <CompleteBookingButton bookingId={b.id} />
                         <CancelBookingButton bookingId={b.id} label="Cancel" />

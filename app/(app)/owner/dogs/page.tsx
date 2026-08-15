@@ -1,6 +1,9 @@
+import Link from "next/link";
 import { redirect } from "next/navigation";
 
 import { createDog } from "@/app/(owner)/actions";
+import { safeInternalPath } from "@/lib/auth/safe-internal-path";
+import { Button } from "@/components/ui/button";
 import { PageHeader } from "@/components/shared/page-header";
 import { EmptyState, ErrorState } from "@/components/shared/states";
 import { DogForm } from "@/components/owner/dog-form";
@@ -29,7 +32,18 @@ export const metadata = {
  * All reads via getActiveDogs — the single point of truth for the dogs view
  * spec (explicit deleted_at IS NULL; the helper's access-floor comment).
  */
-export default async function OwnerDogsPage() {
+export default async function OwnerDogsPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ return?: string | string[] }>;
+}) {
+  const { return: returnParam } = await searchParams;
+  // Flow ruling #2: the book page sends owners here with a return path so
+  // the first booking survives the detour. Attacker-suppliable — only a
+  // validated same-origin path is honored (the login-action guard).
+  const returnTo = safeInternalPath(
+    typeof returnParam === "string" ? returnParam : null,
+  );
   const supabase = await createClient();
 
   const { data } = await supabase.auth.getClaims();
@@ -56,6 +70,19 @@ export default async function OwnerDogsPage() {
             Trainers see this when you book — name, breed, age, and what they
             should know before the first session.
         </PageHeader>
+
+        {returnTo && dogs.length > 0 ? (
+          <div className="bg-card border-border flex flex-wrap items-center justify-between gap-3 rounded-lg border p-4">
+            <p className="text-sm">
+              {dogs.length === 1
+                ? `${dogs[0]?.name} is ready to go.`
+                : "Your dogs are ready to go."}
+            </p>
+            <Button asChild>
+              <Link href={returnTo}>Continue your booking</Link>
+            </Button>
+          </div>
+        ) : null}
 
         {error ? (
           <ErrorState>
