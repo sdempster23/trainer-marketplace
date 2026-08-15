@@ -29,7 +29,7 @@ export default async function WelcomePage() {
 
   const { data: profile } = await supabase
     .from("profiles")
-    .select("display_name")
+    .select("display_name, role")
     .eq("id", userId)
     .maybeSingle();
 
@@ -44,12 +44,18 @@ export default async function WelcomePage() {
         <CardHeader>
           <CardTitle>One last thing</CardTitle>
           <CardDescription>
-            What should people see you as? Owners and trainers you book or
-            message will see this name.
+            The name owners and trainers will see when you book or message.
           </CardDescription>
         </CardHeader>
         <CardContent className="flex flex-col gap-4">
           <NameStepForm />
+          {/* Orientation (investigation flag: the step was blocking but not
+              oriented — nothing said where Continue leads). */}
+          <p className="text-muted-foreground text-center text-sm">
+            {profile?.role === "trainer"
+              ? "Next: set up your trainer listing so owners can find you."
+              : "Next: your account — add your dog and find a trainer."}
+          </p>
           {/* Escape hatch — the ONLY way off this blocking step besides
               setting a name. Without it, a user whose name-write repeatedly
               fails (e.g. a missing profiles row) would be trapped with no

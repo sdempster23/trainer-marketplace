@@ -79,7 +79,7 @@ export function DogForm({
 
         <div className="grid gap-2">
           <Label htmlFor={`dog-breed-${dogId ?? "new"}`}>
-            Breed (optional)
+            Breed<span className="text-muted-foreground font-normal"> · optional</span>
           </Label>
           <Input
             id={`dog-breed-${dogId ?? "new"}`}
@@ -93,7 +93,7 @@ export function DogForm({
 
       <div className="grid gap-2">
         <Label htmlFor={`dog-dob-${dogId ?? "new"}`}>
-          Date of birth (optional)
+          Date of birth<span className="text-muted-foreground font-normal"> · optional</span>
         </Label>
         <Input
           id={`dog-dob-${dogId ?? "new"}`}
@@ -106,12 +106,12 @@ export function DogForm({
 
       <div className="grid gap-2">
         <Label htmlFor={`dog-notes-${dogId ?? "new"}`}>
-          Temperament notes (optional)
+          Temperament notes<span className="text-muted-foreground font-normal"> · optional</span>
         </Label>
         <Textarea
           id={`dog-notes-${dogId ?? "new"}`}
           name="temperamentNotes"
-          rows={2}
+          rows={4}
           maxLength={DOG_NOTES_MAX_LENGTH}
           placeholder="Reactive on leash, food-motivated, great with kids."
           defaultValue={initial?.temperamentNotes}

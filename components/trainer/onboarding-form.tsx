@@ -54,7 +54,7 @@ export function OnboardingForm() {
                 name="displayName"
                 required
                 maxLength={DISPLAY_NAME_MAX_LENGTH}
-                placeholder="How owners should see you, e.g. Dana Cortez"
+                placeholder="How owners and trainers will see you, e.g. Dana Cortez"
               />
             </div>
 

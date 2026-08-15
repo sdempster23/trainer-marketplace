@@ -1,11 +1,10 @@
-import Link from "next/link";
 import { redirect } from "next/navigation";
 
 import { createDog } from "@/app/(owner)/actions";
 import { PageHeader } from "@/components/shared/page-header";
+import { EmptyState, ErrorState } from "@/components/shared/states";
 import { DogForm } from "@/components/owner/dog-form";
 import { DogRow } from "@/components/owner/dog-row";
-import { Button } from "@/components/ui/button";
 import {
   Card,
   CardContent,
@@ -59,13 +58,12 @@ export default async function OwnerDogsPage() {
         </PageHeader>
 
         {error ? (
-          <p role="alert" className="text-destructive text-sm">
+          <ErrorState>
             Your dogs couldn&apos;t be loaded. Please refresh to try again.
-          </p>
+          </ErrorState>
         ) : dogs.length === 0 ? (
-          <p className="text-muted-foreground text-sm">
-            No dogs yet — add your first below.
-          </p>
+          // Copy kept verbatim (investigation: second-best empty state).
+          <EmptyState>No dogs yet — add your first below.</EmptyState>
         ) : (
           <div className="flex flex-col gap-4">
             {dogs.map((dog) => (
@@ -85,10 +83,6 @@ export default async function OwnerDogsPage() {
             <DogForm action={createDog} submitLabel="Add dog" />
           </CardContent>
         </Card>
-
-        <Button asChild variant="outline" className="w-full">
-          <Link href="/account">Back to account</Link>
-        </Button>
       </div>
     </main>
   );

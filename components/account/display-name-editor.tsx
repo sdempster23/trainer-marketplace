@@ -62,7 +62,7 @@ export function DisplayNameEditor({
           required
           maxLength={DISPLAY_NAME_MAX_LENGTH}
           defaultValue={displayName ?? ""}
-          placeholder="How others should see you"
+          placeholder="How owners and trainers will see you"
         />
         <Button type="submit" size="sm" variant="outline" disabled={isPending}>
           {isPending ? "Saving…" : "Save"}

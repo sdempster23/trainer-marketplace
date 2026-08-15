@@ -32,7 +32,7 @@ export function NameStepForm() {
           required
           maxLength={DISPLAY_NAME_MAX_LENGTH}
           autoComplete="name"
-          placeholder="How trainers and owners will see you"
+          placeholder="How owners and trainers will see you"
           autoFocus
         />
       </div>

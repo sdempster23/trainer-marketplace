@@ -6,6 +6,8 @@ import { LocalTime } from "@/components/messages/local-time";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
+import { EmptyState, ErrorState } from "@/components/shared/states";
+import { geistMono } from "@/lib/fonts";
 import { getThreads } from "@/lib/messages/threads";
 import { createClient } from "@/lib/supabase/server";
 import { truncatePreview } from "@/lib/utils";
@@ -14,6 +16,9 @@ export const metadata = { title: "Messages — PawMatch" };
 
 /** List-preview cap (code points — truncatePreview never splits an emoji). */
 const PREVIEW_LENGTH = 90;
+
+/** One failure voice for this surface (was duplicated inline twice). */
+const LOAD_ERROR = "Your messages couldn't be loaded. Please refresh to try again.";
 
 /**
  * The thread list — SHARED across roles (ruling 4): both sides see the same
@@ -45,9 +50,7 @@ export default async function MessagesPage() {
     return (
       <main className="bg-muted flex-1 px-6 py-12">
         <div className="mx-auto w-full max-w-2xl">
-          <p role="alert" className="text-destructive text-sm">
-            Your messages couldn&apos;t be loaded. Please refresh to try again.
-          </p>
+          <ErrorState>{LOAD_ERROR}</ErrorState>
         </div>
       </main>
     );
@@ -71,52 +74,60 @@ export default async function MessagesPage() {
   const { threads, error } = await getThreads(supabase, claims.sub);
 
   return (
-    <main className="bg-muted flex-1 px-6 py-12">
+    <main className={`bg-muted flex-1 px-6 py-12 ${geistMono.variable}`}>
       <div className="mx-auto flex w-full max-w-2xl flex-col gap-6">
         <PageHeader title="Messages">
             Your conversations, most recent first.
         </PageHeader>
 
         {error ? (
-          <p role="alert" className="text-destructive text-sm">
-            Your messages couldn&apos;t be loaded. Please refresh to try again.
-          </p>
+          <ErrorState>{LOAD_ERROR}</ErrorState>
         ) : threads.length === 0 ? (
-          <p className="text-muted-foreground text-sm">
+          // Zero states become the object (addition B); copy kept verbatim —
+          // the investigation graded all three as on-voice.
+          <EmptyState title="No conversations yet">
             {isOwner ? (
               <>
-                No conversations yet — message a trainer from their profile in{" "}
+                Message a trainer from their profile in{" "}
                 <Link href="/trainers" className="underline">
                   the directory
                 </Link>
                 , or from a booking.
               </>
             ) : isTrainer ? (
-              <>No conversations yet — owners can message you from your listing or a booking.</>
+              <>Owners can message you from your listing or a booking.</>
             ) : (
-              <>No conversations yet.</>
+              <>Admin accounts don&apos;t take part in conversations.</>
             )}
-          </p>
+          </EmptyState>
         ) : (
           <div className="flex flex-col gap-4">
             {threads.map((thread) => (
-              <Link key={thread.id} href={`/messages/${thread.id}`}>
+              <Link
+                key={thread.id}
+                href={`/messages/${thread.id}`}
+                className="focus-visible:ring-ring block rounded-lg focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:outline-none"
+              >
                 <Card className="hover:border-primary/40 transition-colors">
                   <CardContent className="flex flex-col gap-1 pt-6">
                     <div className="flex items-baseline justify-between gap-2">
+                      {/* min-w-0 + truncate: a long display name must never
+                          shove the row (390px audit finding). */}
                       <span
-                        className={
+                        className={`min-w-0 truncate ${
                           thread.isUnread ? "font-semibold" : "font-medium"
-                        }
+                        }`}
                       >
                         {thread.counterpartyName ?? counterpartyFallback}
                       </span>
-                      <span className="text-muted-foreground shrink-0 text-xs">
+                      <span className="text-muted-foreground shrink-0 font-mono text-xs">
                         <LocalTime iso={thread.updatedAt} />
                       </span>
                     </div>
                     <div className="flex items-center justify-between gap-2">
-                      <span className="text-muted-foreground truncate text-sm">
+                      {/* min-w-0 so truncate actually engages (flex items
+                          default to min-width:auto). */}
+                      <span className="text-muted-foreground min-w-0 truncate text-sm">
                         {thread.latestMessage
                           ? truncatePreview(thread.latestMessage.body, PREVIEW_LENGTH)
                           : "No messages yet"}
@@ -139,16 +150,13 @@ export default async function MessagesPage() {
           </div>
         )}
 
-        <div className="flex flex-col gap-2">
-          {bookingsHref ? (
-            <Button asChild variant="outline" className="w-full">
-              <Link href={bookingsHref}>Your bookings</Link>
-            </Button>
-          ) : null}
+        {/* The shell's header now carries Account; the dead "Back to
+            account" chain is gone. One lateral link remains. */}
+        {bookingsHref ? (
           <Button asChild variant="outline" className="w-full">
-            <Link href="/account">Back to account</Link>
+            <Link href={bookingsHref}>Your bookings</Link>
           </Button>
-        </div>
+        ) : null}
       </div>
     </main>
   );
