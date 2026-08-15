@@ -6,6 +6,8 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 
 import { MessageButton } from "@/components/messages/message-button";
 import { Button } from "@/components/ui/button";
+import { EmptyState, ErrorState } from "@/components/shared/states";
+import { geistMono } from "@/lib/fonts";
 import { createClient } from "@/lib/supabase/server";
 import type { Database } from "@/types/supabase";
 import { getActiveServices } from "@/lib/trainer/services";
@@ -30,8 +32,9 @@ import {
  * Partial trainers (no specialties, no services) render honestly, same as
  * the directory decision.
  *
- * Each service links to /trainers/[id]/book?service=… — the booking flow's
- * entry (the informational-only forward item died with Arc C).
+ * The booking entry is ONE sticky Book bar (interior-polish map ruling —
+ * never per-service links); the book page's service select handles choice,
+ * defaulting to the first service when no ?service= param arrives.
  */
 
 // The z.guid()-not-z.uuid() argument lives with the shared schema.
@@ -147,10 +150,10 @@ export default async function TrainerDetailPage({
       : null;
 
   return (
-    <main className="bg-muted flex-1 px-6 py-12">
+    <main className={`bg-muted flex-1 px-6 py-12 ${geistMono.variable}`}>
       <div className="mx-auto flex w-full max-w-2xl flex-col gap-8">
         <header className="flex flex-col gap-2">
-          <h1 className="text-3xl font-semibold">
+          <h1 className="font-display text-3xl font-semibold tracking-tight sm:text-4xl">
             {trainer.profiles.display_name}
           </h1>
           <p className="text-muted-foreground text-sm">
@@ -183,14 +186,14 @@ export default async function TrainerDetailPage({
 
         {trainer.bio ? (
           <section className="flex flex-col gap-2">
-            <h2 className="text-muted-foreground text-xs font-medium">About</h2>
+            <h2 className="font-display text-lg font-semibold tracking-tight">About</h2>
             <p className="text-sm whitespace-pre-line">{trainer.bio}</p>
           </section>
         ) : null}
 
         {trainer.pills.length > 0 ? (
           <section className="flex flex-col gap-2">
-            <h2 className="text-muted-foreground text-xs font-medium">
+            <h2 className="font-display text-lg font-semibold tracking-tight">
               Specialties
             </h2>
             <div className="flex flex-wrap gap-2">
@@ -207,19 +210,17 @@ export default async function TrainerDetailPage({
         ) : null}
 
         <section className="flex flex-col gap-3">
-          <h2 className="text-muted-foreground text-xs font-medium">
+          <h2 className="font-display text-lg font-semibold tracking-tight">
             Services
           </h2>
           {servicesError ? (
             // Failed read ≠ "No services listed yet." (bug-class fix):
             // never present a read failure as a fact about the trainer.
-            <p role="alert" className="text-destructive text-sm">
+            <ErrorState>
               Services couldn&apos;t be loaded. Please refresh to try again.
-            </p>
+            </ErrorState>
           ) : services.length === 0 ? (
-            <p className="text-muted-foreground text-sm">
-              No services listed yet.
-            </p>
+            <EmptyState>No services listed yet.</EmptyState>
           ) : (
             <ul className="flex flex-col gap-3">
               {services.map((service) => (
@@ -229,7 +230,7 @@ export default async function TrainerDetailPage({
                 >
                   <div className="flex items-baseline justify-between gap-2">
                     <span className="font-medium">{service.name}</span>
-                    <span className="shrink-0 font-medium">
+                    <span className="shrink-0 font-mono text-sm font-medium">
                       {formatPrice(service.price_cents)}
                     </span>
                   </div>
@@ -242,18 +243,36 @@ export default async function TrainerDetailPage({
                       {service.description}
                     </p>
                   ) : null}
-                  <Link
-                    href={`/trainers/${trainer.id}/book?service=${service.id}`}
-                    className="text-primary mt-1 text-sm font-medium underline-offset-4 hover:underline"
-                  >
-                    Book this service
-                  </Link>
                 </li>
               ))}
             </ul>
           )}
         </section>
       </div>
+
+      {/* THE Book affordance (map ruling: ONE sticky button, never
+          per-service). sticky-in-flow, not fixed — on a page too short to
+          scroll it sits after the content and cannot cover anything (the
+          390 watch item, satisfied by construction). Owners book; a
+          logged-out visitor goes through login and lands back on the book
+          page; trainers (including self-preview) get no bar. */}
+      {viewer.isOwner || !viewer.isLoggedIn ? (
+        <div className="bg-background/95 border-border sticky bottom-0 -mx-6 border-t px-6 py-3 backdrop-blur">
+          <div className="mx-auto w-full max-w-2xl">
+            <Button asChild variant="action" size="lg" className="w-full">
+              <Link
+                href={
+                  viewer.isOwner
+                    ? `/trainers/${trainer.id}/book`
+                    : `/login?next=${encodeURIComponent(`/trainers/${trainer.id}/book`)}`
+                }
+              >
+                Book a session
+              </Link>
+            </Button>
+          </div>
+        </div>
+      ) : null}
     </main>
   );
 }

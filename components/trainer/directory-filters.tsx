@@ -72,11 +72,24 @@ export function DirectoryFilters({
           OR-semantics across selections (any match qualifies), deliberately:
           directory filters exist to BROADEN discovery, and AND would
           near-empty most multi-selects. The page's queries implement this
-          with contains-any (`ov` on the RPC's array, `in` on assignments). */}
-      <fieldset className="grid gap-2">
-        <legend className="mb-1 text-sm font-medium">
-          Specialties (any of)
-        </legend>
+          with contains-any (`ov` on the RPC's array, `in` on assignments).
+
+          COLLAPSED by default (ruling 9's cheap IA version): the 17-item
+          grid was ~700px of taxonomy before the first result on mobile.
+          A zero-JS <details> keeps this a Server Component GET form —
+          closed content stays in the DOM, so checked boxes still submit.
+          The at-a-glance visibility of ACTIVE filters lives in the page's
+          chips summary, not in this disclosure. */}
+      <details className="group">
+        <summary className="text-muted-foreground hover:text-foreground -my-2 flex cursor-pointer list-none items-center gap-1 py-3 text-sm font-medium transition-colors [&::-webkit-details-marker]:hidden">
+          <span aria-hidden className="transition-transform group-open:rotate-90">
+            ›
+          </span>
+          Specialties
+          {specialties.length > 0 ? ` · ${specialties.length} selected` : ""}
+        </summary>
+      <fieldset className="mt-2 grid gap-2">
+        <legend className="sr-only">Specialties (any of)</legend>
         <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
           {SPECIALTIES.map((specialty) => (
             <label
@@ -95,6 +108,7 @@ export function DirectoryFilters({
           ))}
         </div>
       </fieldset>
+      </details>
     </form>
   );
 }

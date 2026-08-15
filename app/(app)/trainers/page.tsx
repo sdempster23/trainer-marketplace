@@ -2,7 +2,7 @@ import Link from "next/link";
 import { lookup } from "zipcodes";
 
 import { PageHeader } from "@/components/shared/page-header";
-import { EmptyState } from "@/components/shared/states";
+import { EmptyState, ErrorState } from "@/components/shared/states";
 import { Button } from "@/components/ui/button";
 
 import { DirectoryFilters } from "@/components/trainer/directory-filters";
@@ -15,6 +15,7 @@ import {
   DEFAULT_DIRECTORY_RADIUS,
   DIRECTORY_RADIUS_MILES,
   SPECIALTIES,
+  SPECIALTY_LABELS,
   type Specialty,
 } from "@/lib/validators/trainer";
 
@@ -213,6 +214,31 @@ export default async function TrainersPage({
     );
   }
 
+  // Shareable-URL helpers for the chips summary and the no-results
+  // controls: every "remove/widen/clear" affordance is a plain GET link
+  // to this same page (the filter model stays URL-only, zero client state).
+  const directoryUrl = ({
+    newZip = zip,
+    newRadius = radiusMiles,
+    newSpecialties = specialties,
+  }: {
+    newZip?: string;
+    newRadius?: number;
+    newSpecialties?: Specialty[];
+  }) => {
+    const params = new URLSearchParams();
+    if (newZip) {
+      params.set("zip", newZip);
+      params.set("radius", String(newRadius));
+    }
+    for (const sp of newSpecialties) params.append("specialties", sp);
+    const qs = params.toString();
+    return qs ? `/trainers?${qs}` : "/trainers";
+  };
+  const widerRadius = (DIRECTORY_RADIUS_MILES as readonly number[]).find(
+    (m) => m > radiusMiles,
+  );
+
   return (
     <main className="bg-muted flex-1 px-6 py-12">
       <div className="mx-auto flex w-full max-w-3xl flex-col gap-6">
@@ -226,19 +252,67 @@ export default async function TrainersPage({
           specialties={specialties}
         />
 
+        {specialties.length > 0 ? (
+          <div className="flex flex-wrap items-center gap-2 text-sm">
+            <span className="text-muted-foreground">Filtering by:</span>
+            {specialties.map((sp) => (
+              <Link
+                key={sp}
+                href={directoryUrl({
+                  newSpecialties: specialties.filter((x) => x !== sp),
+                })}
+                className="bg-accent text-accent-foreground hover:bg-accent/70 inline-flex items-center gap-1 rounded-md px-2.5 py-1 text-xs font-medium transition-colors"
+                aria-label={`Remove ${SPECIALTY_LABELS[sp]} filter`}
+              >
+                {SPECIALTY_LABELS[sp]}
+                <span aria-hidden>×</span>
+              </Link>
+            ))}
+            <Link
+              href={directoryUrl({ newSpecialties: [] })}
+              className="text-muted-foreground hover:text-foreground underline underline-offset-4"
+            >
+              Clear all
+            </Link>
+          </div>
+        ) : null}
+
         {zipInvalid ? (
-          <p role="alert" className="text-destructive text-sm">
+          <ErrorState>
             We couldn&apos;t find that ZIP — please check it and search again.
-          </p>
+          </ErrorState>
         ) : trainers.length === 0 ? (
           isProximity || specialties.length > 0 ? (
-            <p className="text-muted-foreground text-sm">
+            // No-results copy grows the CONTROLS it describes (the audit
+            // flagged instructions with no affordance).
+            <EmptyState
+              action={
+                (isProximity && widerRadius) || specialties.length > 0 ? (
+                  <div className="flex flex-wrap justify-center gap-2">
+                    {isProximity && widerRadius ? (
+                      <Button asChild variant="outline" size="sm">
+                        <Link href={directoryUrl({ newRadius: widerRadius })}>
+                          Search within {widerRadius} miles
+                        </Link>
+                      </Button>
+                    ) : null}
+                    {specialties.length > 0 ? (
+                      <Button asChild variant="outline" size="sm">
+                        <Link href={directoryUrl({ newSpecialties: [] })}>
+                          Clear specialties
+                        </Link>
+                      </Button>
+                    ) : null}
+                  </div>
+                ) : undefined
+              }
+            >
               {isProximity
                 ? `No trainers within ${radiusMiles} miles of ${zip}${
                     specialties.length > 0 ? " matching those specialties" : ""
-                  } — try widening the radius.`
-                : "No trainers match those specialties yet — try removing one."}
-            </p>
+                  }.`
+                : "No trainers match those specialties yet."}
+            </EmptyState>
           ) : (
             /* The launch-day state, re-drafted from the gate's cold dead
                end ("check back soon"). Action is OUTLINE, not amber — the
