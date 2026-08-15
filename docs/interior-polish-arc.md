@@ -77,7 +77,13 @@ recorded at the hold)
    (textarea/select/checkbox/radio to match ui/input; retire the five
    `fieldClasses` copies), page grammar (one shell), armed-row pattern
    (grow DOWN, capped — the message-button rule everywhere).
-2. **Navigation shell + branded boundaries** (rulings 4, 5).
+2. **Navigation shell + branded boundaries** (rulings 4, 5). PRICED
+   COST, accepted: the auth-aware header opts every (app) route into
+   dynamic rendering (getClaims per request; /terms + /privacy were
+   static before). Mitigation if it ever matters: Suspense/PPR around
+   the header. Root action-groups (app/(account) etc.) staying outside
+   (app) is a naming trap noted for a cleanup pass — a future page.tsx
+   under a root group at a matching path is an instant build error.
 3. **Mechanical page passes** (quick pages first: welcome, messages
    list, entry points, dogs; then the layout pages that become
    mechanical once primitives exist).

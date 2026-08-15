@@ -1,3 +1,5 @@
+import { cache } from "react";
+
 import type { SupabaseClient } from "@supabase/supabase-js";
 
 import { isThreadUnread } from "@/lib/messages/unread";
@@ -164,8 +166,11 @@ export async function getThread(
  *
  * Returns 0 on error, deliberately: this feeds a badge on /account — a
  * failed count must degrade to "no badge", never break the hub.
+ *
+ * cache()-wrapped: the shell header AND the account hub both ask in the
+ * same request; React dedupes per-request so the query runs once.
  */
-export async function getUnreadThreadCount(
+export const getUnreadThreadCount = cache(async function getUnreadThreadCount(
   supabase: SupabaseClient<Database>,
   userId: string,
 ): Promise<number> {
@@ -192,4 +197,4 @@ export async function getUnreadThreadCount(
       userId,
     ),
   ).length;
-}
+});

@@ -36,7 +36,7 @@ export function OnboardingForm() {
   >(completeOnboarding, null);
 
   return (
-    <main className="bg-muted flex min-h-screen items-center justify-center px-6 py-12">
+    <main className="bg-muted flex flex-1 items-center justify-center px-6 py-12">
       <Card className="w-full max-w-lg">
         <CardHeader>
           <CardTitle>Create your trainer listing</CardTitle>
