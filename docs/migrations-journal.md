@@ -1433,3 +1433,92 @@ the e2e suite grew the reset round trip and reconciled the home spec
 that had been stale since the design arc's hero change. The product is
 launch-ready with real email. Next: interior polish, then the
 pre-club-pitch pair.
+
+## Interior Polish — the interiors inherit the identity (squash `5627446`, PR #43)
+
+The last build before the first real trainer. Premise, CONFIRMED by the
+investigation before a line changed: the homepage and the product were
+two design systems sharing a token file — across every interior surface
+there was ZERO amber (`variant="action"` lived on exactly two marketing
+CTAs), ZERO Archivo, and Geist Mono was referenced by the token layer
+but loaded by nothing (the page that loaded it died in the design arc).
+Thirteen review-gated commits against twelve gate rulings
+(`docs/interior-polish-arc.md`), closed 2026-08-21 with a three-leg
+production walk: signup → onboard → listed → messaged → booked →
+confirmed, no snags, and the loop's final beat — the owner seeing "How
+to pay" render the trainer's real payment details — landing exactly as
+the off-platform model promises.
+
+**What shipped, structurally.** One CardTitle scale (the default is now
+right; 24 overrides deleted); PageHeader's display voice on every
+column page; the amber map applied one-per-view (per-CARD on the
+trainer's request queue — Confirm only, never Decline); the
+EmptyState/ErrorState objects making zero states and failures differ by
+STRUCTURE; Badge/Textarea/NativeSelect primitives retiring five
+drifting `fieldClasses` copies; the (app) route-group shell (auth-
+honest header + footer everywhere — the islands problem fixed at the
+layout, URLs unchanged); branded 404/error boundaries; every
+`min-h-screen` → `flex-1` in a dvh column; collapsed directory filters
+with chips-as-remove-links; ONE sticky in-flow Book bar; the
+collapsible slot picker; the thread dock with scroll-to-latest and
+viewer-zone grouping; all six marketing stills re-captured under the
+provenance rules (the video is recorded launch polish).
+
+**The flow debts, paid and live-proven.** Onboarding's "You can edit it
+later." became TRUE (bio/specialties/radius/timezone editable, riding
+DELETE grants the M3 schema comment anticipated); the first booking
+survives its dog detour (the walk's client tapped Book dog-less, added
+Riley, and "Continue your booking" produced the arc's PENDING row); the
+confirmation moment explains the off-platform model at the exact
+instant money is committed; requests are visible from the hub
+("Waiting on you: 1 booking request" — read verbatim on the walk); the
+zero-slot state offers Message instead of a dead button; and a
+brand-new trainer's empty queue TEACHES the queue.
+
+**The gates earned the arc.** Six proxy-rule saves are on record — an
+aborted batch script's "ok" hiding three unapplied edits; "all 26
+pages swapped" verified by grepping pages while the 27th instance hid
+in a component (the scope facet, now in CLAUDE.md); a mono fallback
+chain that silently rendered Inter off-route; a cache() dedupe claim
+the artifact disagreed with (header and page held different clients —
+createClient is now request-cached, making the comment true); `tail`
+eating tsc's exit code mid-gate-chain; a capture script whose crash
+left stale files that an `ls` "verified." Four copy-truth catches — an
+admin empty-state line promising conversations that can never arrive;
+"N new messages" for what is truthfully N unread CONVERSATIONS; the
+confirmation banner promising payment details a trainer may never have
+added (the exact state gate-addition A exists for); the queue
+onboarding's "payment step unlocked" overclaim — plus the
+"public in the directory" tightening and a stale docstring caught
+under the same rule. Three rewritten-copy-became-untrue instances made
+the check STRUCTURAL: every review gate now carries it.
+
+**Ruling 3, settled with font timing.** On the live detail page the
+preloaded root pair (Inter, Archivo) starts at ~1.36s; Geist Mono and
+the wordmark cut start ~1.1s LATER, CSS-discovered per preload:false —
+and FCP equaled LCP on every measured page (the LCP heading paints at
+first paint). No mechanical path from mono to LCP exists; the
+tabular-nums fallback stays unused. Measurement footnote for future
+perf work: this machine's absolute numbers were noise-bound all day
+(TBT 460–1,570ms vs the design arc's 90ms quiet baseline) — judge on
+font-timing mechanics and field feel, which both read clean.
+
+**Two launch items carried.** (1) NEW: the already-registered signup
+dead end — signing up with an existing confirmed email gets GoTrue's
+anti-enumeration fake success and a check-email page for a mail that
+never comes (the walk hit it live: the base address collided with the
+trainer account, no hint to log in instead). The check-email page
+should offer "already have an account? log in" without weakening the
+no-oracle posture. (2) CARRIED: new-domain deliverability — the DMARC
+p=none → p=quarantine revisit is due (late August), and founding
+trainers still get the mark-not-spam advice on first mail.
+
+**Also from the walk's environment day:** a Docker Desktop self-update
+wedged the local stack (daemon 500s on its own socket); the fix was
+letting the update finish interactively, after which the volume-backed
+DB restored intact and the M14 matrix passed as the health probe. The
+CLI moved 2.109.1 → 2.115.0 in the sanctioned between-arcs window.
+
+**Residual CLOSED.** The interiors speak the identity; the walk-as-her
+verdict was "clean, phone walk genuinely good." The product she
+onboards into now looks like the promise that recruits her.
