@@ -210,3 +210,14 @@ standing directive for all copy and image casting:
 - Truthful-copy contract carries into all new copy and imagery (real UI
   screenshots only, no mockups).
 - Section 7 (social proof) scaffolded but hidden until real proof exists.
+
+## Two headers, one brand voice (2026-08-14 — standing law)
+
+The marketing homepage keeps its own overlay nav PERMANENTLY. The
+hero's nav is part of the composed scene — scrim math, LCP care, the
+audience-turn law — and the app shell's auth-aware header (added at
+the interior-polish arc) must never be unified with it: unification
+would either hoist auth queries into the LCP-critical route or make
+the shell theme-aware mid-scroll. Brand continuity comes from the
+shared wordmark recipe (the wide-subset Archivo instance), not from a
+shared component. Do not unify.

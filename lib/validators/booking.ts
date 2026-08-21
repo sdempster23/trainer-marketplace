@@ -28,6 +28,22 @@ export type CreateBookingInput = z.infer<typeof createBookingSchema>;
 
 /** Status → what an owner should read. Exhaustive Record — a new enum value
  * breaks the build until labeled (the SPECIALTY_LABELS discipline). */
+/**
+ * Cancelled-booking attribution, viewer-relative — it can't live in the
+ * status Record (keyed by status alone), but it must not fork per page
+ * either (review finding: both bookings pages hand-rolled mirrored
+ * ternaries).
+ */
+export function cancelledByLabel(
+  cancelledBy: string | null,
+  viewer: "owner" | "trainer",
+): string {
+  if (cancelledBy === viewer) return "Cancelled by you";
+  if (cancelledBy === "owner") return "Cancelled by the owner";
+  if (cancelledBy === "trainer") return "Cancelled by the trainer";
+  return "Cancelled";
+}
+
 export const BOOKING_STATUS_LABELS: Record<
   "PENDING" | "CONFIRMED" | "COMPLETED" | "CANCELLED",
   string

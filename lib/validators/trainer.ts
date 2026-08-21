@@ -93,6 +93,28 @@ export const onboardingSchema = z.object({
   timezone: z.enum(TRAINER_TIMEZONES, "Choose your timezone."),
 });
 
+/**
+ * Listing EDIT (interior-polish flow ruling #1 — the flow that makes
+ * onboarding's "You can edit it later." true). Same fields minus the
+ * display name (edited on /account) — and ZIP is OPTIONAL: blank keeps
+ * the current service area (only the derived geo point is stored, so a
+ * ZIP can't be prefilled; requiring a re-type to change a bio would be
+ * hostile). '' → undefined via the transform.
+ */
+export const editListingSchema = onboardingSchema
+  .omit({ displayName: true, zip: true })
+  .extend({
+    zip: z
+      .string()
+      .trim()
+      .transform((v) => (v === "" ? undefined : v))
+      .pipe(
+        z.string().regex(/^\d{5}$/, "Enter a 5-digit ZIP.").optional(),
+      ),
+  });
+
+export type EditListingInput = z.infer<typeof editListingSchema>;
+
 export type OnboardingInput = z.infer<typeof onboardingSchema>;
 
 // ---------------------------------------------------------------------------

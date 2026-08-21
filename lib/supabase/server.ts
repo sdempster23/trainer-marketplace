@@ -1,3 +1,5 @@
+import { cache } from "react";
+
 import { createServerClient } from "@supabase/ssr";
 import { cookies } from "next/headers";
 
@@ -11,8 +13,15 @@ import type { Database } from "@/types/supabase";
  *
  * `cookies()` is async in Next 15, so this function is async and must be
  * awaited. Typed with `Database` for schema-checked queries.
+ *
+ * cache()-wrapped (per-REQUEST memoization, not module scope — React's
+ * cache resets between requests, so the Fluid-compute warning above is
+ * respected): every surface in one render shares one client, which is
+ * what makes the cache()-wrapped count helpers actually dedupe (they key
+ * on the client argument — different clients meant double queries;
+ * review catch at the hub pass).
  */
-export async function createClient() {
+export const createClient = cache(async function createClient() {
   const cookieStore = await cookies();
 
   return createServerClient<Database>(
@@ -38,4 +47,4 @@ export async function createClient() {
       },
     },
   );
-}
+});

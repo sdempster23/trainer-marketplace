@@ -4,11 +4,13 @@ import { useActionState, useState } from "react";
 
 import { deleteException, deleteWeeklySlot } from "@/app/(trainer)/actions";
 import type { AvailabilityActionState } from "@/app/(trainer)/actions";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import type {
   AvailabilityException,
   WeeklySlot,
 } from "@/lib/trainer/availability";
+import { formatPlainDate } from "@/lib/utils/format-date";
 import { formatTimeOfDay } from "@/lib/validators/availability";
 
 /**
@@ -48,32 +50,39 @@ function TwoStepDelete({
   }
 
   return (
-    <form action={formAction} className="flex items-center gap-2">
+    // Grow DOWN, capped — the message-button rule; both armed rows on this
+    // page overflowed the card at 390 with the sideways error span.
+    <form action={formAction} className="flex flex-col items-end gap-1">
       <input type="hidden" name={fieldName} value={id} />
+      <div className="flex items-center gap-2">
+        <Button type="submit" variant="destructive" size="sm" disabled={isPending}>
+          {isPending ? "Deleting…" : "Confirm delete"}
+        </Button>
+        <Button
+          type="button"
+          variant="outline"
+          size="sm"
+          onClick={() => setIsArmed(false)}
+        >
+          Keep
+        </Button>
+      </div>
       {state && "error" in state ? (
-        <span role="alert" className="text-destructive text-xs">
+        <span
+          role="alert"
+          className="text-destructive max-w-40 text-right text-xs break-words"
+        >
           {state.error}
         </span>
       ) : null}
-      <Button type="submit" variant="destructive" size="sm" disabled={isPending}>
-        {isPending ? "Deleting…" : "Confirm delete"}
-      </Button>
-      <Button
-        type="button"
-        variant="outline"
-        size="sm"
-        onClick={() => setIsArmed(false)}
-      >
-        Keep
-      </Button>
     </form>
   );
 }
 
 export function WeeklySlotRow({ slot }: { slot: WeeklySlot }) {
   return (
-    <div className="flex items-center justify-between gap-2 text-sm">
-      <span>
+    <div className="flex flex-wrap items-center justify-between gap-2 text-sm">
+      <span className="font-mono text-xs">
         {formatTimeOfDay(slot.start_time)} – {formatTimeOfDay(slot.end_time)}
       </span>
       <TwoStepDelete
@@ -91,18 +100,25 @@ export function ExceptionRow({
   exception: AvailabilityException;
 }) {
   return (
-    <div className="flex items-center justify-between gap-2 text-sm">
-      <span className="flex items-center gap-2">
-        <span className="font-medium">{exception.exception_date}</span>
+    <div className="flex flex-wrap items-center justify-between gap-2 text-sm">
+      <span className="flex flex-wrap items-center gap-2">
+        <span className="font-medium">
+          {formatPlainDate(exception.exception_date)}
+        </span>
+        {/* "Blocked" is neutral, not destructive: a day off is a
+            preference, and the red/green-semantics ruling (arc-notes)
+            binds interiors too. */}
         {exception.is_blocked ? (
-          <span className="bg-destructive/10 text-destructive inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium">
-            Blocked
-          </span>
+          <Badge>Blocked</Badge>
+        ) : exception.start_time && exception.end_time ? (
+          <Badge>
+            Hours: {formatTimeOfDay(exception.start_time)} –{" "}
+            {formatTimeOfDay(exception.end_time)}
+          </Badge>
         ) : (
-          <span className="bg-accent text-accent-foreground inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium">
-            Hours: {formatTimeOfDay(exception.start_time ?? "00:00")} –{" "}
-            {formatTimeOfDay(exception.end_time ?? "00:00")}
-          </span>
+          // Null times on a non-blocked exception: an honest degraded
+          // state, not a fabricated "12:00 AM – 12:00 AM" range.
+          <Badge>Hours not set</Badge>
         )}
       </span>
       <TwoStepDelete

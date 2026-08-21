@@ -2,7 +2,7 @@
 
 import { useActionState } from "react";
 
-import { resendConfirmation, type ResendState } from "@/app/(auth)/actions";
+import { resendConfirmation, type ResendState } from "@/app/(app)/(auth)/actions";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";

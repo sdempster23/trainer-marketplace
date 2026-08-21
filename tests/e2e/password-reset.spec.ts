@@ -107,7 +107,11 @@ test("password reset: request → email → new password → login", async ({
   await page.fill("input[name=email]", EMAIL);
   await waitForTurnstileToken(page);
   await page.getByRole("button", { name: /send reset link/i }).click();
-  await expect(page.getByText(/if an account exists/i)).toBeVisible();
+  // Server-action round trip; generous timeout — under parallel-worker
+  // load the dev server can exceed the 5s default (observed flake).
+  await expect(page.getByText(/if an account exists/i)).toBeVisible({
+    timeout: 15_000,
+  });
 
   // 2. The recovery link goes through the REAL /auth/confirm route and
   //    lands on the reset form.
@@ -152,7 +156,9 @@ test("request page never reveals whether an account exists", async ({
   await waitForTurnstileToken(page);
   await page.getByRole("button", { name: /send reset link/i }).click();
   // Same success copy as the real-account path — no enumeration oracle.
-  await expect(page.getByText(/if an account exists/i)).toBeVisible();
+  await expect(page.getByText(/if an account exists/i)).toBeVisible({
+    timeout: 15_000,
+  });
 });
 
 test("/reset-password without a recovery session shows the expired state", async ({

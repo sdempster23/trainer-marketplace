@@ -6,6 +6,8 @@ import {
   updatePaymentInfo,
   type PaymentInfoState,
 } from "@/app/(trainer)/actions";
+import { EmptyState } from "@/components/shared/states";
+import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -39,8 +41,19 @@ export function PaymentInfoEditor({
     }
   }, [state]);
 
+  const hasInfo = Boolean(instructions || venmo || paypal);
+
   return (
     <form action={formAction} className="flex flex-col gap-4 text-sm">
+      {/* Gate addition A: the zero state is a designed object, not blank
+          inputs — a trainer must KNOW clients can't pay them yet. The
+          affordance is the form itself, right below. */}
+      {!hasInfo ? (
+        <EmptyState compact>
+          Clients can&apos;t pay you yet — fill this in and every confirmed
+          booking will show it.
+        </EmptyState>
+      ) : null}
       <p className="text-muted-foreground">
         Clients who book you will see this after you confirm. PawMatch never
         handles the money — you arrange payment directly.
@@ -48,18 +61,17 @@ export function PaymentInfoEditor({
 
       <div className="grid gap-2">
         <Label htmlFor="pay-instructions">How you take payment</Label>
-        <textarea
+        <Textarea
           id="pay-instructions"
           name="instructions"
           maxLength={PAYMENT_INSTRUCTIONS_MAX_LENGTH}
           defaultValue={instructions ?? ""}
           rows={2}
           placeholder="e.g. Venmo preferred, or cash at the session."
-          className="border-input bg-background focus-visible:ring-ring rounded-md border px-3 py-2 focus-visible:ring-2 focus-visible:outline-none"
         />
       </div>
 
-      <div className="grid grid-cols-2 gap-3">
+      <div className="grid gap-3 sm:grid-cols-2">
         <div className="grid gap-2">
           <Label htmlFor="pay-venmo">Venmo username</Label>
           <Input
@@ -92,7 +104,7 @@ export function PaymentInfoEditor({
       ) : null}
 
       <div className="flex items-center gap-3">
-        <Button type="submit" size="sm" disabled={isPending}>
+        <Button type="submit" size="sm" variant="outline" disabled={isPending}>
           {isPending ? "Saving…" : "Save payment info"}
         </Button>
         {saved ? <span className="text-muted-foreground">Saved ✓</span> : null}

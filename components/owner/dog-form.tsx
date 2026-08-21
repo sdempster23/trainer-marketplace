@@ -6,14 +6,12 @@ import type { DogActionState } from "@/app/(owner)/actions";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
 import {
   DOG_BREED_MAX_LENGTH,
   DOG_NAME_MAX_LENGTH,
   DOG_NOTES_MAX_LENGTH,
 } from "@/lib/validators/dog";
-
-const fieldClasses =
-  "border-input focus-visible:ring-ring w-full rounded-md border bg-transparent px-3 py-2 text-sm shadow-xs focus-visible:ring-2 focus-visible:outline-none";
 
 export type DogFormInitial = {
   name: string;
@@ -81,7 +79,7 @@ export function DogForm({
 
         <div className="grid gap-2">
           <Label htmlFor={`dog-breed-${dogId ?? "new"}`}>
-            Breed (optional)
+            Breed<span className="text-muted-foreground font-normal"> · optional</span>
           </Label>
           <Input
             id={`dog-breed-${dogId ?? "new"}`}
@@ -95,7 +93,7 @@ export function DogForm({
 
       <div className="grid gap-2">
         <Label htmlFor={`dog-dob-${dogId ?? "new"}`}>
-          Date of birth (optional)
+          Date of birth<span className="text-muted-foreground font-normal"> · optional</span>
         </Label>
         <Input
           id={`dog-dob-${dogId ?? "new"}`}
@@ -108,15 +106,14 @@ export function DogForm({
 
       <div className="grid gap-2">
         <Label htmlFor={`dog-notes-${dogId ?? "new"}`}>
-          Temperament notes (optional)
+          Temperament notes<span className="text-muted-foreground font-normal"> · optional</span>
         </Label>
-        <textarea
+        <Textarea
           id={`dog-notes-${dogId ?? "new"}`}
           name="temperamentNotes"
-          rows={2}
+          rows={4}
           maxLength={DOG_NOTES_MAX_LENGTH}
           placeholder="Reactive on leash, food-motivated, great with kids."
-          className={fieldClasses}
           defaultValue={initial?.temperamentNotes}
         />
       </div>

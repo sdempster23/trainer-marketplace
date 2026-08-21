@@ -6,6 +6,8 @@ import type { ServiceActionState } from "@/app/(trainer)/actions";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { NativeSelect } from "@/components/ui/native-select";
+import { Textarea } from "@/components/ui/textarea";
 import {
   SERVICE_DESCRIPTION_MAX_LENGTH,
   SERVICE_DURATION_MAX_MINUTES,
@@ -15,9 +17,6 @@ import {
   SESSION_TYPES,
   type SessionType,
 } from "@/lib/validators/trainer";
-
-const fieldClasses =
-  "border-input focus-visible:ring-ring w-full rounded-md border bg-transparent px-3 py-2 text-sm shadow-xs focus-visible:ring-2 focus-visible:outline-none";
 
 export type ServiceFormInitial = {
   name: string;
@@ -35,6 +34,7 @@ export type ServiceFormInitial = {
  * fresh object per completed submit, so the effect fires every save).
  */
 export function ServiceForm({
+  submitVariant = "action",
   action,
   submitLabel,
   serviceId,
@@ -42,6 +42,9 @@ export function ServiceForm({
   onSuccess,
   onCancel,
 }: {
+  /** The ruled save-swap: while a row edits, the create form demotes to
+   * default and the row's Save carries the view's amber. */
+  submitVariant?: "action" | "default";
   action: (
     prev: ServiceActionState,
     formData: FormData,
@@ -85,15 +88,14 @@ export function ServiceForm({
 
       <div className="grid gap-2">
         <Label htmlFor={`description-${serviceId ?? "new"}`}>
-          Description (optional)
+          Description <span className="text-muted-foreground font-normal">· optional</span>
         </Label>
-        <textarea
+        <Textarea
           id={`description-${serviceId ?? "new"}`}
           name="description"
           rows={2}
           maxLength={SERVICE_DESCRIPTION_MAX_LENGTH}
           placeholder="What the session covers and who it's for."
-          className={fieldClasses}
           defaultValue={initial?.description}
         />
       </div>
@@ -127,26 +129,26 @@ export function ServiceForm({
             placeholder="60"
             defaultValue={initial?.durationMinutes}
           />
+          <p className="text-muted-foreground text-xs">15 min – 8 hours.</p>
         </div>
 
         <div className="grid gap-2">
           <Label htmlFor={`type-${serviceId ?? "new"}`}>Where</Label>
-          <select
+          <NativeSelect
             id={`type-${serviceId ?? "new"}`}
             name="sessionType"
             required
             defaultValue={initial?.sessionType ?? ""}
-            className={fieldClasses}
           >
             <option value="" disabled>
-              Session type
+              Choose where
             </option>
             {SESSION_TYPES.map((type) => (
               <option key={type} value={type}>
                 {SESSION_TYPE_LABELS[type]}
               </option>
             ))}
-          </select>
+          </NativeSelect>
         </div>
       </div>
 
@@ -157,7 +159,7 @@ export function ServiceForm({
       ) : null}
 
       <div className="flex gap-2">
-        <Button type="submit" disabled={isPending}>
+        <Button type="submit" variant={submitVariant} disabled={isPending}>
           {isPending ? "Saving…" : submitLabel}
         </Button>
         {onCancel ? (

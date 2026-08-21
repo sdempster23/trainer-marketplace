@@ -117,6 +117,7 @@ export function CalendarFeedManager({
             <Button
               type="button"
               size="sm"
+              variant="outline"
               onClick={async () => {
                 await navigator.clipboard.writeText(freshUrl);
                 setHasCopied(true);
@@ -159,17 +160,19 @@ export function CalendarFeedManager({
 
       {!showAsEnabled ? (
         <form action={rotateAction}>
-          <Button type="submit" size="sm" disabled={isRotating}>
+          <Button type="submit" size="sm" variant="outline" disabled={isRotating}>
             {isRotating ? "Generating…" : "Generate feed URL"}
           </Button>
         </form>
       ) : (
         <div className="flex flex-wrap gap-2">
           {confirmingRotate ? (
-            <form action={rotateAction} className="flex items-center gap-2">
+            <form action={rotateAction} className="flex flex-wrap items-center gap-2">
               <span className="text-muted-foreground">
                 Existing calendar subscriptions will stop working.
               </span>
+              {/* Armed-confirm emphasis: transient, deliberate — the one
+                  solid button in the card while the warning shows. */}
               <Button type="submit" size="sm" disabled={isRotating}>
                 {isRotating ? "Rotating…" : "Rotate now"}
               </Button>
@@ -197,7 +200,7 @@ export function CalendarFeedManager({
           )}
 
           {confirmingDisable ? (
-            <form action={disableAction} className="flex items-center gap-2">
+            <form action={disableAction} className="flex flex-wrap items-center gap-2">
               <span className="text-muted-foreground">
                 Subscribed calendars will stop updating.
               </span>

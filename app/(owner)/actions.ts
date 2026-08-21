@@ -390,6 +390,7 @@ export async function createBooking(
 
   revalidatePath("/", "layout");
   // House pattern: redirect in the ACTION, outside any try/catch (redirect
-  // throws NEXT_REDIRECT — a catch would swallow it).
-  redirect("/owner/bookings");
+  // throws NEXT_REDIRECT — a catch would swallow it). The id rides the URL
+  // so the landing can render the confirmation moment (flow ruling #3).
+  redirect(`/owner/bookings?requested=${created.id}`);
 }

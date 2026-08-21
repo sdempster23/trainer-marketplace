@@ -6,13 +6,13 @@ import { createBooking } from "@/app/(owner)/actions";
 import type { BookingActionState } from "@/app/(owner)/actions";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
+import { NativeSelect } from "@/components/ui/native-select";
+import { MessageButton } from "@/components/messages/message-button";
+import { EmptyState } from "@/components/shared/states";
 import type { ActiveDog } from "@/lib/owner/dogs";
 import type { BookableSlot } from "@/lib/trainer/schedule";
 import type { ActiveService } from "@/lib/trainer/services";
 import { formatPrice, SESSION_TYPE_LABELS } from "@/lib/validators/trainer";
-
-const fieldClasses =
-  "border-input focus-visible:ring-ring w-full rounded-md border bg-transparent px-3 py-2 text-sm shadow-xs focus-visible:ring-2 focus-visible:outline-none";
 
 /**
  * The booking form. Slots arrive PRE-COMPUTED PER SERVICE from the server
@@ -29,12 +29,14 @@ export function BookingForm({
   slotsByService,
   preselectServiceId,
   zoneLabel,
+  trainerId,
 }: {
   dogs: ActiveDog[];
   services: ActiveService[];
   slotsByService: Record<string, BookableSlot[]>;
   preselectServiceId?: string;
   zoneLabel: string;
+  trainerId: string;
 }) {
   const [state, formAction, isPending] = useActionState<
     BookingActionState,
@@ -55,11 +57,12 @@ export function BookingForm({
   }
 
   return (
+    <>
     <form action={formAction} className="flex flex-col gap-6">
       <div className="grid gap-4 sm:grid-cols-2">
         <div className="grid gap-2">
           <Label htmlFor="booking-dog">Which dog?</Label>
-          <select id="booking-dog" name="dogId" required defaultValue="" className={fieldClasses}>
+          <NativeSelect id="booking-dog" name="dogId" required defaultValue="">
             <option value="" disabled>
               Choose a dog
             </option>
@@ -68,18 +71,17 @@ export function BookingForm({
                 {dog.name}
               </option>
             ))}
-          </select>
+          </NativeSelect>
         </div>
 
         <div className="grid gap-2">
           <Label htmlFor="booking-service">Which service?</Label>
-          <select
+          <NativeSelect
             id="booking-service"
             name="serviceId"
             required
             value={serviceId}
             onChange={(e) => setServiceId(e.target.value)}
-            className={fieldClasses}
           >
             {services.map((service) => (
               <option key={service.id} value={service.id}>
@@ -88,10 +90,11 @@ export function BookingForm({
                 {SESSION_TYPE_LABELS[service.session_type]}
               </option>
             ))}
-          </select>
+          </NativeSelect>
         </div>
       </div>
 
+      {slots.length > 0 ? (
       <fieldset className="grid gap-3">
         <legend className="text-sm font-medium">
           Pick a time{" "}
@@ -99,36 +102,65 @@ export function BookingForm({
             — times shown in the trainer&apos;s timezone ({zoneLabel})
           </span>
         </legend>
-        {slots.length === 0 ? (
-          <p className="text-muted-foreground text-sm">
-            No open times in the next two weeks for this service.
-          </p>
-        ) : (
-          [...byDay.entries()].map(([dateLocal, daySlots]) => (
-            <div key={dateLocal} className="grid gap-2">
-              <span className="text-muted-foreground text-xs font-medium">
-                {formatDayHeader(dateLocal)}
-              </span>
-              <div className="flex flex-wrap gap-2">
-                {daySlots.map((slot) => (
-                  <label
-                    key={slot.startUtc}
-                    className="border-border hover:bg-accent/40 has-[:checked]:border-primary has-[:checked]:bg-accent/60 flex cursor-pointer items-center gap-2 rounded-md border px-3 py-2 text-sm transition-colors"
+          <>
+            {/* Ruling 9's cheap jump: the picker can be long — this
+                anchor lands on the first bookable day (only rendered when
+                one exists). */}
+            <p className="text-muted-foreground text-sm">
+              Next available:{" "}
+              <a
+                href={`#day-${[...byDay.keys()][0]}`}
+                className="text-foreground underline underline-offset-4"
+              >
+                {formatDayHeader([...byDay.keys()][0] ?? "")}
+              </a>
+            </p>
+            {[...byDay.entries()].map(([dateLocal, daySlots], dayIndex) => (
+              /* Collapsible days (ruling 9): only days WITH slots render,
+                 first one open — the rest are one tap away instead of a
+                 2,400px wall. Radios inside a closed details stay
+                 form-associated, so a picked time survives collapsing. */
+              <details
+                key={`${serviceId}:${dateLocal}`}
+                id={`day-${dateLocal}`}
+                open={dayIndex === 0}
+                className="group scroll-mt-20"
+              >
+                <summary className="text-muted-foreground hover:text-foreground -my-1 flex cursor-pointer list-none items-center gap-2 py-2 text-sm font-medium transition-colors [&::-webkit-details-marker]:hidden">
+                  <span
+                    aria-hidden
+                    className="transition-transform group-open:rotate-90"
                   >
-                    <input
-                      type="radio"
-                      name="slotStartUtc"
-                      value={slot.startUtc}
-                      required
-                    />
-                    <span>{slot.labelLocal}</span>
-                  </label>
-                ))}
-              </div>
-            </div>
-          ))
-        )}
+                    ›
+                  </span>
+                  {formatDayHeader(dateLocal)}
+                  <span className="font-normal">
+                    · {daySlots.length}{" "}
+                    {daySlots.length === 1 ? "time" : "times"}
+                  </span>
+                </summary>
+                <div className="mt-2 flex flex-wrap gap-2">
+                  {daySlots.map((slot) => (
+                    <label
+                      key={slot.startUtc}
+                      className="border-border hover:bg-accent/40 has-[:checked]:border-primary has-[:checked]:bg-accent/60 flex cursor-pointer items-center gap-2 rounded-md border px-3 py-2 text-sm transition-colors"
+                    >
+                      <input
+                        type="radio"
+                        className="accent-primary"
+                        name="slotStartUtc"
+                        value={slot.startUtc}
+                        required
+                      />
+                      <span className="font-mono text-xs">{slot.labelLocal}</span>
+                    </label>
+                  ))}
+                </div>
+              </details>
+            ))}
+          </>
       </fieldset>
+      ) : null}
 
       {state && "error" in state ? (
         <p role="alert" className="text-destructive text-sm">
@@ -136,10 +168,25 @@ export function BookingForm({
         </p>
       ) : null}
 
-      <Button type="submit" disabled={isPending || slots.length === 0}>
-        {isPending ? "Requesting…" : "Request booking"}
-      </Button>
+      {slots.length > 0 ? (
+        <Button type="submit" variant="action" disabled={isPending}>
+          {isPending ? "Requesting…" : "Request booking"}
+        </Button>
+      ) : null}
     </form>
+
+      {slots.length === 0 ? (
+        /* WATCH ITEM (a): no "next available" affordance exists here — a
+           jump control with nowhere to jump is a dead button. The honest
+           escape is asking the trainer (flow ruling #5). OUTSIDE the
+           booking form: MessageButton is its own <form>, and nested forms
+           get stripped by the HTML parser (review catch). */
+        <EmptyState action={<MessageButton counterpartyId={trainerId} />}>
+          No open times in the next two weeks for this service — message
+          the trainer to ask about other times.
+        </EmptyState>
+      ) : null}
+    </>
   );
 }
 

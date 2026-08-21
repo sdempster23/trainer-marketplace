@@ -132,7 +132,7 @@ export function ExternalCalendarManager({
               placeholder="https://calendar.google.com/…/basic.ics"
               aria-label="Calendar ICS URL"
             />
-            <Button type="submit" size="sm" disabled={isSetting}>
+            <Button type="submit" size="sm" variant="outline" disabled={isSetting}>
               {isSetting ? "Connecting…" : "Connect"}
             </Button>
           </div>
@@ -199,7 +199,7 @@ export function ExternalCalendarManager({
         </form>
 
         {confirmingRemove ? (
-          <form action={removeAction} className="flex items-center gap-2">
+          <form action={removeAction} className="flex flex-wrap items-center gap-2">
             <span className="text-muted-foreground">
               Your external busy times will stop blocking slots.
             </span>

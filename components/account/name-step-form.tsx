@@ -32,7 +32,7 @@ export function NameStepForm() {
           required
           maxLength={DISPLAY_NAME_MAX_LENGTH}
           autoComplete="name"
-          placeholder="How trainers and owners will see you"
+          placeholder="How owners and trainers will see you"
           autoFocus
         />
       </div>
@@ -41,7 +41,7 @@ export function NameStepForm() {
           {state.error}
         </p>
       ) : null}
-      <Button type="submit" disabled={isPending}>
+      <Button type="submit" variant="action" disabled={isPending}>
         {isPending ? "Saving…" : "Continue"}
       </Button>
     </form>

@@ -1,3 +1,5 @@
+import { cache } from "react";
+
 import type { SupabaseClient } from "@supabase/supabase-js";
 
 import type { Database } from "@/types/supabase";
@@ -50,3 +52,27 @@ export async function getTrainerBookings(
   }
   return { bookings: data, error: null };
 }
+
+/**
+ * PENDING-request count for the hub's bookings link (interior-polish flow
+ * ruling #4: a request should be visible from /account the way unread
+ * messages are). Same contract as getUnreadThreadCount: head-count only
+ * (no rows), 0 on error — the link degrades to countless, never breaks.
+ * cache()-wrapped for per-request dedupe if a second surface ever asks.
+ */
+export const getPendingRequestCount = cache(async function getPendingRequestCount(
+  supabase: SupabaseClient<Database>,
+  trainerId: string,
+): Promise<number> {
+  const { count, error } = await supabase
+    .from("bookings")
+    .select("id", { count: "exact", head: true })
+    .eq("trainer_id", trainerId)
+    .eq("status", "PENDING");
+
+  if (error) {
+    console.error("[BOOKINGS] pending count failed:", error.message);
+    return 0;
+  }
+  return count ?? 0;
+});
