@@ -21,7 +21,7 @@ As phases complete, update the status below (change `[ ]` to `[x]`).
 - [ ] Phase 9 — Messaging (1.5 weeks)
 - [ ] Phase 10 — Reviews (1 week)
 - [ ] Phase 11 — Notifications + email (1.5 weeks)
-- [ ] Phase 12 — Admin dashboard (1 week)
+- [ ] Phase 12 — Admin dashboard (1 week) — **PARKED 2026-08-25**: at current scale the rows are readable via `docs/marketplace-state.sql` (saved in the Supabase SQL editor) and the table editor. Revisit when real traffic makes raw rows insufficient.
 - [ ] Phase 13 — Production hardening (2 weeks)
 - [ ] Phase 14 — Go-live prep (open-ended)
 

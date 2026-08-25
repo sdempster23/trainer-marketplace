@@ -11,7 +11,7 @@ export const metadata = {
   description: "How PawMatch collects, uses, and protects your information.",
 };
 
-const EFFECTIVE_DATE = "August 10, 2026";
+const EFFECTIVE_DATE = "August 25, 2026";
 
 export default function PrivacyPolicyPage() {
   return (
@@ -93,10 +93,23 @@ export default function PrivacyPolicyPage() {
           receives your IP address and a challenge token.
         </li>
         <li>
+          <strong>Aggregate usage analytics:</strong> we use Vercel Web
+          Analytics to count page views. For each page view it records the
+          page visited (including its query string, with sensitive parameters
+          filtered out by Vercel), the referrer, your country, region, and
+          city (derived from your IP address — Vercel states the IP itself is
+          not stored), your browser, operating system, and device type, and an
+          anonymized visitor identifier that resets every day and cannot be
+          traced back to you across days or across sites. It is cookieless —
+          it stores nothing on your device — and it is never linked to your
+          account, name, or email. We see only aggregate counts, not
+          individual browsing histories.
+        </li>
+        <li>
           <strong>Cookies:</strong> only strictly necessary cookies — your
           login session and Turnstile&apos;s challenge cookie. No advertising
-          or analytics cookies: we run no analytics, no ads, and no tracking
-          pixels.
+          or analytics cookies (the analytics above is cookieless), no ads,
+          and no tracking pixels.
         </li>
       </ul>
 
@@ -104,9 +117,10 @@ export default function PrivacyPolicyPage() {
       <p>
         To operate the marketplace (search, profiles, messaging, bookings,
         calendars), to send transactional email (signup confirmation,
-        password reset, booking updates, new-message notifications), and to
-        prevent abuse. We do not send marketing email, and we do not sell
-        your information to anyone.
+        password reset, booking updates, new-message notifications), to
+        understand in aggregate which pages are visited, and to prevent
+        abuse. We do not send marketing email, and we do not sell your
+        information to anyone.
       </p>
 
       <h2>Who we share it with</h2>
@@ -118,7 +132,8 @@ export default function PrivacyPolicyPage() {
         </li>
         <li>
           <strong>Vercel</strong> — hosting and content delivery, including
-          server logs.
+          server logs, and the usage analytics described above (Vercel Web
+          Analytics).
         </li>
         <li>
           <strong>Resend</strong> — email delivery (the recipient address and
@@ -146,8 +161,8 @@ export default function PrivacyPolicyPage() {
         instructions.
       </p>
       <p>
-        We do not sell personal information, and we have no analytics or
-        advertising partners.
+        We do not sell personal information, and we have no advertising
+        partners. Our only analytics is the usage analytics described above.
       </p>
 
       <h2>Retention and deletion</h2>
@@ -191,6 +206,12 @@ export default function PrivacyPolicyPage() {
         We may update this policy as the product changes. The effective date
         above always reflects the current version, and material changes will
         be noted on this page.
+      </p>
+      <p>
+        <strong>August 25, 2026:</strong> we added cookieless, aggregate usage
+        analytics (Vercel Web Analytics), described under &quot;Information
+        collected automatically&quot;. Earlier versions of this policy stated
+        we ran no analytics; that was true until this date.
       </p>
 
       <h2>Contact</h2>

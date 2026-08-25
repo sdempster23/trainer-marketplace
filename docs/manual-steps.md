@@ -124,3 +124,20 @@ middleware default.
   (Preview + Production) — the service key is now read server-side for
   recipient-email lookup (lib/supabase/admin.ts; see its header for why
   emails must NOT be denormalized into profiles).
+
+## Analytics (Vercel Web Analytics)
+
+- **One-time dashboard enable (Shane):** Vercel dashboard →
+  vercel.com → select the **trainer-marketplace** project → **Analytics**
+  tab (left sidebar of the project view) → click **Enable**. Free (Hobby)
+  tier; no env vars, no keys. Until this is toggled, the `<Analytics />`
+  component in `app/layout.tsx` sends nothing useful — the collection
+  endpoint only activates once the project has Analytics enabled.
+- **Verify after the next deploy:** visit the production site, then check
+  the Analytics tab — the first page views appear within a minute or two.
+  Local dev never sends data (the script is a no-op outside Vercel
+  deployments), so don't look for it on localhost.
+- **Standing rule reminder:** the privacy policy's analytics section
+  (app/(app)/(legal)/privacy/page.tsx) describes exactly what this
+  collects. If analytics ever expands (custom events, Speed Insights,
+  another provider), update /privacy in the same change.
