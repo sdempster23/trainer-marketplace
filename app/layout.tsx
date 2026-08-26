@@ -1,3 +1,4 @@
+import { Analytics } from "@vercel/analytics/next";
 import type { Metadata } from "next";
 import { Archivo, Inter } from "next/font/google";
 import "./globals.css";
@@ -58,7 +59,16 @@ export default function RootLayout({
       suppressHydrationWarning
       className={`${inter.variable} ${archivo.variable} ${archivoWide.variable}`}
     >
-      <body className="font-sans antialiased">{children}</body>
+      {/* Vercel Web Analytics (cookieless page-view counts). The <Analytics />
+          component injects a small deferred script — it is not render-blocking
+          and stays off the LCP-critical font chain guarded above. Data only
+          flows once Analytics is also enabled on the project in the Vercel
+          dashboard; the privacy policy's analytics section must stay true to
+          what this collects (see the standing rule in privacy/page.tsx). */}
+      <body className="font-sans antialiased">
+        {children}
+        <Analytics />
+      </body>
     </html>
   );
 }

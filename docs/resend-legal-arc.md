@@ -150,3 +150,19 @@ before the commit lands). Never push to main — PR at the end.
 3. **Recovery rail:** full password-reset round trip in production —
    request → email arrives → reset → sign in with the new password.
 4. Cleanup: delete test users via the admin API (established pattern).
+
+---
+
+## ADDENDUM 2026-08-25 — the "no analytics" invariant is retired
+
+The inventory above (build-scope item 1) and the underlying
+investigation (docs/scratch/resend-legal-investigation-2026-07-31.md,
+"No analytics, no Sentry, no ads") were true when written and through
+2026-08-24. As of the observability change (branch
+`feat/observability-analytics`), the app runs **Vercel Web Analytics**
+— cookieless, aggregate page-view counting, wired in
+`app/layout.tsx`. `/privacy` was updated in the same change (new
+analytics bullet, Vercel processor entry extended, dated change note)
+per its standing rule. Do NOT "correct" the privacy page back to the
+no-analytics claim on the strength of this document — the current
+inventory is the privacy page itself plus this addendum.
