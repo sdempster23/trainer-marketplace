@@ -5,6 +5,7 @@ import { cache } from "react";
 import type { SupabaseClient } from "@supabase/supabase-js";
 
 import { MessageButton } from "@/components/messages/message-button";
+import { Avatar } from "@/components/shared/avatar";
 import { Button } from "@/components/ui/button";
 import { EmptyState, ErrorState } from "@/components/shared/states";
 import { geistMono } from "@/lib/fonts";
@@ -50,7 +51,7 @@ const getListableTrainer = cache(async (id: string) => {
   const { data } = await supabase
     .from("trainers")
     .select(
-      "id, bio, years_experience, service_radius_meters, profiles!inner(display_name), pills:trainer_specialty_assignments(specialty)",
+      "id, bio, years_experience, service_radius_meters, profiles!inner(display_name, avatar_url), pills:trainer_specialty_assignments(specialty)",
     )
     .eq("id", id)
     // The listable floor, both predicates explicit (see header).
@@ -153,9 +154,20 @@ export default async function TrainerDetailPage({
     <main className={`bg-muted flex-1 px-6 py-12 ${geistMono.variable}`}>
       <div className="mx-auto flex w-full max-w-2xl flex-col gap-8">
         <header className="flex flex-col gap-2">
-          <h1 className="font-display text-3xl font-semibold tracking-tight sm:text-4xl">
-            {trainer.profiles.display_name}
-          </h1>
+          {/* Avatar + name as a horizontal pair; the meta line and CTA keep
+              the original vertical rhythm below. Size-fixed → no CLS, and at
+              72px never the LCP candidate (the H1 stays it). */}
+          <div className="flex items-center gap-4">
+            <Avatar
+              profileId={trainer.id}
+              avatarPath={trainer.profiles.avatar_url}
+              displayName={trainer.profiles.display_name}
+              size={72}
+            />
+            <h1 className="font-display text-3xl font-semibold tracking-tight sm:text-4xl">
+              {trainer.profiles.display_name}
+            </h1>
+          </div>
           <p className="text-muted-foreground text-sm">
             {trainer.years_experience !== null
               ? `${trainer.years_experience} years experience`

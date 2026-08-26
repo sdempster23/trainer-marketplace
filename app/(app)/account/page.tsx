@@ -5,6 +5,7 @@ import { signOut } from "@/app/(app)/(auth)/actions";
 import { CalendarFeedManager } from "@/components/account/calendar-feed-manager";
 import { ExternalCalendarManager } from "@/components/account/external-calendar-manager";
 import { PaymentInfoEditor } from "@/components/account/payment-info-editor";
+import { AvatarEditor } from "@/components/account/avatar-editor";
 import { DisplayNameEditor } from "@/components/account/display-name-editor";
 import { getExternalCalendarStatus } from "@/lib/trainer/external-calendar-status";
 import { Button } from "@/components/ui/button";
@@ -81,7 +82,7 @@ export default async function AccountPage() {
   // "no profile" case is handled explicitly below rather than swallowed.
   const { data: profile } = await supabase
     .from("profiles")
-    .select("role, display_name")
+    .select("role, display_name, avatar_url")
     .eq("id", claims.sub)
     .maybeSingle();
 
@@ -343,6 +344,12 @@ export default async function AccountPage() {
             <CardDescription>How you appear across PawMatch.</CardDescription>
           </CardHeader>
           <CardContent className="flex flex-col gap-4">
+            <AvatarEditor
+              userId={claims.sub}
+              avatarPath={profile.avatar_url}
+              displayName={profile.display_name}
+            />
+
             <DisplayNameEditor displayName={profile.display_name} />
 
             <div className="flex items-center gap-4 text-sm">

@@ -94,7 +94,7 @@ type BrowseRow = {
   id: string;
   bio: string | null;
   service_radius_meters: number | null;
-  profiles: { display_name: string | null };
+  profiles: { display_name: string | null; avatar_url: string | null };
   pills: { specialty: Specialty }[];
 };
 
@@ -138,11 +138,40 @@ export default async function TrainersPage({
       if (error) {
         throw new Error(`Trainer search failed: ${error.message}`);
       }
+      // The nearby_trainers RPC's result shape predates avatars and doesn't
+      // carry avatar_url; extending it means CREATE OR REPLACE + type regen
+      // (queued as a forward item alongside the RPC's M11 pagination note).
+      // Until then: one batch profiles read for the returned ids — anon
+      // public-read RLS covers it (trainer rows only), and at directory
+      // scale it's a single indexed IN. A FAILED avatar read degrades to
+      // initials tiles rather than erroring the directory: avatars are
+      // decoration on this page, never load-bearing.
+      let avatarById = new Map<string, string | null>();
+      if (data.length > 0) {
+        const { data: avatarRows, error: avatarError } = await supabase
+          .from("profiles")
+          .select("id, avatar_url")
+          .in(
+            "id",
+            data.map((row) => row.id),
+          );
+        if (avatarError) {
+          console.error(
+            "[TRAINERS] avatar batch read failed:",
+            avatarError.message,
+          );
+        } else {
+          avatarById = new Map(
+            avatarRows.map((row) => [row.id, row.avatar_url]),
+          );
+        }
+      }
       // RPC rows arrive nearest-first (ORDER BY inside the function) and the
       // chained filters preserve that order — no re-sort here.
       trainers = data.map((row) => ({
         id: row.id,
         displayName: row.display_name,
+        avatarPath: avatarById.get(row.id) ?? null,
         bio: row.bio,
         specialties: row.specialties,
         serviceRadiusMeters: row.service_radius_meters,
@@ -169,7 +198,7 @@ export default async function TrainersPage({
       const { data, error } = await supabase
         .from("trainers")
         .select(
-          "id, bio, service_radius_meters, profiles!inner(display_name), pills:trainer_specialty_assignments(specialty), match:trainer_specialty_assignments!inner(specialty)",
+          "id, bio, service_radius_meters, profiles!inner(display_name, avatar_url), pills:trainer_specialty_assignments(specialty), match:trainer_specialty_assignments!inner(specialty)",
         )
         // OR-semantics — any selected specialty qualifies (see above).
         .in("match.specialty", specialties)
@@ -185,7 +214,7 @@ export default async function TrainersPage({
       const { data, error } = await supabase
         .from("trainers")
         .select(
-          "id, bio, service_radius_meters, profiles!inner(display_name), pills:trainer_specialty_assignments(specialty)",
+          "id, bio, service_radius_meters, profiles!inner(display_name, avatar_url), pills:trainer_specialty_assignments(specialty)",
         )
         .not("profiles.display_name", "is", null)
         .not("service_point", "is", null)
@@ -206,6 +235,7 @@ export default async function TrainersPage({
             {
               id: row.id,
               displayName: row.profiles.display_name,
+              avatarPath: row.profiles.avatar_url,
               bio: row.bio,
               specialties: row.pills.map((p) => p.specialty),
               serviceRadiusMeters: row.service_radius_meters,
