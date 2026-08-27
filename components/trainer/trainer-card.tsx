@@ -2,6 +2,7 @@ import Link from "next/link";
 
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Avatar } from "@/components/shared/avatar";
 import {
   METERS_PER_MILE,
   SPECIALTY_LABELS,
@@ -24,6 +25,8 @@ import {
 export type TrainerCardData = {
   id: string;
   displayName: string;
+  /** The stored profiles.avatar_url value, or null → initials tile. */
+  avatarPath: string | null;
   bio: string | null;
   /** Already in canonical enum order — both modes guarantee it at the query. */
   specialties: Specialty[];
@@ -40,14 +43,26 @@ export function TrainerCard({ trainer }: { trainer: TrainerCardData }) {
   return (
     <Card className="hover:border-primary/40 relative transition-colors">
       <CardHeader className="flex flex-row items-start justify-between gap-2">
-        <CardTitle>
-          <Link
-            href={`/trainers/${trainer.id}`}
-            className="after:absolute after:inset-0"
-          >
-            {trainer.displayName}
-          </Link>
-        </CardTitle>
+        {/* Avatar is a plain image, NOT a link — the stretched-link overlay
+            below covers it, which is fine for a non-interactive leaf (the
+            header comment's condition holds: still zero other interactive
+            elements in the card). */}
+        <div className="flex min-w-0 items-center gap-3">
+          <Avatar
+            profileId={trainer.id}
+            avatarPath={trainer.avatarPath}
+            displayName={trainer.displayName}
+            size={48}
+          />
+          <CardTitle>
+            <Link
+              href={`/trainers/${trainer.id}`}
+              className="after:absolute after:inset-0"
+            >
+              {trainer.displayName}
+            </Link>
+          </CardTitle>
+        </div>
         {trainer.distanceMeters !== undefined ? (
           <Badge className="shrink-0">
             {(trainer.distanceMeters / METERS_PER_MILE).toFixed(1)} mi away

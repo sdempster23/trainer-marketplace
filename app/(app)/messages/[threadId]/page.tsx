@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 
+import { Avatar } from "@/components/shared/avatar";
 import { EmptyState, ErrorState } from "@/components/shared/states";
 import { ComposeForm } from "@/components/messages/compose-form";
 import { MessageList } from "@/components/messages/message-list";
@@ -76,9 +77,19 @@ export default async function ThreadPage({
           >
             ← All messages
           </Link>
-          <h1 className="font-display text-2xl font-semibold tracking-tight">
-            {counterparty}
-          </h1>
+          {/* Counterparty identity: avatar + name (role-universal — an
+              owner's photo shows here for the trainer too, gate ruling 1). */}
+          <div className="flex items-center gap-3">
+            <Avatar
+              profileId={thread.counterpartyId}
+              avatarPath={thread.counterpartyAvatarPath}
+              displayName={thread.counterpartyName}
+              size={40}
+            />
+            <h1 className="font-display text-2xl font-semibold tracking-tight">
+              {counterparty}
+            </h1>
+          </div>
           <p className="text-muted-foreground text-xs">
             {thread.isOwnerSide ? "Trainer" : "Dog owner"}
             {thread.isOwnerSide ? (

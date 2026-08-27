@@ -105,6 +105,11 @@ export type ThreadDetail = {
   id: string;
   bookingId: string | null;
   counterpartyName: string | null;
+  /** The counterparty's stored avatar_url — role-universal (gate ruling 1:
+   * owners' avatars render in trainers' thread headers too). Rides the same
+   * RLS path as counterpartyName: the M13 counterparty policy is row-level,
+   * so the column is visible wherever the name already is. */
+  counterpartyAvatarPath: string | null;
   /** True when the caller sits in the owner_id column — the send/read verbs
    * don't need it, but the renderer aligns bubbles by it. */
   isOwnerSide: boolean;
@@ -131,7 +136,7 @@ export async function getThread(
   const { data, error } = await supabase
     .from("message_threads")
     .select(
-      "id, owner_id, trainer_id, booking_id, profiles(display_name), trainers(profiles(display_name)), messages(id, sender_id, body, created_at)",
+      "id, owner_id, trainer_id, booking_id, profiles(display_name, avatar_url), trainers(profiles(display_name, avatar_url)), messages(id, sender_id, body, created_at)",
     )
     .eq("id", threadId)
     .order("created_at", { referencedTable: "messages", ascending: true })
@@ -152,6 +157,9 @@ export async function getThread(
       counterpartyName: isOwnerSide
         ? (data.trainers?.profiles.display_name ?? null)
         : (data.profiles?.display_name ?? null),
+      counterpartyAvatarPath: isOwnerSide
+        ? (data.trainers?.profiles.avatar_url ?? null)
+        : (data.profiles?.avatar_url ?? null),
       isOwnerSide,
       counterpartyId: isOwnerSide ? data.trainer_id : data.owner_id,
       messages: data.messages,

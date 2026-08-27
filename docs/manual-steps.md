@@ -141,3 +141,43 @@ middleware default.
   (app/(app)/(legal)/privacy/page.tsx) describes exactly what this
   collects. If analytics ever expands (custom events, Speed Insights,
   another provider), update /privacy in the same change.
+
+## Account deletion runbook (manual — the privacy page promises this)
+
+The privacy policy says deletion via privacy@ "includes your uploaded
+photos". No database cascade reaches storage (storage.objects has no FK
+to app tables, and direct SQL DELETE wouldn't remove the backing files
+anyway — the platform blocks it; deletion must go through the Storage
+API or dashboard). The manual order:
+
+1. **Storage first:** dashboard → Storage, delete the user's folder in
+   BOTH buckets — `avatars/{uid}/` and `trainer-gallery/{uid}/` (either
+   may be empty; a missing folder is fine).
+2. **Then the auth user:** admin-API delete of the auth.users row (the
+   established test-user pattern) — cascades profiles → trainers →
+   listing data. RESTRICT FKs (dogs, bookings, threads, messages) will
+   FAIL the delete for a user with history: clean those up deliberately
+   first (FK-ordered, the walk-account sweep pattern). Never disable
+   constraints to force it.
+3. **Verify:** run docs/marketplace-state.sql — section 6's MISMATCH
+   rows must not appear afterward. LIMIT of that check: it reconciles
+   AVATARS only — the gallery has no pointer table yet (it lands with
+   the gallery feature), so a missed `trainer-gallery/{uid}/` folder
+   produces NO mismatch row. Until gallery reconciliation exists,
+   visually confirm in dashboard → Storage that the user's gallery
+   folder is gone; the section-6 "gallery objects" count dropping by
+   the expected amount is the corroborating signal.
+
+## Image moderation (manual-with-visibility — gate ruling 4)
+
+Uploads are published as submitted; there is no review queue (the
+privacy page says exactly this — don't add copy anywhere implying
+proactive review). Visibility is the routine: every upload is browsable
+in dashboard → Storage, and marketplace-state.sql section 6 counts
+avatars and gallery objects, so new images surface in the query Shane
+already runs. Removal path for a problem image: delete the object in
+the dashboard AND null the pointer — for an avatar that's
+profiles.avatar_url; for a gallery image there is NO pointer row until
+the gallery feature lands (deleting the object is the whole removal
+today — re-verify this line against the real table when it ships).
+Pointer-only removal leaves the file publicly fetchable.

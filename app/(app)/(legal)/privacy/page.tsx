@@ -11,7 +11,7 @@ export const metadata = {
   description: "How PawMatch collects, uses, and protects your information.",
 };
 
-const EFFECTIVE_DATE = "August 25, 2026";
+const EFFECTIVE_DATE = "August 26, 2026";
 
 export default function PrivacyPolicyPage() {
   return (
@@ -32,20 +32,31 @@ export default function PrivacyPolicyPage() {
           <strong>Account:</strong> your email address, a password (stored
           only in hashed form by our authentication provider — we never see
           or store it in plain text), a display name, your role (owner or
-          trainer), and an optional avatar image.
+          trainer), and an optional profile photo. When you add a photo in
+          the app, your browser resizes and re-encodes it before it is
+          uploaded — this removes the file&apos;s embedded metadata,
+          including any GPS location your camera recorded, before the file
+          leaves your device. Photos are served from public storage (anyone
+          with the link can view them) and are published as you submit
+          them: we do not review images before they appear, and we remove
+          images we become aware violate our terms.
         </li>
         <li>
           <strong>Dog profiles (owners):</strong> your dog&apos;s name, breed,
-          date of birth, temperament notes, and an optional photo. Visible to
-          you and to trainers you interact with (for example, when you request
-          a booking).
+          date of birth, and temperament notes. Visible to you and to
+          trainers you interact with (for example, when you request a
+          booking). (There is no dog-photo upload today; if we add one,
+          we&apos;ll update this policy.)
         </li>
         <li>
           <strong>Messages:</strong> the messages you exchange with the other
           party in a conversation, with read timestamps. Messages are visible
           only to the two participants. Our database access rules are
           configured so that even our own backend service role cannot read
-          message bodies through the API layer.
+          message bodies through the API layer. One flow leaves that system:
+          the new-message notification email includes a short preview of the
+          message (up to 160 characters), delivered like all our email
+          through Resend to the recipient&apos;s inbox.
         </li>
         <li>
           <strong>Bookings:</strong> who booked whom, the service, the time,
@@ -55,10 +66,14 @@ export default function PrivacyPolicyPage() {
         <li>
           <strong>Trainer business information (trainers):</strong> your bio,
           experience, certifications, specialties, services and prices, weekly
-          availability, and an approximate service location with a service
-          radius. This is public directory content by design — publish the
-          service area you are comfortable sharing (for solo trainers an
-          approximate point can resemble a home area, so choose accordingly).
+          availability, an approximate service location with a service
+          radius, and any training photos you publish to your profile
+          gallery (the same photo rules above apply: metadata stripped by
+          the app&apos;s uploader, public storage, published as submitted).
+          This is public directory content by design — publish the service
+          area and photos you are comfortable sharing (for solo trainers an
+          approximate point can resemble a home area, and a photo taken at
+          home can show it, so choose accordingly).
         </li>
         <li>
           <strong>Payment instructions (trainers):</strong> free-text payment
@@ -74,9 +89,10 @@ export default function PrivacyPolicyPage() {
           and only our server&apos;s dedicated calendar-fetch path can
           retrieve it to check your busy times. From it we derive busy
           blocks that are start/end times only — no event titles, no
-          attendees — refreshed about every 15 minutes and generated only
-          for the near-term booking window. Outbound calendar feed links use
-          tokens we store only in hashed form.
+          attendees — refreshed when your availability is viewed (at most
+          once per 15 minutes) and generated only for the near-term booking
+          window. Outbound calendar feed links use tokens we store only in
+          hashed form.
         </li>
       </ul>
 
@@ -88,9 +104,10 @@ export default function PrivacyPolicyPage() {
           abuse prevention.
         </li>
         <li>
-          <strong>Bot protection at signup:</strong> we use Cloudflare
-          Turnstile to block automated signups. When you sign up, Turnstile
-          receives your IP address and a challenge token.
+          <strong>Bot protection:</strong> we use Cloudflare Turnstile to
+          block automated signups and password-reset requests. When you
+          submit either of those forms, Turnstile receives your IP address
+          and a challenge token.
         </li>
         <li>
           <strong>Aggregate usage analytics:</strong> we use Vercel Web
@@ -127,8 +144,9 @@ export default function PrivacyPolicyPage() {
       <h3>Service providers (processors)</h3>
       <ul>
         <li>
-          <strong>Supabase</strong> (on AWS, US East) — our database and
-          authentication, including delivery of some authentication emails.
+          <strong>Supabase</strong> (on AWS, US East) — our database,
+          authentication (including delivery of some authentication emails),
+          and file storage for uploaded photos.
         </li>
         <li>
           <strong>Vercel</strong> — hosting and content delivery, including
@@ -141,9 +159,9 @@ export default function PrivacyPolicyPage() {
         </li>
         <li>
           <strong>Cloudflare</strong> — DNS for our domain, the Turnstile bot
-          challenge at signup (your IP and a challenge token), and routing of
-          email you send to our own addresses (such as
-          privacy@joinpawmatch.com).
+          challenge at signup and password reset (your IP and a challenge
+          token), and routing of email you send to our own addresses (such
+          as privacy@joinpawmatch.com).
         </li>
       </ul>
       <p>
@@ -155,10 +173,11 @@ export default function PrivacyPolicyPage() {
       <h3>Other users</h3>
       <p>
         Marketplace counterparties see what the product shows them: owners
-        see trainer directory profiles; a trainer you message or book sees
-        your display name, your messages, relevant dog profile details, and
-        the booking; an owner whose booking you confirm sees your payment
-        instructions.
+        see trainer directory profiles (including the trainer&apos;s profile
+        photo); a trainer you message or book sees your display name, your
+        profile photo if you set one, your messages, relevant dog profile
+        details, and the booking; an owner whose booking you confirm sees
+        your payment instructions.
       </p>
       <p>
         We do not sell personal information, and we have no advertising
@@ -167,20 +186,26 @@ export default function PrivacyPolicyPage() {
 
       <h2>Retention and deletion</h2>
       <p>
-        Account data is kept while your account exists. Honest detail: account
-        deletion is currently a manual process — email us at
-        privacy@joinpawmatch.com and we will delete your account. Today,
-        removing profiles and dogs uses soft-deletion (records are flagged
-        deleted and hidden, not immediately purged). Messages are retained
-        indefinitely (there is no message-deletion flow yet). Derived
-        calendar busy blocks are generated only for the near-term booking
-        window (roughly three weeks) and replaced on each refresh.
+        Account data is kept while your account exists. Honest detail:
+        account deletion is currently a manual process — email us at
+        privacy@joinpawmatch.com and we will delete your account, including
+        your uploaded photos; there is no self-serve deletion yet. In the
+        app today, removing dogs and services uses soft-deletion (records
+        are flagged deleted and hidden, not immediately purged). Replacing
+        your profile photo overwrites the old image file, and removing it
+        deletes the file from storage. Messages are retained indefinitely
+        (there is no message-deletion flow yet). Derived calendar busy
+        blocks are generated only for the near-term booking window (roughly
+        three weeks) and replaced on each successful refresh; if your
+        profile isn&apos;t viewed for a while, the last-derived blocks
+        simply sit until the next view refreshes them or you disconnect the
+        calendar.
       </p>
 
       <h2>Your choices</h2>
       <p>
-        You can access and edit your profile, dogs, services, and
-        availability in the app. For a copy of your data, corrections we
+        You can access and edit your profile (including your photo), dogs,
+        services, and availability in the app. For a copy of your data, corrections we
         don&apos;t expose in the app, or deletion, email
         privacy@joinpawmatch.com — we will respond to every request.
       </p>
@@ -191,8 +216,11 @@ export default function PrivacyPolicyPage() {
         are stored only as hashes. Calendar feed tokens are stored only as
         hashes. The calendar URL you paste cannot be selected by any
         client-facing API role — only our server&apos;s dedicated
-        calendar-fetch path can retrieve it. No security is perfect, but
-        access to your data is deliberately narrow by construction.
+        calendar-fetch path can retrieve it. Uploaded photos can only be
+        written to your own storage folder, and photos added through the
+        app are content-verified — not just checked by name or declared
+        type — before your profile points to them. No security is perfect,
+        but access to your data is deliberately narrow by construction.
       </p>
 
       <h2>Age requirement</h2>
@@ -206,6 +234,20 @@ export default function PrivacyPolicyPage() {
         We may update this policy as the product changes. The effective date
         above always reflects the current version, and material changes will
         be noted on this page.
+      </p>
+      <p>
+        <strong>August 26, 2026:</strong> we added photos (profile photos
+        and trainer gallery photos). New: what photos we store and where
+        they appear, browser-side metadata stripping (including GPS
+        location), that photos are published as submitted and removed when
+        we become aware of a problem, and that account deletion includes
+        uploaded files. We also corrected several details this policy
+        previously under-described: the deletion section now says precisely
+        what happens today (dogs and services soft-delete in the app;
+        account removal is a manual process on request); Turnstile also
+        runs on password-reset requests; new-message notification emails
+        include a short message preview; and calendar busy blocks refresh
+        on view rather than on a fixed timer.
       </p>
       <p>
         <strong>August 25, 2026:</strong> we added cookieless, aggregate usage

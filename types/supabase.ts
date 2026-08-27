@@ -510,6 +510,41 @@ export type Database = {
           },
         ]
       }
+      trainer_gallery_photos: {
+        Row: {
+          created_at: string
+          file_name: string
+          id: string
+          position: number
+          trainer_id: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          file_name: string
+          id?: string
+          position: number
+          trainer_id: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          file_name?: string
+          id?: string
+          position?: number
+          trainer_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "trainer_gallery_photos_trainer_id_fkey"
+            columns: ["trainer_id"]
+            isOneToOne: false
+            referencedRelation: "trainers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       trainer_payment_info: {
         Row: {
           created_at: string
@@ -734,6 +769,10 @@ export type Database = {
         }[]
       }
       feed_token_exists: { Args: { feed_token: string }; Returns: boolean }
+      move_gallery_photo: {
+        Args: { p_direction: string; p_photo_id: string }
+        Returns: undefined
+      }
       nearby_trainers: {
         Args: {
           max_results?: number
