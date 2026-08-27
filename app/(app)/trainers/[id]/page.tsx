@@ -5,6 +5,7 @@ import { cache } from "react";
 import type { SupabaseClient } from "@supabase/supabase-js";
 
 import { MessageButton } from "@/components/messages/message-button";
+import { GalleryGrid } from "@/components/trainer/gallery-grid";
 import { Avatar } from "@/components/shared/avatar";
 import { Button } from "@/components/ui/button";
 import { EmptyState, ErrorState } from "@/components/shared/states";
@@ -12,6 +13,7 @@ import { geistMono } from "@/lib/fonts";
 import { createClient } from "@/lib/supabase/server";
 import type { Database } from "@/types/supabase";
 import { getActiveServices } from "@/lib/trainer/services";
+import { getGalleryPhotos } from "@/lib/trainer/gallery";
 import { dbIdSchema } from "@/lib/validators/id";
 import {
   formatPrice,
@@ -140,10 +142,16 @@ export default async function TrainerDetailPage({
   // rides free) and the viewer probe are independent, and this is the
   // directory's click-through, the hottest public page: no stacked awaits.
   const supabase = await createClient();
-  const [{ services, error: servicesError }, viewer] = await Promise.all([
-    getActiveServices(supabase, id),
-    getViewer(supabase),
-  ]);
+  const [{ services, error: servicesError }, viewer, { photos: galleryPhotos }] =
+    await Promise.all([
+      getActiveServices(supabase, id),
+      getViewer(supabase),
+      // Third concurrent read, not a stacked await. A failed gallery read
+      // yields an empty list: photos are decoration on this page and must
+      // never take the listing down (the helper surfaces the error; nothing
+      // renders differently from "no photos yet").
+      getGalleryPhotos(supabase, id),
+    ]);
 
   const radiusMiles =
     trainer.service_radius_meters !== null
@@ -200,6 +208,24 @@ export default async function TrainerDetailPage({
           <section className="flex flex-col gap-2">
             <h2 className="font-display text-lg font-semibold tracking-tight">About</h2>
             <p className="text-sm whitespace-pre-line">{trainer.bio}</p>
+          </section>
+        ) : null}
+
+        {/* Gallery sits between About and Specialties: it's the second thing
+            an owner wants after "who is this". EMPTY renders NOTHING at all
+            (no header, no dashed box) — absence is the honest public state,
+            and an EmptyState here would advertise incompleteness to her
+            clients (investigation §8; the edit-side manager owns the
+            "add your first" prompt instead). */}
+        {galleryPhotos.length > 0 ? (
+          <section className="flex flex-col gap-3">
+            <h2 className="font-display text-lg font-semibold tracking-tight">
+              Photos
+            </h2>
+            <GalleryGrid
+              photos={galleryPhotos}
+              trainerName={trainer.profiles.display_name ?? "this trainer"}
+            />
           </section>
         ) : null}
 

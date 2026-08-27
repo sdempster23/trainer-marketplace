@@ -51,9 +51,13 @@ export function publicAvatarUrl(
   if (!match || match[1] !== profileId) {
     return null;
   }
+  // Missing env degrades to the initials tile like every other invalid
+  // input here — throwing would 500 a page that next.config.ts explicitly
+  // says must still render without the var (and the gallery sibling
+  // behaves the same way).
   const base = process.env.NEXT_PUBLIC_SUPABASE_URL;
   if (!base) {
-    throw new Error("NEXT_PUBLIC_SUPABASE_URL is not set");
+    return null;
   }
   // Rebuilt from trusted parts — the stored string itself never reaches the
   // URL (match[2] is digits-only by the regex).

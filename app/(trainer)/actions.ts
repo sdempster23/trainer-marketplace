@@ -3,7 +3,14 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { lookup } from "zipcodes";
+import { z } from "zod";
 
+import {
+  GALLERY_BUCKET,
+  GALLERY_MAX_PHOTOS,
+  galleryObjectName,
+} from "@/lib/images/gallery";
+import { sniffImageType } from "@/lib/images/sniff";
 import { createClient } from "@/lib/supabase/server";
 import { siteUrl } from "@/lib/site-url";
 import { externalCalendarUrlSchema } from "@/lib/validators/feed";
@@ -332,7 +339,10 @@ export type ServiceActionState = { error: string } | { success: true } | null;
  * reasoning as completeOnboarding, which keeps its own inline copy (approved
  * code, not churned here).
  */
-async function requireTrainer(): Promise<
+async function requireTrainer(
+  /** Named in the wrong-role message: "Only trainer accounts can manage X." */
+  noun = "services",
+): Promise<
   | { supabase: Awaited<ReturnType<typeof createClient>>; userId: string }
   | { error: string }
 > {
@@ -349,7 +359,7 @@ async function requireTrainer(): Promise<
     .eq("id", userId)
     .maybeSingle();
   if (profile?.role !== "trainer") {
-    return { error: "Only trainer accounts can manage services." };
+    return { error: `Only trainer accounts can manage ${noun}.` };
   }
   return { supabase, userId };
 }
@@ -1009,5 +1019,222 @@ export async function updatePaymentInfo(
   }
 
   revalidatePath("/account");
+  return { success: true };
+}
+
+// ---------------------------------------------------------------------------
+// Gallery photos (M18 bucket + M19 table)
+// ---------------------------------------------------------------------------
+
+export type GalleryActionState = { error: string } | { success: true } | null;
+
+/** The client picks the object name; the server accepts ONLY a uuid. */
+const galleryFileNameSchema = z.uuid("Invalid photo.");
+const galleryPhotoIdSchema = z.uuid("Invalid photo.");
+
+/**
+ * Delete a gallery object nothing points at. ALWAYS log the outcome: a
+ * silently-failed cleanup leaves bytes in a PUBLIC bucket, and section 6 of
+ * docs/marketplace-state.sql would then be the only place it ever surfaces.
+ */
+async function removeOrphan(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  objectName: string,
+  reason: string,
+): Promise<void> {
+  const { error } = await supabase.storage
+    .from(GALLERY_BUCKET)
+    .remove([objectName]);
+  if (error) {
+    console.error(
+      `[GALLERY] orphan cleanup (${reason}) could not remove object:`,
+      error.message,
+    );
+  }
+}
+
+/**
+ * Commit an already-uploaded gallery photo — the avatar's commitAvatar with
+ * one narrow difference: the client picks the object NAME (a uuid it
+ * generated), because gallery objects are many-per-trainer and immutable,
+ * so there is no fixed path to derive. That single input is zod-validated
+ * here and CHECK-pinned in the DB, and the trainer prefix still comes from
+ * the JWT — a caller cannot name an object outside their own folder.
+ *
+ * Same trust boundary as the avatar: sniff the bytes AT COMMIT TIME — no
+ * row points at an object whose bytes weren't verified when the pointer was
+ * written; a failed sniff deletes the object and writes nothing.
+ *
+ * SCOPE, stated honestly (review finding): this is commit-time verification,
+ * NOT a permanent immutability guarantee. The M18 policies give a trainer
+ * INSERT and DELETE on their own folder, so delete-then-reupload under the
+ * same name mutates bytes a row already points at, without re-sniffing.
+ * The exposure is bounded — the bucket's allowed_mime_types keeps the
+ * SERVED Content-Type to jpeg/png/webp, so this is a swapped picture, not a
+ * script-execution vector — and it is self-inflicted (own folder only). If
+ * that ever needs closing, the lever is per-object names that a commit
+ * invalidates, not an app-side check.
+ */
+export async function addGalleryPhoto(
+  fileName: string,
+): Promise<GalleryActionState> {
+  const parsed = galleryFileNameSchema.safeParse(fileName);
+  if (!parsed.success) {
+    return { error: parsed.error.issues[0]?.message ?? VALIDATION_ERROR };
+  }
+
+  const auth = await requireTrainer("photos");
+  if ("error" in auth) {
+    return { error: auth.error };
+  }
+  const { supabase, userId } = auth;
+  const objectName = galleryObjectName(userId, parsed.data);
+
+  // Byte-level verification under the caller's own RLS.
+  const { data: blob, error: downloadError } = await supabase.storage
+    .from(GALLERY_BUCKET)
+    .download(objectName);
+  if (downloadError || !blob) {
+    return { error: "We couldn't find your uploaded photo. Try again." };
+  }
+  if (sniffImageType(new Uint8Array(await blob.arrayBuffer())) === null) {
+    await removeOrphan(supabase, objectName, "sniff failed");
+    return {
+      error: "That file isn't a JPEG, PNG, or WebP image. Try another photo.",
+    };
+  }
+
+  // Lowest FREE slot, not max+1: deletions leave holes (positions are an
+  // order, not a sequence), and max+1 would hit the CHECK ceiling while
+  // slots are still open.
+  const { data: taken, error: readError } = await supabase
+    .from("trainer_gallery_photos")
+    .select("position")
+    .eq("trainer_id", userId);
+  if (readError) {
+    console.error("[GALLERY] slot read failed:", readError.message);
+    return { error: GENERIC_ERROR };
+  }
+  const used = new Set(taken.map((row) => row.position));
+  const slot = Array.from(
+    { length: GALLERY_MAX_PHOTOS },
+    (_, i) => i + 1,
+  ).find((n) => !used.has(n));
+  if (slot === undefined) {
+    // The object exists but nothing will point at it — remove it rather
+    // than leave bytes the trainer can't see or manage.
+    await removeOrphan(supabase, objectName, "cap reached");
+    return {
+      error: `You can show up to ${GALLERY_MAX_PHOTOS} photos. Remove one to add another.`,
+    };
+  }
+
+  const { error: insertError } = await supabase
+    .from("trainer_gallery_photos")
+    .insert({ trainer_id: userId, file_name: parsed.data, position: slot });
+  if (insertError) {
+    console.error("[GALLERY] insert failed:", insertError.message);
+    // 23505 on tgp_unique_file means a row ALREADY points at this object
+    // (a replayed submit). Deleting it would 404 that live row's photo
+    // forever — the cleanup must not touch bytes it doesn't own (review
+    // finding). Any other failure means nothing points at the object.
+    if (insertError.code !== "23505") {
+      await removeOrphan(supabase, objectName, "insert failed");
+    }
+    return { error: GENERIC_ERROR };
+  }
+
+  revalidatePath("/", "layout");
+  return { success: true };
+}
+
+/**
+ * Remove one photo: row first (the listing's truth changes immediately),
+ * object second — the ordering the deletion runbook documents. A failed
+ * object delete leaves bytes nothing points at; it's logged, and section 6
+ * of docs/marketplace-state.sql is where such orphans surface.
+ */
+export async function removeGalleryPhoto(
+  photoId: string,
+): Promise<GalleryActionState> {
+  const parsed = galleryPhotoIdSchema.safeParse(photoId);
+  if (!parsed.success) {
+    return { error: parsed.error.issues[0]?.message ?? VALIDATION_ERROR };
+  }
+
+  const auth = await requireTrainer("photos");
+  if ("error" in auth) {
+    return { error: auth.error };
+  }
+  const { supabase, userId } = auth;
+
+  // DELETE ... returning: RLS scopes it to the caller's own row, so a
+  // foreign id yields zero rows rather than someone else's photo.
+  const { data: deleted, error: deleteError } = await supabase
+    .from("trainer_gallery_photos")
+    .delete()
+    .eq("id", parsed.data)
+    .eq("trainer_id", userId)
+    .select("file_name")
+    .maybeSingle();
+  if (deleteError) {
+    console.error("[GALLERY] delete failed:", deleteError.message);
+    return { error: GENERIC_ERROR };
+  }
+  if (!deleted) {
+    return { error: "That photo is no longer on your listing." };
+  }
+
+  const { error: removeError } = await supabase.storage
+    .from(GALLERY_BUCKET)
+    .remove([galleryObjectName(userId, deleted.file_name)]);
+  if (removeError) {
+    console.error("[GALLERY] could not remove object:", removeError.message);
+  }
+
+  revalidatePath("/", "layout");
+  return { success: true };
+}
+
+/**
+ * Move a photo one place earlier or later — entirely inside the M19
+ * move_gallery_photo RPC.
+ *
+ * THIS MUST NOT BE TWO CLIENT UPDATES. A first cut swapped the two rows
+ * with two supabase-js .update() calls and a comment claiming they shared a
+ * transaction; they do not — each is its own HTTP request and its own
+ * autocommit transaction, so the DEFERRED unique fires at the end of EACH
+ * one, where the duplicate still exists. Reproduced against the real
+ * schema: every half-swap raised 23505 and no reorder landed (review
+ * finding). The RPC does the swap in one statement in one transaction,
+ * under the caller's own RLS.
+ */
+export async function moveGalleryPhoto(
+  photoId: string,
+  direction: "up" | "down",
+): Promise<GalleryActionState> {
+  const parsed = galleryPhotoIdSchema.safeParse(photoId);
+  if (!parsed.success) {
+    return { error: parsed.error.issues[0]?.message ?? VALIDATION_ERROR };
+  }
+
+  const auth = await requireTrainer("photos");
+  if ("error" in auth) {
+    return { error: auth.error };
+  }
+  const { supabase } = auth;
+
+  // The RPC is a no-op at the ends of the list and raises 42501 on a photo
+  // the caller doesn't own, so there is nothing to pre-check here.
+  const { error } = await supabase.rpc("move_gallery_photo", {
+    p_photo_id: parsed.data,
+    p_direction: direction,
+  });
+  if (error) {
+    console.error("[GALLERY] reorder failed:", error.message);
+    return { error: GENERIC_ERROR };
+  }
+
+  revalidatePath("/", "layout");
   return { success: true };
 }

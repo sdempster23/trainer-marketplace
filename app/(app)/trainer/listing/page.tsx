@@ -13,7 +13,10 @@ import {
 import { EmptyState, ErrorState } from "@/components/shared/states";
 import { geistMono } from "@/lib/fonts";
 import { createClient } from "@/lib/supabase/server";
+import { GalleryManager } from "@/components/trainer/gallery-manager";
+import { GALLERY_MAX_PHOTOS } from "@/lib/images/gallery";
 import { getActiveServices } from "@/lib/trainer/services";
+import { getGalleryPhotos } from "@/lib/trainer/gallery";
 import {
   formatPrice,
   METERS_PER_MILE,
@@ -84,7 +87,10 @@ export default async function TrainerListingPage() {
   // Read-only services summary — same single read path as everywhere
   // (getActiveServices holds the view-spec rule); management lives at
   // /trainer/services, this page stays the confirmation card.
-  const { services } = await getActiveServices(supabase, claims.sub);
+  const [{ services }, { photos: galleryPhotos }] = await Promise.all([
+    getActiveServices(supabase, claims.sub),
+    getGalleryPhotos(supabase, claims.sub),
+  ]);
 
   const radiusMiles = trainer.service_radius_meters
     ? Math.round(trainer.service_radius_meters / METERS_PER_MILE)
@@ -192,6 +198,22 @@ export default async function TrainerListingPage() {
                 </ul>
               )}
             </div>
+          </CardContent>
+        </Card>
+
+        {/* Photos: their own card, not a field on the edit FORM — uploads
+            commit immediately (no Save), so folding them into the form
+            would make one card obey two different rules. */}
+        <Card>
+          <CardHeader>
+            <CardTitle>Photos</CardTitle>
+            <CardDescription>
+              Show your work — up to {GALLERY_MAX_PHOTOS} photos on your
+              public profile.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <GalleryManager userId={claims.sub} photos={galleryPhotos} />
           </CardContent>
         </Card>
 
