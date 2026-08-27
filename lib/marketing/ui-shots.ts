@@ -14,10 +14,17 @@ import uiThread from "@/public/marketing/ui/ui-thread.png";
  *
  * Truthful-imagery contract: these are ACTUAL screens captured from the
  * running app against local seed data (390x844 viewport at 2x), not
- * mockups. The message thread was created by driving the real owner and
- * trainer messaging flow; Sofia's services were added through the real
- * services form. To refresh after a UI change, recapture at the same
- * viewport and replace the file (same name), nothing else changes.
+ * mockups. Every photo in them is a real photo (the project's own licensed
+ * marketing images, seeded through the real storage buckets), and the
+ * message thread's exchange was written into the real messages table
+ * through the same sender-authenticity trigger the app writes through.
+ *
+ * REFRESH after a UI change — no longer a manual ritual:
+ *   1. supabase db reset
+ *   2. node scripts/seed-capture-images.mjs   (avatar, gallery, thread, services)
+ *   3. pnpm build && pnpm start
+ *   4. node scripts/capture-marketing.mjs     (re-shoots every asset here)
+ * Filenames are stable, so nothing else changes.
  */
 
 type UiShot = {
@@ -33,7 +40,7 @@ type UiShot = {
 export const UI_SHOTS = {
   directory: {
     image: uiDirectory,
-    alt: "PawMatch trainer directory showing trainer cards with specialties and travel radius",
+    alt: "PawMatch trainer directory showing trainer cards with profile photos, specialties, and travel radius",
     title: "The directory",
     caption:
       "Every trainer, searchable by location, specialty, and price. Family-dog help and sport-dog specialists side by side.",
@@ -41,15 +48,15 @@ export const UI_SHOTS = {
   },
   profile: {
     image: uiProfile,
-    alt: "A trainer profile on PawMatch with bio, specialties, and priced services",
+    alt: "A trainer profile on PawMatch with the trainer's photo, bio, and photos of their training work",
     title: "The profile",
     caption:
-      "Bio, specialties, and services with real prices. What you see is what you book.",
+      "Their photo, their bio, their work — then specialties and services with real prices. What you see is what you book.",
     route: "/trainers/[id]",
   },
   thread: {
     image: uiThread,
-    alt: "A message conversation between an owner and a trainer on PawMatch",
+    alt: "A message conversation between an owner and a trainer on PawMatch, with the trainer's photo in the header",
     title: "The conversation",
     caption:
       "Talk before you book. Ask about your dog, your goals, your schedule.",
@@ -82,15 +89,22 @@ export const UI_CROPS = {
 
 /**
  * Section 4's live demo: a REAL search recorded against the production
- * build (Playwright-driven: type ZIP 37203, check Puppy, search, open the
- * matching profile). VP8 WebM (no H.264 encoder available headlessly);
+ * build (Playwright-driven: type ZIP 37203, search, open the nearest
+ * trainer's profile). VP8 WebM (no H.264 encoder available headlessly);
  * browsers without WebM support and prefers-reduced-motion users get the
- * poster frame. Re-record by re-running the flow at 1280x800.
+ * poster frame.
+ *
+ * RE-RECORD: `node scripts/capture-marketing.mjs` — it re-shoots every
+ * asset in this file at the right viewports, against local seed data
+ * prepared by scripts/seed-capture-images.mjs. (The specialty-checkbox
+ * step the flow used to include was dropped: it filtered on "Puppy",
+ * which the current roster doesn't match, so the demo ended on an empty
+ * state.)
  */
 export const SEARCH_DEMO = {
   videoSrc: "/marketing/ui/search-demo.webm",
   poster: searchDemoPoster,
-  alt: "Screen recording of a real PawMatch search: typing a ZIP code, choosing the puppy specialty, and opening the matching trainer profile",
+  alt: "Screen recording of a real PawMatch search: typing a ZIP code and opening the nearest matching trainer's profile",
 } as const;
 
 export type UiShotKey = keyof typeof UI_SHOTS;
