@@ -26,7 +26,8 @@ because the previous sitting's rulings were chat-only and evaporated.
    not just COPPA hygiene).
 5. **Consent: checkbox at signup**, unchecked by default, linking ToS
    + Privacy Policy. Not agree-by-signup.
-6. **Privacy contact: `privacy@joinpawmatch.com`** (forwarded, Stop 3).
+6. **Privacy contact: `privacy@joinpawmatch.com`** (forwarded, Stop 3 —
+   since 2026-09-04 a Workspace alias; the address is unchanged).
 7. **Lawyer: self-draft now, truthful and live.** Carry the
    investigation's B4 flags — dog-bite/injury liability language,
    independent-contractor status, arbitration/venue — to the
@@ -67,6 +68,10 @@ Then back in Resend: **Verify** (propagation usually minutes).
 
 **Stop 3 — Cloudflare Email Routing (same zone)** — ruling 1 & 6
 require both addresses to RECEIVE:
+> **SUPERSEDED 2026-09-04.** Email Routing is disabled and its apex
+> records removed; hello@ and privacy@ are now Google Workspace
+> aliases on shane@joinpawmatch.com. Kept for the record of the
+> 2026-08-13 sitting — see the 2026-09-04 addendum at the end.
 1. Email → Email Routing → enable. Cloudflare adds its own MX + SPF
    at the APEX — no conflict with Resend's records (those live on the
    `send` subdomain; the apex had no MX at all).
@@ -166,3 +171,31 @@ analytics bullet, Vercel processor entry extended, dated change note)
 per its standing rule. Do NOT "correct" the privacy page back to the
 no-analytics claim on the strength of this document — the current
 inventory is the privacy page itself plus this addendum.
+
+---
+
+## ADDENDUM 2026-09-04 — inbound mail moved to Google Workspace
+
+Stop 3 above (Cloudflare Email Routing) is retired. What changed, and
+what did not:
+
+- **Inbound (apex):** `joinpawmatch.com` MX is now `smtp.google.com`
+  (Google Workspace). Cloudflare Email Routing is disabled and its apex
+  MX + SPF records are removed. `hello@joinpawmatch.com` and
+  `privacy@joinpawmatch.com` are aliases on the Workspace mailbox
+  `shane@joinpawmatch.com` — they still receive, so rulings 1 and 6
+  hold and `/privacy` + `/terms` stay true without a copy change.
+- **Outbound app + auth mail (send subdomain):** UNCHANGED. Resend's
+  records (`send` MX + SPF, `resend._domainkey` DKIM) live on the
+  subdomain and were not touched; `EMAIL_FROM=hello@` (app) and the
+  Supabase SMTP sender `noreply@` (auth) keep riding Resend. DNS
+  re-checked 2026-09-04 (all four Resend records resolve unchanged);
+  a post-cutover LIVE send is still owed — see the manual-steps
+  "Inbound mail" section.
+- **Replies from Shane** now go out through Workspace from the apex,
+  which puts a SECOND sender on the domain. DMARC (`_dmarc` p=none)
+  covers both. Google DKIM (`google._domainkey`, 2048-bit) is published
+  and verified as of 2026-09-04; the apex SPF
+  (`include:_spf.google.com`) is still missing, and the pending
+  p=quarantine revisit waits on it — see manual-steps for the observed
+  DNS state.
