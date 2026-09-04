@@ -43,3 +43,6 @@ next-env.d.ts
 
 # vercel
 .vercel
+
+# Session scratch notes (disposable; durable records live in docs/ proper)
+docs/scratch/
