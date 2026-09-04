@@ -155,15 +155,21 @@ The mechanism behind them changed on 2026-09-04; the addresses did not.
   RSA record; the key parses as 2048-bit (the two quoted strings are the
   normal 255-char DNS split, not truncation). Authenticated in the
   Workspace admin console.
-- **Apex SPF — STILL OPEN (Shane, Cloudflare DNS):** the apex has NO
-  `v=spf1` record (verified 2026-09-04 against the same three resolvers;
-  the only apex TXT is google-site-verification). Cloudflare's SPF left
-  with Email Routing and nothing replaced it. Publish
-  `TXT @ "v=spf1 include:_spf.google.com ~all"`. Until then Workspace
-  mail from hello@/privacy@/shane@ passes DKIM but not SPF; p=none means
-  nothing is rejected today, but the DMARC p=quarantine revisit (email-arc
-  launch item) stays BLOCKED on this one record. Resend's `send`
-  subdomain is unaffected either way.
+- **Apex SPF — CLOSED 2026-09-04.** Root TXT `v=spf1 include:_spf.google.com
+  ~all` published in Cloudflare. Verified via DNS-over-HTTPS at both
+  dns.google and cloudflare-dns.com: the apex has exactly TWO TXT records
+  (SPF + google-site-verification) and exactly ONE `v=spf1` — two SPF
+  records would fail evaluation for both senders, so keep it that way.
+  Resend's SPF stays on the `send` subdomain and is not part of the apex
+  record. With DKIM + SPF both in place, the DMARC p=quarantine revisit
+  (email-arc launch item) is UNBLOCKED.
+- **Checking DNS from Shane's Mac — use DoH, not port 53.** Plain `dig`
+  on this network returns cached answers even when pointed at an
+  authoritative Cloudflare nameserver (TTLs count down; the LAN router
+  intercepts port 53). Verify records with
+  `curl -s -H 'accept: application/dns-json' 'https://dns.google/resolve?name=<name>&type=TXT'`
+  (or cloudflare-dns.com/dns-query) before concluding a record is
+  missing.
 - **App/auth outbound is independent of all this:** it rides the `send`
   subdomain. Post-cutover DNS re-check 2026-09-04: `send` MX/SPF,
   `resend._domainkey`, `_dmarc` all resolve unchanged. **OWED:** one real

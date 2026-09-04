@@ -195,7 +195,7 @@ what did not:
 - **Replies from Shane** now go out through Workspace from the apex,
   which puts a SECOND sender on the domain. DMARC (`_dmarc` p=none)
   covers both. Google DKIM (`google._domainkey`, 2048-bit) is published
-  and verified as of 2026-09-04; the apex SPF
-  (`include:_spf.google.com`) is still missing, and the pending
-  p=quarantine revisit waits on it — see manual-steps for the observed
-  DNS state.
+  and verified as of 2026-09-04, and the apex SPF
+  (`include:_spf.google.com`) is published and verified the same day —
+  the DMARC p=quarantine revisit is unblocked. See manual-steps for the
+  observed DNS state and how to check it from this network.
