@@ -18,8 +18,10 @@ import "server-only";
  * from `onboarding@resend.dev`, the `*@resend.dev` test recipients
  * (delivered@/bounced@/complained@/suppressed@, +labels), and real delivery
  * only to the Resend account owner's own address. Production needs a
- * verified domain (SPF/DKIM) and EMAIL_FROM=noreply@<domain> — the hosted
- * manual steps live in docs/manual-steps.md.
+ * verified domain (SPF/DKIM on the `send` subdomain) and
+ * EMAIL_FROM=hello@<domain> (app mail; noreply@ is the Supabase AUTH
+ * sender — ruling 1, docs/resend-legal-arc.md). Inbound for hello@ is a
+ * separate mechanism (docs/manual-steps.md, "Inbound mail").
  */
 
 const RESEND_ENDPOINT = "https://api.resend.com/emails";

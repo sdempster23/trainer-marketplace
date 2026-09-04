@@ -118,12 +118,64 @@ middleware default.
   deliver ONLY to the Resend account owner's own address, plus the
   `*@resend.dev` test recipients (delivered@/bounced@/complained@/
   suppressed@, `+label` supported).
-- **Hosted/production (when it matters):** verify a domain in Resend
-  (SPF + DKIM DNS), set `EMAIL_FROM=noreply@<domain>`, and add
+- **Hosted/production (live since 2026-08-13):** verify a domain in Resend
+  (SPF + DKIM DNS on the `send` subdomain), set `EMAIL_FROM=hello@<domain>`
+  (ruling 1 in docs/resend-legal-arc.md — `noreply@` is the Supabase AUTH
+  sender, not the app sender), and add
   `RESEND_API_KEY` **and `SUPABASE_SERVICE_ROLE_KEY`** to Vercel env
   (Preview + Production) — the service key is now read server-side for
   recipient-email lookup (lib/supabase/admin.ts; see its header for why
   emails must NOT be denormalized into profiles).
+
+## Inbound mail — hello@ / privacy@ (Google Workspace, since 2026-09-04)
+
+The addresses the legal pages publish (`hello@joinpawmatch.com`,
+`privacy@joinpawmatch.com`) must actually receive mail (rulings 1 and 6).
+The mechanism behind them changed on 2026-09-04; the addresses did not.
+
+- **Current:** Google Workspace. Apex MX = `smtp.google.com`. `hello@` and
+  `privacy@` are aliases on the Workspace mailbox `shane@joinpawmatch.com`
+  — managed in the Google Admin console, not in DNS.
+- **Retired:** Cloudflare Email Routing (the 2026-08-13 sitting's Stop 3).
+  Disabled, and its apex MX + SPF records removed. Don't re-enable it — a
+  second apex MX would race Google for inbound.
+- **Who owns which DNS record** (all on the joinpawmatch.com zone):
+
+  | Record | Owner | Purpose |
+  |---|---|---|
+  | apex `MX` → `smtp.google.com` | Workspace | inbound to hello@/privacy@/shane@ |
+  | apex `TXT` google-site-verification | Workspace | domain proof |
+  | `send` `MX` + `TXT` (spf1 amazonses) | Resend | app + auth OUTBOUND |
+  | `resend._domainkey` `TXT` | Resend | DKIM for Resend sends |
+  | `google._domainkey` `TXT` | Workspace | DKIM for Workspace sends (2048-bit, published 2026-09-04) |
+  | `_dmarc` `TXT` (p=none) | shared | policy for BOTH senders |
+
+- **Workspace DKIM — CLOSED 2026-09-04.** `google._domainkey` resolves
+  from Cloudflare's authoritative NS, 1.1.1.1 and 8.8.8.8 as a `v=DKIM1`
+  RSA record; the key parses as 2048-bit (the two quoted strings are the
+  normal 255-char DNS split, not truncation). Authenticated in the
+  Workspace admin console.
+- **Apex SPF — CLOSED 2026-09-04.** Root TXT `v=spf1 include:_spf.google.com
+  ~all` published in Cloudflare. Verified via DNS-over-HTTPS at both
+  dns.google and cloudflare-dns.com: the apex has exactly TWO TXT records
+  (SPF + google-site-verification) and exactly ONE `v=spf1` — two SPF
+  records would fail evaluation for both senders, so keep it that way.
+  Resend's SPF stays on the `send` subdomain and is not part of the apex
+  record. With DKIM + SPF both in place, the DMARC p=quarantine revisit
+  (email-arc launch item) is UNBLOCKED.
+- **Checking DNS from Shane's Mac — use DoH, not port 53.** Plain `dig`
+  on this network returns cached answers even when pointed at an
+  authoritative Cloudflare nameserver (TTLs count down; the LAN router
+  intercepts port 53). Verify records with
+  `curl -s -H 'accept: application/dns-json' 'https://dns.google/resolve?name=<name>&type=TXT'`
+  (or cloudflare-dns.com/dns-query) before concluding a record is
+  missing.
+- **App/auth outbound is independent of all this:** it rides the `send`
+  subdomain. Post-cutover DNS re-check 2026-09-04: `send` MX/SPF,
+  `resend._domainkey`, `_dmarc` all resolve unchanged. **OWED:** one real
+  app email in production after the cutover (the doorbell fired by the
+  images-arc phone walk counts) with its Resend delivery record — DNS
+  is theory, the delivery record is the proof.
 
 ## Analytics (Vercel Web Analytics)
 
