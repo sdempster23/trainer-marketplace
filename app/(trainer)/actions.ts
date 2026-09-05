@@ -2,8 +2,11 @@
 
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
+import { after } from "next/server";
 import { lookup } from "zipcodes";
 import { z } from "zod";
+
+import { maybeEmitCompleteProfile } from "@/lib/analytics/events";
 
 import {
   GALLERY_BUCKET,
@@ -161,6 +164,7 @@ export async function completeOnboarding(
     return { error: writeError };
   }
 
+  after(() => maybeEmitCompleteProfile(supabase, userId));
   revalidatePath("/", "layout");
   redirect(POST_ONBOARDING_REDIRECT);
 }
@@ -318,6 +322,7 @@ export async function updateTrainerListing(
     }
   }
 
+  after(() => maybeEmitCompleteProfile(supabase, userId));
   revalidatePath("/", "layout");
   redirect(POST_ONBOARDING_REDIRECT);
 }
@@ -414,6 +419,7 @@ export async function createService(
     return { error: writeError };
   }
 
+  after(() => maybeEmitCompleteProfile(ctx.supabase, ctx.userId));
   revalidatePath("/", "layout");
   return { success: true };
 }
@@ -482,6 +488,7 @@ export async function updateService(
     return { error: "That service could not be found." };
   }
 
+  after(() => maybeEmitCompleteProfile(ctx.supabase, ctx.userId));
   revalidatePath("/", "layout");
   return { success: true };
 }
@@ -927,6 +934,8 @@ export async function setExternalCalendar(
     return { error: GENERIC_ERROR };
   }
 
+  const trainerId = claimsData.claims.sub;
+  after(() => maybeEmitCompleteProfile(supabase, trainerId));
   revalidatePath("/account");
   return { success: true };
 }

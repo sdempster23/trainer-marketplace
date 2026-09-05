@@ -5,7 +5,7 @@ import "server-only";
 
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 
-import type { Database } from "@/types/supabase";
+import type { Database, Json } from "@/types/supabase";
 
 /**
  * THE APP'S SERVICE-ROLE SURFACE — first and only usage. The service-role
@@ -39,7 +39,7 @@ function getAdminClient(): SupabaseClient<Database> {
   return adminClient;
 }
 
-/** The one export: a user's email address, or null (unknown id, missing
+/** A user's email address, or null (unknown id, missing
  * env, or any auth-API failure — callers are mail code; null means "skip
  * the send", never "crash the request"). */
 export async function getUserEmail(userId: string): Promise<string | null> {
@@ -165,4 +165,32 @@ export async function applyExternalRefresh(
   if (error) {
     throw new Error(`[EXTCAL] refresh apply failed: ${error.message}`);
   }
+}
+
+/**
+ * Record one Proof north-star event (M20). INSERT-only — the table grants
+ * service_role no SELECT, so we never .select() the row back.
+ *
+ * `inserted: false` is the idempotent case: trainer_signup / complete_profile
+ * hit the once-per-user unique index (23505). Callers treat that as success
+ * (the event already exists). Other failures THROW — lib/analytics/events.ts
+ * swallows them so a telemetry blip cannot break signup/search/booking.
+ */
+export async function insertAnalyticsEvent(row: {
+  event_name: Database["public"]["Tables"]["analytics_events"]["Insert"]["event_name"];
+  user_id?: string | null;
+  props?: Json;
+}): Promise<{ inserted: boolean }> {
+  const { error } = await getAdminClient().from("analytics_events").insert({
+    event_name: row.event_name,
+    user_id: row.user_id ?? null,
+    props: row.props ?? {},
+  });
+  if (error) {
+    if (error.code === "23505") {
+      return { inserted: false };
+    }
+    throw new Error(`[ANALYTICS] insert failed: ${error.message}`);
+  }
+  return { inserted: true };
 }

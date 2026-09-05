@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { after } from "next/server";
 
+import { emitAnalyticsEvent } from "@/lib/analytics/events";
 import { getBusyRanges } from "@/lib/trainer/busy";
 import { ensureExternalCalendarFresh } from "@/lib/trainer/external-sync";
 import { getExceptions, getWeeklyPattern } from "@/lib/trainer/availability";
@@ -357,6 +358,14 @@ export async function createBooking(
   if (!created) {
     return { error: GENERIC_ERROR };
   }
+
+  after(() =>
+    emitAnalyticsEvent({
+      eventName: "booking_request",
+      userId: ctx.userId,
+      props: { booking_id: created.id, trainer_id: service.trainer_id },
+    }),
+  );
 
   // NOTIFY THE TRAINER — registered BEFORE redirect() throws (the docs'
   // guarantee: "after will be executed even if ... notFound or redirect is

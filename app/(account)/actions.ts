@@ -2,9 +2,11 @@
 
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
+import { after } from "next/server";
 
 import type { SupabaseClient } from "@supabase/supabase-js";
 
+import { maybeEmitCompleteProfile } from "@/lib/analytics/events";
 import {
   AVATARS_BUCKET,
   avatarObjectName,
@@ -203,6 +205,7 @@ export async function commitAvatar(): Promise<AvatarActionState> {
     return { error: writeError };
   }
 
+  after(() => maybeEmitCompleteProfile(supabase, userId));
   revalidatePath("/", "layout");
   return { success: true };
 }

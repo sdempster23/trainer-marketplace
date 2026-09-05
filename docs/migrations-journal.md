@@ -1522,3 +1522,38 @@ CLI moved 2.109.1 → 2.115.0 in the sanctioned between-arcs window.
 **Residual CLOSED.** The interiors speak the identity; the walk-as-her
 verdict was "clean, phone walk genuinely good." The product she
 onboards into now looks like the promise that recruits her.
+
+---
+
+## M20 — `analytics_events` (Proof north-star events)
+
+Append-only first-party event log. Five CHECK-constrained names
+(`trainer_signup`, `complete_profile`, `search`, `conversation`,
+`booking_request`). Writes are service_role INSERT only — authenticated
+PostgREST must not be able to mint funnel counts.
+
+**Convention deviations, documented in the migration header:**
+
+1. **No `updated_at`.** Events are facts. An updated_at column would
+   imply a mutation path we refuse to grant.
+2. **service_role INSERT is a new M14 declared position.** The
+   catalog-driven M14 matrix treats undeclared DML as `{}` and fails
+   loud — the suite's `declared` jsonb is updated in the same change.
+   The current local CLI confers `service_role=arwdDxtm` at CREATE
+   TABLE (M14's drift class, again — the matrix is red on every older
+   table in this environment). M20 REVOKEs that default on
+   `analytics_events` and GRANTs INSERT only so the declared position
+   is real, not a no-op GRANT on top of ALL.
+3. **Calendar completeness does not read `url`.** M16's column-grant
+   tripwire still holds: complete_profile treats "a
+   `trainer_external_calendars` row exists" as the calendar fact
+   (`url` is NOT NULL on that table).
+
+**Once-per-user** (`trainer_signup`, `complete_profile`) is a partial
+unique index. App retries and the two-tab race are 23505, mapped to
+"already recorded" in the emit helper. Search / conversation /
+booking_request may repeat.
+
+**ON DELETE SET NULL** on `user_id`: account deletion unlinks the
+person and keeps the anonymous count. Logged-out search is NULL from
+the start (the directory is public).

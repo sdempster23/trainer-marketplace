@@ -10,11 +10,14 @@ import {
   TrainerCard,
   type TrainerCardData,
 } from "@/components/trainer/trainer-card";
+import {
+  directorySearchQuery,
+  nearbyTrainersQuery,
+  parseDirectorySearch,
+} from "@/lib/trainers/directory-search";
 import { createClient } from "@/lib/supabase/server";
 import {
-  DEFAULT_DIRECTORY_RADIUS,
   DIRECTORY_RADIUS_MILES,
-  SPECIALTIES,
   SPECIALTY_LABELS,
   type Specialty,
 } from "@/lib/validators/trainer";
@@ -32,8 +35,8 @@ export const metadata = {
  * pre-build investigation). This is the one route that must never bounce a
  * logged-out visitor to /login.
  *
- * Two read modes, chosen by the URL (GET-form semantics — searches are
- * shareable and bookmarkable):
+ * Two read modes, chosen by the URL (shareable GET — the Search button
+ * POSTs to recordTrainerSearch, which emits then redirects here):
  *   BROWSE     (no zip): PostgREST over trainers + profiles + assignments,
  *               newest first — deterministic and honest before location enters.
  *   PROXIMITY  (zip present): server-side zipcodes lookup → nearby_trainers
@@ -56,38 +59,6 @@ export const metadata = {
 
 type SearchParams = Record<string, string | string[] | undefined>;
 
-/** First value wins when a param repeats — except specialties, which is
- * legitimately repeated (one checkbox each). */
-const first = (v: string | string[] | undefined): string =>
-  (Array.isArray(v) ? v[0] : v)?.trim() ?? "";
-
-const toArray = (v: string | string[] | undefined): string[] =>
-  v === undefined ? [] : Array.isArray(v) ? v : [v];
-
-/**
- * URL params are a user-editable boundary, but unlike a form POST they arrive
- * from shared/bookmarked/hand-edited links — so invalid values NORMALIZE
- * silently (drop the junk, keep the search working) rather than erroring.
- * The one exception is the ZIP, where "you typed something unresolvable" is
- * the user's signal to fix it — that renders an inline message instead.
- */
-function parseSearch(params: SearchParams) {
-  const zip = first(params.zip);
-
-  const radiusRaw = Number(first(params.radius));
-  const radiusMiles = (
-    DIRECTORY_RADIUS_MILES as readonly number[]
-  ).includes(radiusRaw)
-    ? radiusRaw
-    : DEFAULT_DIRECTORY_RADIUS;
-
-  const specialties = toArray(params.specialties).filter(
-    (s): s is Specialty => (SPECIALTIES as readonly string[]).includes(s),
-  );
-
-  return { zip, radiusMiles, specialties };
-}
-
 /** The browse-mode row shape both select variants share (the filtered variant
  * carries an extra `match` embed the mapper ignores). */
 type BrowseRow = {
@@ -103,7 +74,12 @@ export default async function TrainersPage({
 }: {
   searchParams: Promise<SearchParams>;
 }) {
-  const { zip, radiusMiles, specialties } = parseSearch(await searchParams);
+  const params = await searchParams;
+  const { zip, radiusMiles, specialties } = parseDirectorySearch({
+    zip: params.zip,
+    radius: params.radius,
+    specialties: params.specialties,
+  });
   const supabase = await createClient();
 
   const isProximity = zip !== "";
@@ -122,19 +98,12 @@ export default async function TrainersPage({
       // display_name (and friends) NON-NULLABLE, which is only true BECAUSE of
       // the floor chained below — the RPC itself can return a NULL name. Never
       // call this RPC unfloored and trust the generated type.
-      let query = supabase
-        .rpc("nearby_trainers", {
-          search_lat: place.latitude,
-          search_lng: place.longitude,
-          radius_miles: radiusMiles,
-        })
-        .not("display_name", "is", null);
-      if (specialties.length > 0) {
-        // OR-semantics (contains-ANY, PostgREST `ov`) — see DirectoryFilters.
-        query = query.overlaps("specialties", specialties);
-      }
-
-      const { data, error } = await query;
+      const { data, error } = await nearbyTrainersQuery(supabase, {
+        lat: place.latitude,
+        lng: place.longitude,
+        radiusMiles,
+        specialties,
+      });
       if (error) {
         throw new Error(`Trainer search failed: ${error.message}`);
       }
@@ -256,13 +225,11 @@ export default async function TrainersPage({
     newRadius?: number;
     newSpecialties?: Specialty[];
   }) => {
-    const params = new URLSearchParams();
-    if (newZip) {
-      params.set("zip", newZip);
-      params.set("radius", String(newRadius));
-    }
-    for (const sp of newSpecialties) params.append("specialties", sp);
-    const qs = params.toString();
+    const qs = directorySearchQuery({
+      zip: newZip,
+      radiusMiles: newRadius,
+      specialties: newSpecialties,
+    });
     return qs ? `/trainers?${qs}` : "/trainers";
   };
   const widerRadius = (DIRECTORY_RADIUS_MILES as readonly number[]).find(

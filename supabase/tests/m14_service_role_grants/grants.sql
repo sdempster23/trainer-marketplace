@@ -43,7 +43,8 @@
 --          (runs first — validates the declaration before the matrix uses it)
 --   M14-1  matrix: every public table x {SELECT,INSERT,UPDATE,DELETE} for
 --          service_role equals the declared set exactly
---          (bookings {S,U}; trainer_stripe_accounts {S,I,U}; all else {})
+--          (bookings {S,U}; trainer_stripe_accounts {S,I,U};
+--           analytics_events {I}; all else {})
 --
 -- Acceptance: both PASS.
 -- ============================================================================
@@ -58,7 +59,8 @@ declare
   -- Add it here, once — both checks derive from this object.
   declared constant jsonb := jsonb_build_object(
     'bookings',                jsonb_build_array('SELECT','UPDATE'),
-    'trainer_stripe_accounts', jsonb_build_array('SELECT','INSERT','UPDATE')
+    'trainer_stripe_accounts', jsonb_build_array('SELECT','INSERT','UPDATE'),
+    'analytics_events',        jsonb_build_array('INSERT')
   );
   r record;
   p text;

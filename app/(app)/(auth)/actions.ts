@@ -2,7 +2,9 @@
 
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
+import { after } from "next/server";
 
+import { emitAnalyticsEvent } from "@/lib/analytics/events";
 import { siteUrl } from "@/lib/site-url";
 import { safeInternalPath } from "@/lib/auth/safe-internal-path";
 import { verifyTurnstile } from "@/lib/auth/turnstile";
@@ -79,6 +81,7 @@ export async function signUp(
 
   let authError: string | null = null;
   let hasSession = false;
+  let createdUserId: string | null = null;
   try {
     const { data, error } = await supabase.auth.signUp({
       email: parsed.data.email,
@@ -98,6 +101,9 @@ export async function signUp(
     // session is null until the user confirms via email. Branching on this
     // keeps signUp correct under either dashboard setting, no rebuild needed.
     hasSession = Boolean(data.session);
+    // Anti-enumeration fake-success (existing email) returns no user — skip
+    // the event. Owner signups are a different funnel step; only trainer.
+    createdUserId = data.user?.id ?? null;
   } catch {
     // Unexpected (network/transport) failure — surface a friendly message
     // rather than a 500. Auth failures themselves come back as `error`, above.
@@ -105,6 +111,16 @@ export async function signUp(
   }
   if (authError) {
     return { error: authError };
+  }
+
+  if (parsed.data.role === "trainer" && createdUserId) {
+    const trainerId = createdUserId;
+    after(() =>
+      emitAnalyticsEvent({
+        eventName: "trainer_signup",
+        userId: trainerId,
+      }),
+    );
   }
 
   // Refresh any layout-cached, user-dependent data, then land the user.

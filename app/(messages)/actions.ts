@@ -6,6 +6,7 @@ import { after } from "next/server";
 
 import type { SupabaseClient } from "@supabase/supabase-js";
 
+import { emitAnalyticsEvent } from "@/lib/analytics/events";
 import { sendMail } from "@/lib/mail/send";
 import { newMessage } from "@/lib/mail/templates";
 import { shouldSendNewMessageEmail } from "@/lib/messages/unread";
@@ -119,6 +120,7 @@ export async function findOrCreateThread(
   }
 
   let threadId: string | null = null;
+  let createdNew = false;
   let failure: string | null = null;
   try {
     // Find first: UNIQUE (owner_id, trainer_id) makes the pair canonical.
@@ -161,6 +163,7 @@ export async function findOrCreateThread(
         }
       } else {
         threadId = created?.id ?? null;
+        createdNew = Boolean(threadId);
         failure = threadId ? null : GENERIC_ERROR;
       }
     }
@@ -170,6 +173,22 @@ export async function findOrCreateThread(
 
   if (failure || !threadId) {
     return { error: failure ?? GENERIC_ERROR };
+  }
+  // First thread for this pair only — the 23505 loser does not emit
+  // (the winner already created the row and will record the event).
+  if (createdNew) {
+    const newThreadId = threadId;
+    after(() =>
+      emitAnalyticsEvent({
+        eventName: "conversation",
+        userId,
+        props: {
+          thread_id: newThreadId,
+          owner_id: ownerId,
+          trainer_id: trainerId,
+        },
+      }),
+    );
   }
   // Outside try/catch — redirect() throws its control-flow error by design.
   redirect(`/messages/${threadId}`);
