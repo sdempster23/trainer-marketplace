@@ -11,7 +11,7 @@ export const metadata = {
   description: "How PawMatch collects, uses, and protects your information.",
 };
 
-const EFFECTIVE_DATE = "August 26, 2026";
+const EFFECTIVE_DATE = "September 5, 2026";
 
 export default function PrivacyPolicyPage() {
   return (
@@ -123,6 +123,21 @@ export default function PrivacyPolicyPage() {
           individual browsing histories.
         </li>
         <li>
+          <strong>Product funnel events:</strong> when a marketplace step
+          succeeds, we record a named event in our own database (hosted with
+          the rest of the app on Supabase): trainer account created, trainer
+          profile completed, a ZIP search on /trainers, the first conversation
+          between an owner and a trainer, and a booking request. If you are
+          signed in we store your account id with the event; a logged-out
+          search stores no account id. Search events include the ZIP, radius,
+          specialties, how many trainers matched, and whether the ZIP is in
+          our Nashville launch market. We do not store message bodies,
+          calendar URLs, emails, or payment details in these events. The same
+          event names may also be sent to Vercel as custom analytics events
+          (still cookieless). The database row is the copy we use to
+          understand the funnel.
+        </li>
+        <li>
           <strong>Cookies:</strong> only strictly necessary cookies — your
           login session and Turnstile&apos;s challenge cookie. No advertising
           or analytics cookies (the analytics above is cookieless), no ads,
@@ -135,9 +150,10 @@ export default function PrivacyPolicyPage() {
         To operate the marketplace (search, profiles, messaging, bookings,
         calendars), to send transactional email (signup confirmation,
         password reset, booking updates, new-message notifications), to
-        understand in aggregate which pages are visited, and to prevent
-        abuse. We do not send marketing email, and we do not sell your
-        information to anyone.
+        understand in aggregate which pages are visited and which
+        marketplace steps happen (the product funnel events above), and to
+        prevent abuse. We do not send marketing email, and we do not sell
+        your information to anyone.
       </p>
 
       <h2>Who we share it with</h2>
@@ -151,7 +167,8 @@ export default function PrivacyPolicyPage() {
         <li>
           <strong>Vercel</strong> — hosting and content delivery, including
           server logs, and the usage analytics described above (Vercel Web
-          Analytics).
+          Analytics, including the optional custom-event mirror of our
+          product funnel events).
         </li>
         <li>
           <strong>Resend</strong> — email delivery (the recipient address and
@@ -181,7 +198,8 @@ export default function PrivacyPolicyPage() {
       </p>
       <p>
         We do not sell personal information, and we have no advertising
-        partners. Our only analytics is the usage analytics described above.
+        partners. Our analytics is the usage analytics and product funnel
+        events described above.
       </p>
 
       <h2>Retention and deletion</h2>
@@ -199,7 +217,9 @@ export default function PrivacyPolicyPage() {
         three weeks) and replaced on each successful refresh; if your
         profile isn&apos;t viewed for a while, the last-derived blocks
         simply sit until the next view refreshes them or you disconnect the
-        calendar.
+        calendar. Product funnel events are kept for product metrics; if we
+        delete your account we unlink your account id from those events and
+        keep the anonymous count.
       </p>
 
       <h2>Your choices</h2>
@@ -234,6 +254,13 @@ export default function PrivacyPolicyPage() {
         We may update this policy as the product changes. The effective date
         above always reflects the current version, and material changes will
         be noted on this page.
+      </p>
+      <p>
+        <strong>September 5, 2026:</strong> we added first-party product
+        funnel events (trainer signup, profile completion, search, first
+        conversation, booking request), stored in our database and optionally
+        mirrored to Vercel as custom events. Described under &quot;Information
+        collected automatically&quot;.
       </p>
       <p>
         <strong>August 26, 2026:</strong> we added photos (profile photos

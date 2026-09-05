@@ -178,5 +178,16 @@ from (
         and p.avatar_url is not null
     )
   having count(*) > 0
+
+  -- 7. Proof north-star events (M20) --------------------------------------
+  -- ROLLUP so the total row still appears at 0 on an empty table.
+  union all
+  select 7,
+         case when event_name is null then 0 else 1 end,
+         '7. north-star events',
+         coalesce(event_name, 'total'),
+         count(*)
+  from public.analytics_events
+  group by rollup (event_name)
 ) as report
 order by section_sort, metric_sort, metric;

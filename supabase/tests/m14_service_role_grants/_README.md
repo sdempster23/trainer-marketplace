@@ -4,7 +4,8 @@ Tests for migration M14
 (`20260708150000_service_role_deliberate_grants.sql`): the two additive
 GRANTs that replace the v2.90-era platform-default service_role DML with a
 declared set — `bookings = SELECT,UPDATE`,
-`trainer_stripe_accounts = SELECT,INSERT,UPDATE`, every other table nothing.
+`trainer_stripe_accounts = SELECT,INSERT,UPDATE`,
+`analytics_events = INSERT` (M20), every other table nothing.
 
 ## Status
 

@@ -191,8 +191,23 @@ The mechanism behind them changed on 2026-09-04; the addresses did not.
   deployments), so don't look for it on localhost.
 - **Standing rule reminder:** the privacy policy's analytics section
   (app/(app)/(legal)/privacy/page.tsx) describes exactly what this
-  collects. If analytics ever expands (custom events, Speed Insights,
+  collects. If analytics ever expands (more custom events, Speed Insights,
   another provider), update /privacy in the same change.
+
+## Product funnel events (Proof / `analytics_events`)
+
+- **No extra dashboard toggle** for the database copy. Events land in
+  `public.analytics_events` on the Supabase project once migration M20 is
+  applied (`supabase db push` after this PR is reviewed — do not apply
+  from the agent). The Vercel custom-event mirror rides the same Analytics
+  enable step above; local `next dev` does not send Vercel events.
+- **Proof export** is a SQL query in the Supabase SQL editor (postgres),
+  not a PostgREST read — `anon` / `authenticated` / even `service_role`
+  cannot SELECT this table. The query lives in the PR that added M20;
+  paste it into a saved SQL editor query named "Proof north-star events".
+- **Apply M20 to hosted before relying on counts.** Until the migration
+  is pushed, the emit path will log `[ANALYTICS] DB insert failed` and
+  the Vercel mirror may still fire.
 
 ## Account deletion runbook (manual — the privacy page promises this)
 

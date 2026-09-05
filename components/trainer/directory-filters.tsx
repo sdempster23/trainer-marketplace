@@ -1,3 +1,4 @@
+import { recordTrainerSearch } from "@/app/(app)/trainers/actions";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -11,10 +12,10 @@ import {
 } from "@/lib/validators/trainer";
 
 /**
- * Directory search controls — a plain GET form, deliberately: filters live in
- * the URL, so every search is shareable, bookmarkable, and back-button-friendly
- * with zero client state (this stays a Server Component). Submitting rebuilds
- * /trainers?zip=…&radius=…&specialties=… and the page re-reads searchParams.
+ * Directory search controls. The form POSTs to recordTrainerSearch so a
+ * click on Search is a trusted server event (not a /trainers pageview).
+ * The action redirects to the same shareable GET URL the page already
+ * reads, so bookmarks, chips, and the back button stay GET-only.
  *
  * Current values arrive as props (parsed from the URL by the page) and are
  * re-applied via default* attributes so the form reflects the active search.
@@ -30,8 +31,7 @@ export function DirectoryFilters({
 }) {
   return (
     <form
-      method="get"
-      action="/trainers"
+      action={recordTrainerSearch}
       className="border-border bg-card flex flex-col gap-4 rounded-lg border p-4"
     >
       <div className="grid gap-4 sm:grid-cols-[1fr_1fr_auto] sm:items-end">
