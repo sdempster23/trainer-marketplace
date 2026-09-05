@@ -11,10 +11,15 @@ describe("isNashvilleBeachhead", () => {
     expect(isNashvilleBeachhead("37221")).toBe(true);
   });
 
-  test("Brentwood / Franklin / Madison / Clarksville are out of the beachhead", () => {
-    expect(isNashvilleBeachhead("37027")).toBe(false);
-    expect(isNashvilleBeachhead("37064")).toBe(false);
-    expect(isNashvilleBeachhead("37115")).toBe(false);
+  test("Greater Nashville suburbs within ~50mi of downtown are in", () => {
+    expect(isNashvilleBeachhead("37027")).toBe(true); // Brentwood (~11 mi)
+    expect(isNashvilleBeachhead("37064")).toBe(true); // Franklin (~17 mi)
+    expect(isNashvilleBeachhead("37129")).toBe(true); // Murfreesboro (~29 mi)
+    expect(isNashvilleBeachhead("37130")).toBe(true); // Murfreesboro (~31 mi)
+    expect(isNashvilleBeachhead("37075")).toBe(true); // Hendersonville (~14 mi)
+  });
+
+  test("Clarksville is out (separate MSA; not Greater Nashville)", () => {
     expect(isNashvilleBeachhead("37040")).toBe(false);
   });
 
