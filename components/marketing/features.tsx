@@ -23,7 +23,7 @@ type Feature = {
 const OWNER_FEATURES: Feature[] = [
   {
     headline: "Search by what matters",
-    body: "Specialty, distance, and price up front. Working-dog credentials are first-class, not a footnote.",
+    body: "Specialty and distance up front. Working-dog credentials are first-class, not a footnote.",
     crop: UI_CROPS.search,
   },
   {
@@ -40,7 +40,7 @@ const TRAINER_FEATURES: Feature[] = [
     crop: UI_CROPS.calendar,
   },
   {
-    headline: "No new accounts. No new logins",
+    headline: "Your payment tools stay yours",
     body: "No payment platform in the middle. Clients pay the way they already do, and the money never touches PawMatch.",
     crop: UI_CROPS.payment,
   },

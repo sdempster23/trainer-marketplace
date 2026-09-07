@@ -43,7 +43,7 @@ export const UI_SHOTS = {
     alt: "PawMatch trainer directory showing trainer cards with profile photos, specialties, and travel radius",
     title: "The directory",
     caption:
-      "Every trainer, searchable by location, specialty, and price. Family-dog help and sport-dog specialists side by side.",
+      "Every trainer, searchable by location and specialty. Family-dog help and sport-dog specialists side by side.",
     route: "/trainers",
   },
   profile: {

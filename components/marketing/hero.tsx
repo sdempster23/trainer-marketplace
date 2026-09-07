@@ -24,12 +24,20 @@ import { MARKETING_IMAGES } from "@/lib/marketing/image-manifest";
  * If the scrim stops or text position change, re-run this math.
  *
  * Truthful-copy contract: every claim here is live today (search by
- * location/specialty/price, sport specialties, messaging, booking).
+ * location/specialty, sport specialties, messaging, booking). Price was
+ * removed from this list 2026-09-06: no price filter exists.
  */
 
-/** Locked at the identity gate (Shane's wording, verbatim). */
+/**
+ * Locked at the identity gate (Shane's wording, verbatim), RE-RULED
+ * 2026-09-06: "and price" cut because no price filter exists, and the
+ * conjunction restored ("location and specialty") so the list still
+ * reads — the ruled wording is now the line below (docs/design/
+ * arc-notes.md, Tier-1 copy corrections). Do not restore "and price" as
+ * a lock fix.
+ */
 const LOCKED_CONTEXT_SENTENCE =
-  "Search professional trainers by location, specialty, and price — for every dog, from family pets to working K9s.";
+  "Search professional trainers by location and specialty — for every dog, from family pets to working K9s.";
 
 /** Locked at the identity gate: promise line (b). */
 const DEFAULT_HEADLINE = "Find the trainer your dog needs";

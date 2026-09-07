@@ -103,6 +103,9 @@ NO TERMINAL PUNCTUATION on ANY display headline, page-wide and uniform.
   only. Finale locked: H2 "Your next client is already searching." /
   pitch "We send you clients that fit into the tools you already use." /
   CTA "Join as a trainer" (verbatim match with the hero CTA).
+  [H2 SUPERSEDED 2026-09-06 — now "Listed by discipline, not just by
+  zip code"; see "Tier-1 copy corrections" at the end of this file.
+  Pitch and CTA unchanged.]
 - Dark act transition approved as built (CSS gradient band).
 - /account Replace-row overflow at 390px FIXED in phase 4
   (external-calendar-manager.tsx: form wraps, input full-width below sm).
@@ -114,6 +117,10 @@ NO TERMINAL PUNCTUATION on ANY display headline, page-wide and uniform.
 - Context sentence locked verbatim: "Search professional trainers by
   location, specialty, and price — for every dog, from family pets to
   working K9s."
+  [SUPERSEDED 2026-09-06 — "and price" cut; the ruled wording is now
+  "Search professional trainers by location and specialty — for every
+  dog, from family pets to working K9s." See "Tier-1 copy corrections"
+  at the end of this file.]
   Note: the locked wording contains an em-dash, which the design skill
   bans as an AI tell. Shane's wording overrides the skill; do not "fix" it.
 - Promise line locked: "Find the trainer your dog needs." (variant b).
@@ -221,3 +228,48 @@ would either hoist auth queries into the LCP-critical route or make
 the shell theme-aware mid-scroll. Brand continuity comes from the
 shared wordmark recipe (the wide-subset Archivo instance), not from a
 shared component. Do not unify.
+
+## Tier-1 copy corrections (2026-09-06 — two locks deliberately re-ruled)
+
+Trigger: an external audit read the homepage as promising owners can
+filter trainers BY PRICE. Checked against the shipped code
+(docs/scratch/tier1-copy-inventory.md): the directory parser accepts
+only zip, radius, and specialty; `nearby_trainers` returns no price
+column; `trainers` has no starting-price field. The claim was FALSE
+and was not close to true. Two of the five carrying strings were locked
+constants, so this is recorded as a RE-RULING, not a copy tweak. The
+new wording below is now the ruled wording; a later session must not
+restore the old lines as a lock violation.
+
+- Price-filter claim REMOVED in all five places, price element only,
+  location/distance and specialty left intact, sentences otherwise
+  unchanged: app/page.tsx metadata description; the hero's
+  LOCKED_CONTEXT_SENTENCE — the bare cut ("by location, specialty —")
+  left a comma against the dash, so the conjunction was restored:
+  "Search professional trainers by location and specialty — for every
+  dog, from family pets to working K9s." That is the ruled line; the
+  em-dash note above still applies); features.tsx owner feature #1 body
+  ("Specialty and distance
+  up front."); comparison.tsx row 1 ("Search by specialty and
+  distance"); ui-shots.ts directory caption ("searchable by location
+  and specialty").
+- LEFT ALONE, deliberately: "services with real prices" (comparison.tsx
+  row 2, ui-shots.ts profile caption). True at the profile level — the
+  detail page lists every service with its price.
+- ROOT CAUSE fixed: app/page.tsx's truthful-copy contract listed
+  "price" under CLAIMABLE. It now lists price search/filtering under
+  NOT CLAIMABLE until a price filter exists, with the reason. Left
+  as it was, that comment would re-license the claim the next time
+  homepage copy is written.
+- Headline swaps (single occurrences, no terminal periods per the
+  headline voice rule):
+  - features.tsx trainer feature #2: "No new accounts. No new logins"
+    -> "Your payment tools stay yours".
+  - finale.tsx H2 (LOCKED at the phase-3 verdict): "Your next client is
+    already searching" -> "Listed by discipline, not just by zip code".
+    Reason: the old line asserted owner demand that does not exist —
+    two listed trainers, no owner-side marketing yet. Pitch and CTA
+    unchanged.
+- The identity-gate and phase-3 entries above carry SUPERSEDED
+  annotations pointing here, so the old locks cannot be read in
+  isolation.

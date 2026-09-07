@@ -27,12 +27,17 @@ import { SiteFooter } from "@/components/shared/site-footer";
  *
  * TRUTHFUL-COPY CONTRACT (standing — every claim on this page MUST be true
  * TODAY; do not add a claim until the feature ships):
- *   CLAIMABLE (built + live): search trainers by location, specialty, and
- *     price; the working/sport-dog niche (PSA, Schutzhund, French Ring,
- *     PPD); message a trainer; request a booking that the trainer confirms;
+ *   CLAIMABLE (built + live): search trainers by location and specialty;
+ *     the working/sport-dog niche (PSA, Schutzhund, French Ring, PPD);
+ *     message a trainer; request a booking that the trainer confirms;
  *     two-way calendar sync (bookings -> your calendar, your calendar ->
  *     blocked slots); the trainer sets how they take payment (off-platform).
- *   NOT CLAIMABLE until built: reviews / ratings / "verified" trainers;
+ *   NOT CLAIMABLE until built: searching or filtering trainers BY PRICE
+ *     (no price filter exists — the directory parser accepts only zip,
+ *     radius, and specialty; nearby_trainers returns no price column;
+ *     trainers has no starting-price field. Re-ruled 2026-09-06 after the
+ *     claim shipped false; see docs/design/arc-notes.md);
+ *     reviews / ratings / "verified" trainers;
  *     in-app or "secure" payment / Stripe / payouts; ANY social proof or
  *     volume claims; ANY pricing claims (pending the founding-offer
  *     decision; "founding" appears nowhere on the page). The contract
@@ -49,7 +54,7 @@ import { SiteFooter } from "@/components/shared/site-footer";
 export const metadata = {
   title: "PawMatch — find the trainer your dog needs",
   description:
-    "Search professional dog trainers by location, specialty, and price — for every dog, from family pets to working K9s. Message, book, and keep it in the calendar you already use.",
+    "Search professional dog trainers by location and specialty — for every dog, from family pets to working K9s. Message, book, and keep it in the calendar you already use.",
 };
 
 export default function Home() {
