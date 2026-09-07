@@ -1523,6 +1523,181 @@ CLI moved 2.109.1 → 2.115.0 in the sanctioned between-arcs window.
 verdict was "clean, phone walk genuinely good." The product she
 onboards into now looks like the promise that recruits her.
 
+## Trainer Images — avatars + galleries, the repo's first binary storage (squash `d4d90f9`, PR #46)
+
+The arc trainers asked for unprompted: two production trainer signups
+(2026-08-24, 2026-08-25) wanted pictures before the product offered
+any. Opened 2026-08-25; the gate closed the same day with six rulings
+(avatar on /account, role-universal; gallery cap 8; two PUBLIC buckets,
+jpeg/png/webp, no SVG, no GIF; manual moderation with
+no-proactive-review honesty; marketing re-capture bundled with the
+owed search-demo re-record; a pre-existing privacy soft-delete wobble
+fixed in-arc) plus two additions (an EXIF-strip privacy line; a
+deletion story for storage objects). Five review-gated commits, merged
+2026-08-26. Code-complete; the production phone walk is still owed
+(see forward items).
+
+**Storage is a different RLS regime — and M14's contract said don't pin
+it.** Probed before a line was written: the platform grants ALL API
+roles full DML on `storage.objects` and gates purely by policy, the
+INVERSE of the M7/M14 table regime. Pinning storage grants would couple
+the suite to a platform-owned ACL — the exact drift class M14 refuses —
+so M18 declares BUCKET CONFIG and POLICIES only, and the m18 suite
+(15 checks) asserts exactly those in both directions, plus behaviour
+under JWT-scoped roles. Two hosted-platform facts banked: CREATE POLICY
+and triggers on `storage.objects` are allowed from migrations, ALTER
+TABLE is not (the April-2025 rule — if `db push` ever fails here,
+re-probe, don't work around); and direct SQL DELETE on `storage.objects`
+is trigger-blocked and would orphan the backing file regardless, so ALL
+cleanup is app-level through the Storage API by design. Also ruled out:
+Supabase image transforms (Pro-only) in favour of a client-side canvas
+re-encode that strips EXIF/GPS as a side effect — a privacy win the
+/privacy page now states outright.
+
+**The avatar hijack (critical, caught at review).** `profiles.avatar_url`
+is owner-writable through PostgREST, and the URL builder concatenated
+it — any user could point their pointer at a victim's object and render
+the victim's photo as their own on the public directory, invisible to
+the upload sniff because no upload happens. Fix: `publicAvatarUrl`
+PARSES the stored value and REBUILDS the URL from the joined row's own
+id; anything else renders as no avatar. Banked as a standing CLAUDE.md
+rule: **a user-writable value is untrusted at every READ site, not just
+at the write** — a validated write path does not sanctify the column.
+M19 applies the rule one layer lower: `file_name` is a charset-pinned
+uuid enforced by CHECK, the full object path is never stored, and ONE
+shared read helper serves the public page and the manager so the rule
+cannot be honoured in one place and forgotten in the other.
+
+**M19 — the cap is structural, the unique is DEFERRABLE, and DEFERRABLE
+alone is not enough.** `position smallint CHECK (1..8)` +
+`UNIQUE (trainer_id, position)` make a 9th row and a shared slot
+impossible — no count(*) race, no app guard to forget. The unique is
+DEFERRABLE INITIALLY DEFERRED so a two-row swap in ONE statement is
+legal (a non-deferrable index rejects it mid-statement — probed). Then
+the finding behind this arc's fix: the first cut of the reorder action
+swapped positions with two supabase-js `.update()` calls under a
+comment claiming they shared a transaction. They do not — two HTTP
+requests are two AUTOCOMMIT transactions, and DEFERRABLE defers to the
+end of EACH one, where the duplicate still exists. Reproduced against
+the real schema: every half-swap raised 23505; reorder was completely
+broken, and there is no scratch slot to borrow because all eight can be
+occupied. Fixed by `move_gallery_photo()`: a SECURITY INVOKER RPC that
+does the swap in one UPDATE in one transaction, finds neighbours by
+ORDER (deletions leave holes, so position ± 1 is wrong), is a silent
+no-op at the ends of the list, raises 42501 on a foreign photo (the
+inner SELECT rides the PUBLIC read policy, so the ownership check is
+load-bearing), and is EXECUTE-granted to authenticated only. m19 C1
+pins the two-transaction failure so nobody "simplifies" the RPC back
+into client updates. Rule banked: **a multi-row invariant swap is one
+statement in one transaction — an RPC, never a sequence of client
+calls.** Corollary on the insert side: a new photo takes the LOWEST
+FREE slot, not max+1, for the same holes reason.
+
+**The rest of the gate's catches, all applied.** Insert-failure cleanup
+that deleted a LIVE row's bytes on a replayed submit (the file-unique
+23505 is now excluded — a hit means a committed row already owns those
+bytes); read failures logged in the helper so "globally broken" and "no
+photos yet" stop rendering identically; the sniff invariant scoped
+honestly to commit time (delete + re-upload can change bytes later,
+bounded by `allowed_mime_types`); modal focus trap, scroll lock and
+focus restore; the lightbox aspect-ratio jump (fill + contain, not a
+hardcoded 4:3); `crypto.randomUUID`'s secure-context-only trap, which
+breaks phone-over-LAN dev testing, behind a getRandomValues fallback;
+an env-crash guard for CI builds; a dangling pointer on a failed avatar
+replace. One review run was killed mid-flight by a session limit; its
+partial output was discarded and the gate fully re-run (the July-5
+lesson: a killed gate's silence is not a pass).
+
+**Privacy truth-pass and runbooks.** /privacy re-read whole against
+post-avatar behaviour caught four PRE-EXISTING false claims (dog-photo,
+Turnstile scope, 160-char mail preview, calendar TTL cadence) alongside
+the new photo disclosures. Two runbooks landed in docs/manual-steps.md
+(account deletion — storage first, then the auth user, then section 6;
+image moderation — manual-with-visibility), and marketplace-state.sql
+section 6 gained avatar/gallery object counts plus three-way avatar
+reconciliation (malformed/foreign pointer, pointer-without-object,
+object-without-pointer).
+
+**Gates and hosted verification.** typecheck / lint / vitest 156 /
+build; m18 15/15, m19 24/24, full m6–m19 regression from a fresh reset;
+M14 auto-covered the new table at 17 public tables × 4 verbs. M18 and
+M19 pushed to hosted and verified there: policy set exact, bucket
+config exact, RPC INVOKER with authenticated-only EXECUTE, M14 matrix
+zero mismatches. Post-deploy: /privacy served the Aug-26 copy; the
+gallery read path ran and rendered the honest EMPTY state (nobody had
+uploaded yet); the six re-captured marketing assets — plus the owed
+search-demo re-record, the capture now two committed scripts — landed
+byte-identical to local.
+
+**After merge: the first real photos, and a deployment check.** On
+the morning of 2026-09-04 the third production trainer signup (hosted
+`auth.users` read 2026-09-06: three trainer accounts, one owner test
+account, nothing else) uploaded four gallery photos and an avatar —
+the arc's demand signal, answered before any walk. A verify-only
+deployment check the same day pinned that the alias-resolved production
+deployment contains `d4d90f9` (merge-base exit 0), that production and
+the deployed tree carry the same 20 migrations, and that CI was green.
+Side finding from that check: docs/scratch/ was merely untracked, one
+`git add -A` from being committed — #48 gitignored it.
+
+**Live-site view (2026-09-06, Shane).** Shane viewed the live site and
+confirmed the real trainer's avatar and four gallery photos render
+correctly on the public pages. That exercises the READ path only —
+the publicGalleryUrl / publicAvatarUrl rebuild and next/image against
+the public buckets. Four things remain UNPROVEN in production: EXIF
+orientation handling on a camera-roll portrait (the re-encode decodes
+through an HTMLImageElement, so orientation should be applied at draw
+time — should, not shown); reorder persistence across a refresh (the
+`move_gallery_photo` RPC has never been called on hosted); order
+persistence across a middle-photo removal; and live Resend delivery of
+the owner→trainer notification. No walk accounts were created and no
+sweep was run.
+
+**Hosted read-back (2026-09-06, `supabase db dump --linked
+--data-only`, read-only).** Hosted contains one real trainer's images
+and no test residue — no thread, message, booking or dog rows exist,
+and neither bucket holds an object outside that trainer's folder:
+
+| Surface | Hosted state |
+|---|---|
+| `avatars` | 1 object (`{uid}/avatar`, jpeg, 78 KB) |
+| `trainer-gallery` | 4 objects, one folder, jpeg, 126–627 KB |
+| `trainer_gallery_photos` | 4 rows, positions 1–4, one-to-one with the objects |
+| avatar pointer | matches the rebuilt shape — section 6 MISMATCH rows: none |
+
+Those rows' `updated_at` equals `created_at`: no reorder has happened
+in production yet, which is why the RPC is on the unproven list above.
+
+**Stale-runbook correction (this entry's sitting).** The deletion and
+moderation runbooks still said the gallery "has no pointer table yet";
+both were re-verified against the real table and bucket and rewritten
+(the gallery pointer is a `trainer_gallery_photos` row; removal is row
+AND object). What is still true and now stated as such: section 6
+reconciles AVATARS only — gallery objects are counted, not reconciled
+against rows.
+
+**Forward items.**
+- THE PRODUCTION WALK (owed): on a throwaway trainer account, upload a
+  camera-roll portrait as the avatar and 2–3 gallery photos, reorder,
+  refresh, remove a middle photo, refresh; from a throwaway owner
+  account confirm directory card, detail Photos section and thread
+  header, and message the trainer to prove Resend delivery of the
+  doorbell. Then sweep both accounts per the deletion runbook and
+  confirm section 6 shows zero MISMATCH rows and the gallery count
+  returns to 4.
+- Section 6 gallery reconciliation (row-without-object,
+  object-without-row): the table exists now, so the runbook's
+  "visually confirm in Storage" caveat is a query gap, not a schema gap.
+- H.264 transcode still blocked on system ffmpeg; WebM ships as before.
+
+**Residual: CODE-COMPLETE, walk owed.** The first real photos on the
+platform arrived before anyone walked the feature, and the bucket, the
+table and the public page agree on them. The write side — upload
+orientation, reorder, removal — holds suite proof plus the local
+avatar walk only; the doorbell's production proof dates from the
+August email arc, not from a photo-bearing thread. Production has not
+exercised any of it in this arc.
+
 ---
 
 ## M20 — `analytics_events` (Proof north-star events)

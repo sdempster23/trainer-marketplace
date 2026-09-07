@@ -228,12 +228,16 @@ API or dashboard). The manual order:
    constraints to force it.
 3. **Verify:** run docs/marketplace-state.sql — section 6's MISMATCH
    rows must not appear afterward. LIMIT of that check: it reconciles
-   AVATARS only — the gallery has no pointer table yet (it lands with
-   the gallery feature), so a missed `trainer-gallery/{uid}/` folder
-   produces NO mismatch row. Until gallery reconciliation exists,
-   visually confirm in dashboard → Storage that the user's gallery
-   folder is gone; the section-6 "gallery objects" count dropping by
-   the expected amount is the corroborating signal.
+   AVATARS only. The gallery's pointer table exists
+   (`trainer_gallery_photos`, M19) and its rows cascade with the
+   trainer, but section 6 does not yet reconcile those rows against
+   `trainer-gallery/{uid}/` objects — a missed gallery folder produces
+   NO mismatch row, only a "gallery objects (storage)" count that fails
+   to drop. So: visually confirm in dashboard → Storage that the user's
+   gallery folder is gone, and check the count dropped by the expected
+   amount. Baseline read back from hosted 2026-09-06: 1 avatar object
+   and 4 gallery objects, all one live trainer's, each gallery object
+   matched by a row.
 
 ## Image moderation (manual-with-visibility — gate ruling 4)
 
@@ -243,8 +247,10 @@ proactive review). Visibility is the routine: every upload is browsable
 in dashboard → Storage, and marketplace-state.sql section 6 counts
 avatars and gallery objects, so new images surface in the query Shane
 already runs. Removal path for a problem image: delete the object in
-the dashboard AND null the pointer — for an avatar that's
-profiles.avatar_url; for a gallery image there is NO pointer row until
-the gallery feature lands (deleting the object is the whole removal
-today — re-verify this line against the real table when it ships).
-Pointer-only removal leaves the file publicly fetchable.
+the dashboard AND the pointer — for an avatar that's nulling
+profiles.avatar_url; for a gallery image it's deleting the
+`trainer_gallery_photos` row (the trainer's own Remove on
+/trainer/listing does both, row first then object; from the dashboard
+do the same two steps by hand). Pointer-only removal leaves the file
+publicly fetchable; object-only removal leaves a row that renders a
+broken image and still holds one of the 8 slots.
