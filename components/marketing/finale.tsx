@@ -94,7 +94,7 @@ export function FinaleSection() {
         </p>
         <div data-finale-line className="pt-2">
           <Button asChild variant="action" size="lg" className="text-base">
-            <Link href="/sign-up">Join as a trainer</Link>
+            <Link href="/sign-up?role=trainer">Join as a trainer</Link>
           </Button>
         </div>
       </div>

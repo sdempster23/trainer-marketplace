@@ -15,6 +15,27 @@ import { z } from "zod";
 export const SIGNUP_ROLES = ["owner", "trainer"] as const;
 export type SignupRole = (typeof SIGNUP_ROLES)[number];
 
+export const ROLE_REQUIRED_ERROR =
+  "Choose whether you're a dog owner or a trainer.";
+
+/** The ONE role schema — the form field and the URL preset both parse
+ * through it, so the allowlist cannot drift between the two. */
+const signupRoleSchema = z.enum(SIGNUP_ROLES, ROLE_REQUIRED_ERROR);
+
+/**
+ * Parse an OPTIONAL `?role=` preset for the signup page (the "Join as a
+ * trainer" CTAs send `?role=trainer`). User-writable, so it is an allowlist,
+ * never a passthrough: only an exact member of SIGNUP_ROLES preselects a
+ * radio. Absent, empty, unknown, wrong-case, or repeated (array) values all
+ * return null — nothing preselected, the user must choose. The preset only
+ * ever affects which radio starts checked; the server action re-validates
+ * the submitted field independently.
+ */
+export function parseSignupRoleParam(value: unknown): SignupRole | null {
+  const result = signupRoleSchema.safeParse(value);
+  return result.success ? result.data : null;
+}
+
 /** Minimum password length. Deliberately modest for dev; tighten before prod. */
 export const PASSWORD_MIN_LENGTH = 8;
 
@@ -30,7 +51,10 @@ export const signUpSchema = z.object({
       PASSWORD_MIN_LENGTH,
       `Password must be at least ${PASSWORD_MIN_LENGTH} characters.`,
     ),
-  role: z.enum(SIGNUP_ROLES, "Choose whether you're a dog owner or a trainer."),
+  // No default: with nothing checked the field is ABSENT from FormData and
+  // this fails with ROLE_REQUIRED_ERROR — the choice is the user's, never
+  // the array order's.
+  role: signupRoleSchema,
   // The 18+/ToS/Privacy checkbox (launch-gate ruling 5: checkbox, unchecked
   // by default). An unchecked HTML checkbox is ABSENT from FormData, so the
   // literal "on" requirement makes absence — and any tampered value — fail
