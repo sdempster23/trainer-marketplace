@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useActionState, useEffect, useState } from "react";
+import { use, useActionState, useEffect, useState } from "react";
 
 import { signUp, type AuthActionState } from "@/app/(app)/(auth)/actions";
 import { TurnstileWidget } from "@/components/auth/turnstile-widget";
@@ -15,14 +15,29 @@ import {
 } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { SIGNUP_ROLES } from "@/lib/validators/auth";
+import { parseSignupRoleParam, SIGNUP_ROLES } from "@/lib/validators/auth";
 
 const ROLE_COPY: Record<(typeof SIGNUP_ROLES)[number], string> = {
   owner: "I have a dog and want to find a trainer",
   trainer: "I'm a trainer offering my services",
 };
 
-export default function SignUpPage() {
+/** Shane's wording (tier-1 fix, 2026-09-06): the account type is immutable
+ * after signup (M11 trigger), so the consequence is stated at the choice. */
+const ROLE_CONSEQUENCE = "Account type is permanent — choose the one that fits.";
+
+export default function SignUpPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ role?: string | string[] }>;
+}) {
+  // `?role=` carries intent from the CTA ("Join as a trainer" sends
+  // role=trainer). It is user-writable, so it only ever picks which radio
+  // STARTS checked, and only through the SIGNUP_ROLES allowlist: anything
+  // else leaves nothing checked. The server action validates the submitted
+  // field on its own — the URL is never the gate.
+  const { role: roleParam } = use(searchParams);
+  const presetRole = parseSignupRoleParam(roleParam);
   const [state, formAction, isPending] = useActionState<
     AuthActionState,
     FormData
@@ -73,8 +88,12 @@ export default function SignUpPage() {
 
             <fieldset className="grid gap-2">
               <legend className="mb-1 text-sm font-medium">Sign up as…</legend>
+              {/* NO positional default: nothing is checked unless the
+                  allowlisted ?role= preset says so. An unchecked group is
+                  absent from FormData and fails server validation with the
+                  "choose" message. `required` is browser UX only. */}
               <div className="grid gap-2">
-                {SIGNUP_ROLES.map((role, index) => (
+                {SIGNUP_ROLES.map((role) => (
                   <label
                     key={role}
                     className="border-border hover:bg-accent/40 has-[:checked]:border-primary has-[:checked]:bg-accent/60 flex cursor-pointer items-start gap-3 rounded-md border p-3 text-sm transition-colors"
@@ -83,7 +102,8 @@ export default function SignUpPage() {
                       type="radio"
                       name="role"
                       value={role}
-                      defaultChecked={index === 0}
+                      defaultChecked={role === presetRole}
+                      required
                       className="mt-0.5"
                     />
                     <span>
@@ -97,6 +117,7 @@ export default function SignUpPage() {
                   </label>
                 ))}
               </div>
+              <p className="text-muted-foreground text-xs">{ROLE_CONSEQUENCE}</p>
             </fieldset>
 
             {/* Consent (launch-gate ruling 5): checkbox, UNCHECKED by

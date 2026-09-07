@@ -82,10 +82,13 @@ test("the complete stranger funnel, headless", async ({ page }) => {
   const email = `stranger-${Date.now()}@pawmatch.test`;
   const password = "Rehearsal-pass1";
 
-  // 1. SIGN UP (Turnstile test widget auto-passes; role owner is default).
+  // 1. SIGN UP (Turnstile test widget auto-passes). Nothing is preselected
+  // on a bare /sign-up (tier-1 fix: the owner default was array order, not
+  // a decision) — the stranger picks owner explicitly.
   await page.goto("/sign-up");
   await page.fill("input[name=email]", email);
   await page.fill("input[name=password]", password);
+  await page.check("input[name=role][value=owner]");
   // Consent checkbox (launch gate): unchecked by default, must be checked.
   await page.check("input[name=consent]");
   // Wait for the always-pass test widget to populate the response token.

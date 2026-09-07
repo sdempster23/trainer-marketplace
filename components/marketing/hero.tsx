@@ -127,7 +127,7 @@ export function MarketingHero({
             variant="outline"
             className="border-white/40 bg-transparent text-base text-white hover:bg-white/15 hover:text-white"
           >
-            <Link href="/sign-up">Join as a trainer</Link>
+            <Link href="/sign-up?role=trainer">Join as a trainer</Link>
           </Button>
         </div>
       </div>

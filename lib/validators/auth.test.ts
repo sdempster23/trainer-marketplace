@@ -1,8 +1,10 @@
 import { describe, expect, test } from "vitest";
 
 import {
+  parseSignupRoleParam,
   passwordResetRequestSchema,
   newPasswordSchema,
+  ROLE_REQUIRED_ERROR,
   signUpSchema,
 } from "@/lib/validators/auth";
 
@@ -76,5 +78,43 @@ describe("newPasswordSchema (ruling 3)", () => {
     // The reset path must not become a side door around the signup rule.
     const result = newPasswordSchema.safeParse({ password: "short" });
     expect(result.success).toBe(false);
+  });
+});
+
+describe("signUpSchema role (no positional default)", () => {
+  test("rejects a submission with no role chosen, with the choose message", () => {
+    // No radio checked → the field is absent from FormData → null via
+    // formData.get(). The server must refuse, not fall back to owner.
+    const result = signUpSchema.safeParse({ ...VALID_SIGNUP, role: null });
+    expect(result.success).toBe(false);
+    if (!result.success) {
+      expect(result.error.issues[0]?.message).toBe(ROLE_REQUIRED_ERROR);
+    }
+  });
+
+  test("accepts each allowlisted role exactly", () => {
+    expect(signUpSchema.safeParse({ ...VALID_SIGNUP, role: "owner" }).success).toBe(true);
+    expect(signUpSchema.safeParse({ ...VALID_SIGNUP, role: "trainer" }).success).toBe(true);
+    expect(signUpSchema.safeParse({ ...VALID_SIGNUP, role: "admin" }).success).toBe(false);
+  });
+});
+
+describe("parseSignupRoleParam (the ?role= preset allowlist)", () => {
+  test("returns the role for an exact allowlisted value", () => {
+    expect(parseSignupRoleParam("trainer")).toBe("trainer");
+    expect(parseSignupRoleParam("owner")).toBe("owner");
+  });
+
+  test.each([
+    ["absent", undefined],
+    ["empty", ""],
+    ["unknown value", "admin"],
+    ["wrong case", "Trainer"],
+    ["padded", " trainer"],
+    ["array-style repeated param", ["trainer", "owner"]],
+    ["single-element array", ["trainer"]],
+    ["non-string", 1],
+  ])("returns null for %s → nothing preselected", (_label, value) => {
+    expect(parseSignupRoleParam(value)).toBeNull();
   });
 });

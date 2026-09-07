@@ -318,7 +318,7 @@ export default async function TrainersPage({
               title="No trainers listed yet"
               action={
                 <Button asChild variant="outline">
-                  <Link href="/sign-up">Join as a trainer</Link>
+                  <Link href="/sign-up?role=trainer">Join as a trainer</Link>
                 </Button>
               }
             >
