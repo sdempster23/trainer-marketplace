@@ -8,7 +8,7 @@ import { Reveal } from "@/components/marketing/reveal";
 const ROWS = [
   {
     old: "Facebook threads and word of mouth",
-    now: "Search by specialty, distance, and price",
+    now: "Search by specialty and distance",
   },
   {
     old: "Guessing from a logo and a phone number",

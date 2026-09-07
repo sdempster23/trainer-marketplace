@@ -19,7 +19,11 @@ gsap.registerPlugin(ScrollTrigger, useGSAP);
  * Copy ruling (phase-3 verdict): NO pricing claims anywhere on this page
  * until the founding-offer mechanics are settled; the word "founding"
  * appears nowhere on the page. Headline and pitch are Shane's locked
- * lines; the CTA matches the hero's trainer CTA verbatim.
+ * lines; the CTA matches the hero's trainer CTA verbatim. The headline
+ * was RE-RULED 2026-09-06 ("Your next client is already searching" ->
+ * "Listed by discipline, not just by zip code": the old line asserted
+ * owner demand that does not exist yet). The line below is the ruled
+ * wording — see docs/design/arc-notes.md, Tier-1 copy corrections.
  *
  * Motion, and why: the photo settles from a slight zoom as the scene
  * enters (the last camera move, mirroring the hero's first) and the pitch
@@ -80,7 +84,7 @@ export function FinaleSection() {
           data-finale-line
           className="font-display max-w-3xl text-4xl leading-none font-bold tracking-[-0.035em] text-balance text-white sm:text-6xl lg:text-7xl"
         >
-          Your next client is already searching
+          Listed by discipline, not just by zip code
         </h2>
         <p
           data-finale-line
