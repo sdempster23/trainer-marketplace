@@ -309,3 +309,89 @@ RULED, so a later session does not "fix" it back:
   it now also closes on chip / clear / widen. One consistent rule
   replaces two accidental ones. Keeping it open would need its state
   outside the keyed subtree — a follow-up, not part of this fix.
+
+## PARKED — non-US (Canadian) trainers (2026-09-08, scoped, not built)
+
+Trigger: a trainer who signed up 2026-08-25 could not complete
+onboarding because she is in Canada. Scoped in
+docs/scratch/geo-constraint-probe.md (local); this entry is the
+durable summary.
+
+What BLOCKS a non-US trainer today — all app layer:
+- The ZIP field's browser hints (`inputMode="numeric"`,
+  `pattern="\d{5}"`, `maxLength={5}`) on the listing form AND the
+  directory search form — a postal code cannot be typed, let alone
+  submitted.
+- The `/^\d{5}$/` regex in both zod schemas (onboarding, edit listing)
+  and the same `\d{5}` guard in front of the directory lookup (page and
+  search action).
+- `TRAINER_TIMEZONES`: a seven-zone US enum (zod + dropdown). No
+  Canadian zone; Newfoundland (UTC-3:30) and Saskatchewan (no DST) have
+  no equivalent at all, and timezone drives booking times.
+- ZIP-worded copy (labels, placeholders, error strings, the directory
+  result line, the privacy page's "a ZIP search").
+
+What does NOT block — and must not be touched to "fix" this:
+- `trainers.service_point` is PostGIS `geography(point, 4326)`;
+  `timezone` is free-text IANA. No ZIP/country column exists; the DB
+  would take a Toronto point today with no migration.
+- `nearby_trainers` takes lat/lng/miles and returns geodesic meters. It
+  knows nothing about ZIPs.
+- The `zipcodes` package (bundled flat file, no network, no key)
+  ALREADY resolves Canadian postal codes offline at forward-sortation-
+  area level: `lookup()` trims any non-numeric input to its first three
+  characters; the data file holds 1,620 FSAs (~complete); verified
+  across every province and territory. Caveat: it does not normalize
+  lowercase — the caller would uppercase.
+
+The ONE product ruling a build would need: accept FSA-level precision.
+Urban FSAs are ZIP-comparable; rural FSAs (second character 0) are
+large, so a rural Canadian trainer's "approximate area" is coarser than
+a rural US ZIP's. The data has no finer grain, so requiring a full
+six-character code buys only the appearance of precision. Rule it
+explicitly when building; do not let it be decided by default.
+
+Shape of the build, for sizing only (NOT a plan): postal-code format
+acceptance + uppercase normalization at the two schemas and two
+directory guards; Canadian zones added to the timezone enum/labels;
+copy pass on every ZIP-worded surface; the 5-digit unit test re-pinned.
+Nothing in the schema, the RPC, or the dependency moves.
+
+REVISIT TRIGGER: two or more ADDITIONAL non-US trainer signups (i.e.
+three total). One is a signal to record, not a market to build for.
+Until then the honest state is "US only," and the onboarding copy
+should be judged against that if it is ever revisited for other
+reasons.
+
+## OPEN DEFECT — the listing edit form cannot prefill the trainer's ZIP (2026-09-08)
+
+`trainers.service_point` stores only the geocoded point; there is no
+ZIP (postal code) column. Onboarding geocodes the ZIP with `zipcodes`
+and writes `SRID=4326;POINT(lng lat)` — the ZIP itself is discarded. So
+the edit listing form renders a blank optional ZIP with "Your service
+area is saved — enter a ZIP only to move it," and a partial-onboarding
+re-entry likewise cannot show what was entered. Truthful today, but a
+trainer cannot see or confirm her own service area from the form.
+
+What a fix would take (recorded, NOT scheduled):
+- A migration adding a nullable text column on `trainers` for the
+  entered code (name it for what it is once Canada is ruled — "postal
+  code", not "zip"), written by both `completeOnboarding` and
+  `updateTrainerListing` alongside `service_point` so the two can never
+  disagree (write them in the same statement).
+- Regenerate `types/supabase.ts`; prefill it on the edit page and the
+  partial-onboarding page; drop the "can't prefill" copy.
+- Existing rows: no offline reverse geocode exists in the dependency.
+  Either leave NULL (form stays blank for pre-existing trainers until
+  they re-enter, which the current copy already handles) or backfill by
+  nearest ZIP centroid over the bundled table — approximate, and it
+  would have to be labelled as such. Two live trainers today; NULL is
+  the honest default.
+- Privacy: the code is the same "approximate area" already disclosed
+  and already derivable from the public point, but it is a new
+  anon-readable column under the public-read RLS on `trainers`; the
+  M14 matrix is table-level so it auto-covers, and the privacy page's
+  "approximate service location" line stays true. Say so in the
+  migration header.
+- Not needed: any change to `nearby_trainers` (it returns no ZIP) or to
+  the directory.
