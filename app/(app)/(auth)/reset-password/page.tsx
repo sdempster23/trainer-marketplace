@@ -10,6 +10,8 @@ import {
 } from "@/components/ui/card";
 import { createClient } from "@/lib/supabase/server";
 
+export const metadata = { title: "Choose a new password — PawMatch" };
+
 /**
  * Set-new-password page — the landing of the recovery email's link, which
  * /auth/confirm (type=recovery) has just exchanged for a session. SERVER
@@ -29,7 +31,7 @@ export default async function ResetPasswordPage() {
         {hasSession ? (
           <>
             <CardHeader>
-              <CardTitle>Choose a new password</CardTitle>
+              <CardTitle as="h1">Choose a new password</CardTitle>
               <CardDescription>
                 You&apos;re verified — set the new password for your account.
               </CardDescription>
@@ -41,7 +43,7 @@ export default async function ResetPasswordPage() {
         ) : (
           <>
             <CardHeader>
-              <CardTitle>
+              <CardTitle as="h1">
                 This link didn&apos;t work
               </CardTitle>
               <CardDescription>

@@ -103,7 +103,7 @@ test("the complete stranger funnel, headless", async ({ page }) => {
 
   // Confirmation ON → no session → the check-email page.
   await page.waitForURL("**/sign-up/check-email");
-  await expect(page.getByText(/check your email/i)).toBeVisible();
+  await expect(page.getByRole("heading", { level: 1, name: /check your email/i })).toBeVisible();
 
   // 2. RESEND path (from the check-email page).
   await page.fill("#resend-email", email);
