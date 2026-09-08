@@ -395,3 +395,57 @@ What a fix would take (recorded, NOT scheduled):
   migration header.
 - Not needed: any change to `nearby_trainers` (it returns no ZIP) or to
   the directory.
+
+## KNOWN GAP — post-confirmation destination is always /account (2026-09-08, decision pending)
+
+Status: known gap, NOT a bug to fix now. Recorded after PR #55 carried
+`?next=` across login ⇄ sign-up and onto the check-email page's "Log in"
+link — everything short of the email itself.
+
+The gap. The hosted "Confirm signup" email template builds its link as
+`{{ .SiteURL }}/auth/confirm?token_hash={{ .TokenHash }}&type=email&next=/account`
+(docs/manual-steps.md; the local template matches). `next` is a literal
+in the template, so every new user lands on /account after confirming,
+regardless of where they started. The `emailRedirectTo` the signup
+action passes (`siteUrl("/account")`) populates `{{ .RedirectTo }}`,
+which the template never reads — it is dead today.
+
+User-visible cost. Someone who found a trainer, clicked "Log in to
+message", chose "Sign up", created an account, and confirmed by email
+arrives at their account page with no memory of why they came. The
+destination survived four hops and died at the fifth. The only place it
+still works after signup is the check-email page's "Log in" link (for a
+visitor who confirms in another tab and comes back to log in).
+
+Fix shape, if ruled:
+1. Hosted template (DASHBOARD change — the dashboard-only Supabase
+   config ruling applies; not a migration, not code): read the
+   destination from `{{ .RedirectTo }}` instead of the literal, e.g.
+   `…&type=email&next={{ .RedirectTo }}`. Recovery template unaffected.
+2. Signup action: pass `emailRedirectTo` as the carried destination
+   (validated same-origin path, default /account) so `{{ .RedirectTo }}`
+   holds it; `resendConfirmation` must pass the same value or the resent
+   link regresses to /account (the check-email page already has `next`
+   to hand it).
+3. /auth/confirm: `{{ .RedirectTo }}` arrives as a full URL, which
+   `safeInternalPath` rejects by design (it accepts a leading-slash path
+   only). Widen the confirm route to accept a same-origin ABSOLUTE URL by
+   parsing it and honoring only its path — the open-redirect posture
+   (launch-gate review finding) must not loosen: origin must equal the
+   site origin, anything else falls back to /account.
+4. GoTrue only honors `emailRedirectTo` values on the project's redirect
+   allow list (Authentication → URL Configuration); otherwise it
+   silently substitutes the Site URL. A path-carrying value needs a
+   wildcard entry for the site origin (`https://joinpawmatch.com/**`) —
+   another dashboard step, and the reason this is not a code-only fix.
+5. Verify against hosted, not locally: the local template is a file
+   under supabase/templates/, the hosted one is dashboard state, and the
+   two have drifted before (email arc, 2026-08-13).
+
+Decision pending: whether the cost is worth two dashboard edits plus a
+loosening of the confirm route's accepted shape. Revisit when there is
+evidence of owners arriving via "Log in to message" and dropping — the
+`search` and `conversation` north-star events (M20) are the place to
+look. Until then the code comments in the signup action and the
+check-email page state the gap so nobody assumes the link works end to
+end.
