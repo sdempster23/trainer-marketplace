@@ -18,7 +18,12 @@ import {
  * reads, so bookmarks, chips, and the back button stay GET-only.
  *
  * Current values arrive as props (parsed from the URL by the page) and are
- * re-applied via default* attributes so the form reflects the active search.
+ * applied via default* attributes. default* only seeds a control at MOUNT —
+ * the page renders this component with key={canonical search URL}, so any
+ * change to the active search re-creates the form and the controls are
+ * re-seeded. Without that key the controls went stale across chip / Clear /
+ * widen / back-forward transitions and Search re-submitted the stale DOM
+ * (tests/e2e/directory-filters.spec.ts pins all five shapes).
  */
 export function DirectoryFilters({
   zip,

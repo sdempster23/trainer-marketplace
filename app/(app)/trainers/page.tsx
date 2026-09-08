@@ -243,7 +243,19 @@ export default async function TrainersPage({
             Browse everyone, filter by specialty, or search near a ZIP code.
         </PageHeader>
 
+        {/* KEYED ON THE CANONICAL SEARCH: the form's controls are
+            uncontrolled (default*), which React seeds only at mount. Every
+            chip / Clear / widen affordance below is a client-side
+            transition, so without this key the mounted controls kept their
+            old values while the URL, chips, and results moved on — and the
+            next Search re-submitted the stale DOM (2026-09-08 audit, both
+            bugs). A new canonical URL = a new key = the form is re-created
+            from the URL. Same serializer the links and the action use, so a
+            URL that parses to the same search does not remount. Cost,
+            ruled (arc-notes): unsearched drafts — a typed ZIP, toggled
+            boxes, the open disclosure — are discarded on any commit. */}
         <DirectoryFilters
+          key={directoryUrl({})}
           zip={zip}
           radiusMiles={radiusMiles}
           specialties={specialties}

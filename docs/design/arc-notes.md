@@ -273,3 +273,39 @@ restore the old lines as a lock violation.
 - The identity-gate and phase-3 entries above carry SUPERSEDED
   annotations pointing here, so the old locks cannot be read in
   isolation.
+
+## Directory filters: the URL is the only source of truth (2026-09-08 — ruled)
+
+Audit finding: "Clear all" / chip remove left the boxes checked and
+Search re-applied them; "Search within 50 miles" widened results but the
+dropdown stayed at 25 and Search reverted. One bug: the filter form's
+controls are uncontrolled (default*), seeded from the URL only at mount,
+while every affordance is a next/link client-side transition — the URL,
+chips, and results moved on, the mounted controls did not, and Search
+serialized the stale DOM back (docs/scratch/directory-filter-probe.md;
+back/forward confirmed to show the same shape before the fix).
+
+Fix: the page renders DirectoryFilters with key = the canonical search
+URL (the same serializer the links and the Search action use). A new
+search = a new key = the form is re-created from the URL. Pinned by
+tests/e2e/directory-filters.spec.ts (clear all, chip remove, wider
+radius, ZIP draft, back/forward; each asserts a window marker survives
+so the suite provably exercises client-side transitions).
+
+RULED, so a later session does not "fix" it back:
+- **An unsearched draft is discarded on any commit.** Typed-but-not-
+  searched ZIP, toggled-but-not-searched boxes, and the open Specialties
+  disclosure are all dropped when a chip, Clear all, Clear specialties,
+  Search within N miles, or back/forward changes the active search.
+  Reason: those affordances commit URL state; preserving a draft across
+  them would require the link hrefs to read the DOM — the exact
+  two-sources coupling this fix removes. The directory stays a
+  zero-client-JS Server Component; chips stay shareable GET links;
+  Search stays the only POST (and the only `search` event emitter).
+  If draft preservation is ever wanted, it is a separate product ruling
+  (chips-as-submits or client state), not a tweak to this one.
+- **The Specialties disclosure closes on every search change.** It
+  already closed on Search (the action's redirect re-creates the form);
+  it now also closes on chip / clear / widen. One consistent rule
+  replaces two accidental ones. Keeping it open would need its state
+  outside the keyed subtree — a follow-up, not part of this fix.
