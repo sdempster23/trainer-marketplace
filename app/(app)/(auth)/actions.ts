@@ -6,7 +6,7 @@ import { after } from "next/server";
 
 import { emitAnalyticsEvent } from "@/lib/analytics/events";
 import { siteUrl } from "@/lib/site-url";
-import { safeInternalPath } from "@/lib/auth/safe-internal-path";
+import { hrefWithNext, safeInternalPath } from "@/lib/auth/safe-internal-path";
 import { verifyTurnstile } from "@/lib/auth/turnstile";
 import { createClient } from "@/lib/supabase/server";
 import { z } from "zod";
@@ -123,14 +123,27 @@ export async function signUp(
     );
   }
 
+  // The destination the visitor was carrying (e.g. from "Log in to message"
+  // → /login?next= → Sign up). Same-origin path only, validated HERE — the
+  // hidden field is attacker-suppliable like any form value.
+  const next = safeInternalPath(formData.get("next"));
+
   // Refresh any layout-cached, user-dependent data, then land the user.
   // redirect() MUST stay outside the try/catch — it signals via a thrown
   // NEXT_REDIRECT that a catch would swallow.
   revalidatePath("/", "layout");
   if (hasSession) {
-    redirect(POST_AUTH_REDIRECT); // confirmation off (local option): straight in
+    // Confirmation off (local option): straight in — and `next` genuinely
+    // works here, because no email round trip intervenes.
+    redirect(next ?? POST_AUTH_REDIRECT);
   }
-  redirect(CHECK_EMAIL_REDIRECT); // confirmation on (production): confirm via email
+  // Confirmation on (production): the emailed link is built by the hosted
+  // template as {{ .SiteURL }}/auth/confirm?…&next=/account — it does NOT
+  // carry this value, so the confirm route will land the user on /account
+  // regardless. What DOES survive: the check-email page's own "Log in"
+  // link, which forwards `next` so a visitor who confirms in another tab
+  // and logs in from here still reaches their destination.
+  redirect(hrefWithNext(CHECK_EMAIL_REDIRECT, next));
 }
 
 export async function signIn(
