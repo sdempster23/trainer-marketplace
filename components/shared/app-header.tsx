@@ -1,5 +1,6 @@
 import Link from "next/link";
 
+import { AuthNavLinks } from "@/components/shared/auth-nav-links";
 import { Badge } from "@/components/ui/badge";
 import { getUnreadThreadCount } from "@/lib/messages/threads";
 import { createClient } from "@/lib/supabase/server";
@@ -63,14 +64,9 @@ export async function AppHeader() {
               </Link>
             </>
           ) : (
-            <>
-              <Link href="/login" className={linkClasses}>
-                Log in
-              </Link>
-              <Link href="/sign-up" className={linkClasses}>
-                Sign up
-              </Link>
-            </>
+            // Client leaf: carries a validated ?next= on the auth pages
+            // (a layout cannot read searchParams), bare everywhere else.
+            <AuthNavLinks className={linkClasses} />
           )}
         </nav>
       </div>

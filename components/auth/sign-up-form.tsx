@@ -9,7 +9,11 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { hrefWithNext } from "@/lib/auth/safe-internal-path";
-import { SIGNUP_ROLES, type SignupRole } from "@/lib/validators/auth";
+import {
+  PASSWORD_MIN_LENGTH,
+  SIGNUP_ROLES,
+  type SignupRole,
+} from "@/lib/validators/auth";
 
 const ROLE_COPY: Record<SignupRole, string> = {
   owner: "I have a dog and want to find a trainer",
@@ -19,6 +23,11 @@ const ROLE_COPY: Record<SignupRole, string> = {
 /** Shane's wording (tier-1 fix, 2026-09-06): the account type is immutable
  * after signup (M11 trigger), so the consequence is stated at the choice. */
 const ROLE_CONSEQUENCE = "Account type is permanent — choose the one that fits.";
+
+/** Persistent guidance beneath the password field (a placeholder vanishes
+ * on the first keystroke — exactly when a too-short password needs it).
+ * Built from the SAME constant the server action's zod schema enforces. */
+const PASSWORD_GUIDANCE = `At least ${PASSWORD_MIN_LENGTH} characters.`;
 
 /**
  * The signup form — client leaf of /sign-up. Both props arrive ALREADY
@@ -66,14 +75,22 @@ export function SignUpForm({
 
         <div className="grid gap-2">
           <Label htmlFor="password">Password</Label>
+          {/* minLength is browser UX only — it stops a short password AT
+              this field (before the consent box gets the blame) — and is
+              sourced from PASSWORD_MIN_LENGTH so it cannot drift from the
+              server rule. The action's signUpSchema remains the real gate. */}
           <Input
             id="password"
             name="password"
             type="password"
             autoComplete="new-password"
-            placeholder="At least 8 characters"
+            minLength={PASSWORD_MIN_LENGTH}
+            aria-describedby="password-guidance"
             required
           />
+          <p id="password-guidance" className="text-muted-foreground text-xs">
+            {PASSWORD_GUIDANCE}
+          </p>
         </div>
 
         <fieldset className="grid gap-2">
