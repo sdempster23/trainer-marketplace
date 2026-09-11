@@ -449,3 +449,108 @@ evidence of owners arriving via "Log in to message" and dropping — the
 look. Until then the code comments in the signup action and the
 check-email page state the gap so nobody assumes the link works end to
 end.
+
+## PARKED — one person, two capacities: the trainer who also owns a dog (2026-09-11, decision pending)
+
+Trigger: an external audit observed that a trainer is likely also a dog
+owner — plausibly the MOST likely person to want an owner account — and
+the product has no way to hold both capacities. Recorded, not built; no
+code, no migration.
+
+The constraint and where it is enforced. Each auth user is exactly one
+`profiles` row (`id` is the PK and the FK to `auth.users`) with a single
+`role` from the `user_role` enum (`owner` | `trainer` | `admin`;
+`handle_new_user` downgrades anything else to `owner` at insert). The
+role is immutable for EVERY updater, service_role included: the M11
+BEFORE UPDATE trigger `trg_profiles_validate_update` raises
+`role is immutable` on any change
+(supabase/migrations/20260703160000_booking_enablers.sql). Its header
+says this is deliberate and that an admin role-change flow "is its own
+future migration." Above the DB, roughly fifteen app guards fork on the
+single value: the trainer actions (`profile.role !== "trainer"` → out),
+`/owner/dogs`, `/owner/bookings` and `/trainers/[id]/book`
+(`!== "owner"` → out), the trainer page's `isOwner` viewer probe, the
+role-forked `/account` hub, the messages page, and the `trainer_signup`
+once-per-user analytics event. The signup disclosure "Account type is
+permanent — choose the one that fits" (sign-up-form.tsx, tier-1 fix
+2026-09-06) is honest about all of this.
+
+The user-visible cost. A trainer who wants to hire another trainer for
+her own dog cannot: on a trainer's profile a logged-in trainer sees
+neither "Message" nor "Book" (the profile renders them only for
+`isOwner` or a logged-out visitor); a deep link to `/book` lands on the
+"Trainers can't book sessions" card. Her only route is a SECOND account
+under a DIFFERENT email — Supabase Auth keys identity on the address,
+so the same one cannot sign up twice — and nothing in the product says
+so: not the signup line, not the "can't book" card, not the trainer
+page. The reverse (an owner who later starts training) is the same wall
+from the other side: `/trainer/onboarding` bounces anyone whose role is
+not `trainer` to `/account`.
+
+Scope of the options — sized, NOT designed:
+
+A. Second account as the sanctioned answer, with copy. SMALL. Copy at
+   three surfaces: the signup consequence line (add the "use a second
+   email for the other capacity" sentence; plus-addressing works with
+   most providers and could be named), the "Trainers can't book
+   sessions" card, and the trainer page's logged-in-trainer state
+   (which currently shows nothing where the CTAs would be). No schema,
+   no RLS, no guard changes. Costs carried: the two accounts are
+   unlinked (analytics cannot see that an owner-side `booking_request`
+   came from someone who is also a trainer — acceptable, the funnel
+   counts capacities, not people); the deletion runbook runs twice for
+   one person; the privacy page's "one account" framing should be
+   re-read. Compatible with either later option.
+
+B. A role-change path that works around the immutability trigger.
+   MEDIUM, and mostly not UI. The M11 header already names it a future
+   migration: the trigger would need a sanctioned bypass (an admin- or
+   DEFINER-only path, never a loosening of the trigger for API roles),
+   and `raw_user_meta_data.role` must be rewritten in the same step or
+   the two sources disagree. The data consequences are the real size:
+   trainer→owner strands a `trainers` row (listing, services,
+   availability, public directory presence) and any bookings/threads
+   held as the trainer side; owner→trainer strands dogs and
+   owner-side history. The M8 messaging gate and the booking tables
+   distinguish the owner and trainer SIDES by role, so a flipped
+   participant breaks the meaning of existing rows. It also only
+   solves "I chose wrong" — it does nothing for "I am both," which is
+   the audit's actual case. Likely support-driven, not self-serve.
+
+C. Genuine dual-capacity accounts. LARGE. The single enum column is
+   load-bearing across the schema and the app: RLS and DEFINER gates
+   that decide which SIDE of a thread or booking a user is on, the
+   fifteen-odd page/action guards, the `/account` and messages forks,
+   `handle_new_user`, the once-per-user analytics set, the signup form
+   itself. The natural shape (owner as the base capacity, a `trainers`
+   row as the added trainer capacity — the row already exists as the
+   "is a trainer" fact) inverts M11's premise and touches every
+   role-distinguished policy. Migration + broad app pass + the M14
+   matrix re-run + privacy and signup copy + every role-guard test.
+   Not a tier-1 item under any reading.
+
+Decision pending. The cheapest honest step is A, and it does not
+foreclose B or C; but whether the cost is real for PawMatch's users is
+not yet evidenced — two live trainers, one owner as of 2026-09-06.
+
+Where evidence would show up if this matters in practice:
+- The hosted auth dump (read-only, `supabase db dump --linked
+  --data-only`): two `auth.users` rows for one person — a
+  plus-addressed second email (`name+owner@…`), or matching
+  `display_name` / avatar across an owner and a trainer profile.
+- The privacy@ inbox: "how do I switch to owner," "I signed up as a
+  trainer but want to book," or a deletion request followed by a
+  re-signup under the same name.
+- Analytics (M20 north-star events): an owner account whose
+  `booking_request` / `conversation` events target a trainer while a
+  same-named trainer account exists; or a `trainer_signup` with no
+  `complete_profile` followed by an owner signup — the abandoned-wrong-
+  role shape.
+- Product dead ends hit: a logged-in trainer landing on the "Trainers
+  can't book sessions" card. That page has no event today; if this is
+  revisited, it is the first place worth counting.
+
+REVISIT TRIGGER: any one confirmed instance of a person holding (or
+asking for) both capacities. Until then the signup line stays as ruled
+and the wall stays undocumented in-product — the honest state, not a
+comfortable one.
