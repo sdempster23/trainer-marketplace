@@ -554,3 +554,49 @@ REVISIT TRIGGER: any one confirmed instance of a person holding (or
 asking for) both capacities. Until then the signup line stays as ruled
 and the wall stays undocumented in-product — the honest state, not a
 comfortable one.
+
+## RULED — the sticky Book bar at zero bookable services (2026-09-11, amends "ONE sticky in-flow Book bar")
+
+Trigger: an external audit reported (three times) a live trainer
+profile showing "No services listed yet." beside a "Book a session"
+button. Probe and design in docs/scratch/book-without-services-probe.md
+and -fix-proposal.md (local). Root cause: the bar was conditioned on
+viewer state only, never on whether anything was bookable — while the
+services list was already fetched on the same render.
+
+**The sticky Book bar is the page's one booking affordance — and at
+zero bookable services it carries the message fallback instead.** The
+interior-polish ruling ("ONE sticky in-flow Book bar — never
+per-service links; the book page's select handles choice") settled
+ONE-versus-MANY and presupposed a service existed. It stands unchanged
+for ≥1. The missing case is now ruled:
+
+- An honest ZERO: the same slot shows the flow's existing fallback (the
+  booking form's no-open-times object — EmptyState + Message for
+  owners, "Log in to message" back to the PROFILE for logged-out
+  visitors) and nothing on the page links to /book. Trainers and
+  admins still get no bar.
+- A FAILED services read is NOT a zero: the bar keeps the Book link
+  (the book page performs its own read, so the link is the retry) and
+  the Services section's ErrorState carries the fault. A fault never
+  renders as a fact about the trainer — the same rule the Services
+  section already enforced.
+- The book page mirrors this: the services read runs BEFORE the dog
+  guard (an owner is no longer sent to add a dog and back before
+  learning there was nothing to book), the zero state is the same
+  EmptyState + Message, and the four availability reads (including the
+  M16 external-calendar fetch) do not run at zero.
+- The rule has ONE home, `lib/trainer/book-bar-state.ts`, pinned by a
+  unit table (the failed-read rows can only be pinned there) and an
+  e2e block with a seeded zero-service trainer plus a control.
+
+Copy, approved by Shane 2026-09-11: "{Name} isn't taking bookings right
+now" on both surfaces — for owners the profile bar appends "Message
+them to ask about training."; for logged-out visitors it is the
+sentence alone (the button beneath already reads "Log in to message",
+so a second sentence doubled it); the book page appends "— message them
+to ask about training." The Services section's "No
+services listed yet." became "No services listed." Every line is
+neutral on history: services soft-delete, so a trainer who removed all
+services reads identically to one who never added any, and "yet"
+asserted something the page cannot know.
