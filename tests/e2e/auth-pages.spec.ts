@@ -1,11 +1,15 @@
 import { expect, test } from "@playwright/test";
 
+import { PASSWORD_MIN_LENGTH } from "../../lib/validators/auth";
+
 /**
  * Auth pages: each owns a real h1 and a descriptive title, and the
  * login ⇄ sign-up links carry a validated `?next=` destination (the
  * "Log in to message" → switch-forms path) — same-origin paths only.
- * Link locators are scoped to <main>: the app shell header carries its
- * own bare "Log in" / "Sign up" links.
+ * The app shell header's own "Log in" / "Sign up" links carry the same
+ * validated value (and stay bare everywhere else) — pinned in the
+ * "app shell header" block below; in-page link locators are scoped to
+ * <main> so the two sets never collide.
  */
 
 const DEST = "/trainers/70a17e51-0000-0000-0000-000000000001";
@@ -65,4 +69,64 @@ test("check-email page: h1, title, and Log in carries next", async ({ page }) =>
     "href",
     `/login?next=${encodeURIComponent(DEST)}`,
   );
+});
+
+test.describe("app shell header", () => {
+  const header = (page: import("@playwright/test").Page) => page.getByRole("banner");
+
+  test("on /login with a valid next, Sign up carries it", async ({ page }) => {
+    await page.goto(`/login?next=${encodeURIComponent(DEST)}`);
+    await expect(header(page).getByRole("link", { name: "Sign up" })).toHaveAttribute(
+      "href",
+      `/sign-up?next=${encodeURIComponent(DEST)}`,
+    );
+  });
+
+  test("on /sign-up and /sign-up/check-email with a valid next, Log in carries it", async ({
+    page,
+  }) => {
+    for (const path of ["/sign-up", "/sign-up/check-email"]) {
+      await page.goto(`${path}?next=${encodeURIComponent(DEST)}`);
+      await expect(header(page).getByRole("link", { name: "Log in" })).toHaveAttribute(
+        "href",
+        `/login?next=${encodeURIComponent(DEST)}`,
+      );
+    }
+  });
+
+  test("an off-origin next is dropped from both header links", async ({ page }) => {
+    await page.goto("/login?next=https%3A%2F%2Fevil.example%2Fx");
+    await expect(header(page).getByRole("link", { name: "Sign up" })).toHaveAttribute("href", "/sign-up");
+    await expect(header(page).getByRole("link", { name: "Log in" })).toHaveAttribute("href", "/login");
+  });
+
+  test("on a route with no next, both header links stay bare", async ({ page }) => {
+    await page.goto("/forgot-password");
+    await expect(header(page).getByRole("link", { name: "Sign up" })).toHaveAttribute("href", "/sign-up");
+    await expect(header(page).getByRole("link", { name: "Log in" })).toHaveAttribute("href", "/login");
+  });
+});
+
+test.describe("sign-up password guidance", () => {
+  test("the minimum length is stated beneath the field and enforced by the browser", async ({
+    page,
+  }) => {
+    await page.goto("/sign-up");
+    const password = page.getByLabel("Password");
+    // The browser attribute is sourced from the SAME constant the server
+    // action's zod schema enforces — the spec imports it so the two cannot
+    // drift without this test noticing.
+    await expect(password).toHaveAttribute("minlength", String(PASSWORD_MIN_LENGTH));
+    const guidance = new RegExp(`at least ${PASSWORD_MIN_LENGTH} characters`, "i");
+    await expect(password).toHaveAccessibleDescription(guidance);
+    await expect(page.getByText(guidance)).toBeVisible();
+
+    // One character short: the field itself reports too-short, so a
+    // submit stops HERE with the browser's length message — not later at
+    // the unchecked consent box.
+    await password.pressSequentially("x".repeat(PASSWORD_MIN_LENGTH - 1));
+    await expect(password).toHaveJSProperty("validity.tooShort", true);
+    await password.fill("x".repeat(PASSWORD_MIN_LENGTH));
+    await expect(password).toHaveJSProperty("validity.tooShort", false);
+  });
 });
