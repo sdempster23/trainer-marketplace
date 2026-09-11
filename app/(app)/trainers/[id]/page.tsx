@@ -12,6 +12,7 @@ import { EmptyState, ErrorState } from "@/components/shared/states";
 import { geistMono } from "@/lib/fonts";
 import { createClient } from "@/lib/supabase/server";
 import type { Database } from "@/types/supabase";
+import { bookBarState, notTakingBookings } from "@/lib/trainer/book-bar-state";
 import { getActiveServices } from "@/lib/trainer/services";
 import { getGalleryPhotos } from "@/lib/trainer/gallery";
 import { dbIdSchema } from "@/lib/validators/id";
@@ -37,7 +38,11 @@ import {
  *
  * The booking entry is ONE sticky Book bar (interior-polish map ruling —
  * never per-service links); the book page's service select handles choice,
- * defaulting to the first service when no ?service= param arrives.
+ * defaulting to the first service when no ?service= param arrives. At an
+ * honest ZERO bookable services the same slot carries the message fallback
+ * instead and nothing on the page links to /book (ruling amended
+ * 2026-09-11, arc-notes); a FAILED services read is not a zero and keeps
+ * the Book link. The rule lives in ONE place: lib/trainer/book-bar-state.
  */
 
 // The z.guid()-not-z.uuid() argument lives with the shared schema.
@@ -153,6 +158,14 @@ export default async function TrainerDetailPage({
       getGalleryPhotos(supabase, id),
     ]);
 
+  // ONE decision for the sticky bar, from values already in scope — no
+  // extra query (the fix's premise; see lib/trainer/book-bar-state).
+  const bar = bookBarState({
+    servicesError,
+    serviceCount: services.length,
+    viewer,
+  });
+
   const radiusMiles =
     trainer.service_radius_meters !== null
       ? Math.round(trainer.service_radius_meters / METERS_PER_MILE)
@@ -191,15 +204,7 @@ export default async function TrainerDetailPage({
             </div>
           ) : !viewer.isLoggedIn ? (
             <div className="mt-1">
-              <Button asChild variant="outline" size="sm">
-                {/* ?next= brings them back here post-login (validated as a
-                    same-origin path by the signIn action). */}
-                <Link
-                  href={`/login?next=${encodeURIComponent(`/trainers/${trainer.id}`)}`}
-                >
-                  Log in to message
-                </Link>
-              </Button>
+              <LoginToMessageLink trainerId={trainer.id} />
             </div>
           ) : null}
         </header>
@@ -258,7 +263,9 @@ export default async function TrainerDetailPage({
               Services couldn&apos;t be loaded. Please refresh to try again.
             </ErrorState>
           ) : services.length === 0 ? (
-            <EmptyState>No services listed yet.</EmptyState>
+            // No "yet": services soft-delete, so the page cannot know
+            // whether this trainer removed them or never added any.
+            <EmptyState>No services listed.</EmptyState>
           ) : (
             <ul className="flex flex-col gap-3">
               {services.map((service) => (
@@ -293,24 +300,60 @@ export default async function TrainerDetailPage({
           scroll it sits after the content and cannot cover anything (the
           390 watch item, satisfied by construction). Owners book; a
           logged-out visitor goes through login and lands back on the book
-          page; trainers (including self-preview) get no bar. */}
-      {viewer.isOwner || !viewer.isLoggedIn ? (
+          page; trainers (including self-preview) get no bar. At an honest
+          zero the SAME slot carries the no-open-times fallback (message /
+          log in to message, back to THIS page) — the visitor learns the
+          truth here, not after a dog detour on /book. */}
+      {bar !== "none" ? (
         <div className="bg-background/95 border-border sticky bottom-0 -mx-6 border-t px-6 py-3 backdrop-blur">
           <div className="mx-auto w-full max-w-2xl">
-            <Button asChild variant="action" size="lg" className="w-full">
-              <Link
-                href={
-                  viewer.isOwner
-                    ? `/trainers/${trainer.id}/book`
-                    : `/login?next=${encodeURIComponent(`/trainers/${trainer.id}/book`)}`
+            {bar === "book" ? (
+              <Button asChild variant="action" size="lg" className="w-full">
+                <Link
+                  href={
+                    viewer.isOwner
+                      ? `/trainers/${trainer.id}/book`
+                      : `/login?next=${encodeURIComponent(`/trainers/${trainer.id}/book`)}`
+                  }
+                >
+                  Book a session
+                </Link>
+              </Button>
+            ) : (
+              <EmptyState
+                compact
+                action={
+                  bar === "message" ? (
+                    <MessageButton counterpartyId={trainer.id} />
+                  ) : (
+                    <LoginToMessageLink trainerId={trainer.id} />
+                  )
                 }
               >
-                Book a session
-              </Link>
-            </Button>
+                {notTakingBookings(trainer.profiles.display_name)}
+                {/* Logged-out: the sentence alone — the button beneath
+                    already reads "Log in to message" (Shane, 2026-09-11). */}
+                {bar === "message" ? ". Message them to ask about training." : "."}
+              </EmptyState>
+            )}
           </div>
         </div>
       ) : null}
     </main>
+  );
+}
+
+/**
+ * The logged-out visitor's contact affordance — header AND the zero-services
+ * bar render the same link. ?next= brings them back to THIS profile
+ * post-login (validated as a same-origin path by the signIn action).
+ */
+function LoginToMessageLink({ trainerId }: { trainerId: string }) {
+  return (
+    <Button asChild variant="outline" size="sm">
+      <Link href={`/login?next=${encodeURIComponent(`/trainers/${trainerId}`)}`}>
+        Log in to message
+      </Link>
+    </Button>
   );
 }

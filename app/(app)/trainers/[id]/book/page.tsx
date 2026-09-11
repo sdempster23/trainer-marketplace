@@ -2,8 +2,9 @@ import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { z } from "zod";
 
+import { MessageButton } from "@/components/messages/message-button";
 import { BookingForm } from "@/components/owner/booking-form";
-import { ErrorState } from "@/components/shared/states";
+import { EmptyState, ErrorState } from "@/components/shared/states";
 import { PageHeader } from "@/components/shared/page-header";
 import { Button } from "@/components/ui/button";
 import {
@@ -21,6 +22,7 @@ import {
   computeBookableSlots,
   type BookableSlot,
 } from "@/lib/trainer/schedule";
+import { notTakingBookings } from "@/lib/trainer/book-bar-state";
 import { getActiveServices } from "@/lib/trainer/services";
 import { getActiveDogs } from "@/lib/owner/dogs";
 import { BOOKING_WINDOW_DAYS } from "@/lib/validators/booking";
@@ -45,6 +47,15 @@ const MS_PER_DAY = 86_400_000;
  * the shared inputs (pattern, exceptions, busy, timezone) are fetched once,
  * computeBookableSlots runs once per service, and the window is the same
  * BOOKING_WINDOW_DAYS the createBooking guard recomputes over.
+ *
+ * GUARD ORDER (zero-services fix, 2026-09-11): the services read comes
+ * BEFORE the dogs guard. Previously an owner with no dog was sent to add
+ * one, returned, and only then learned there was nothing to book. The
+ * profile no longer links here at zero, but this URL stays reachable
+ * (saved links, a pre-fix login ?next=), so the page must be honest on its
+ * own — and with an early return at zero, the four availability reads
+ * (pattern, exceptions, the M16 external-calendar fetch, busy) never run
+ * with nothing to price them against. Do not "optimise" the order back.
  */
 export default async function BookPage({
   params,
@@ -105,6 +116,35 @@ export default async function BookPage({
     notFound();
   }
 
+  // Services FIRST (see header). A failed read ≠ zero services — the false
+  // "hasn't listed any" statement was the investigation's bug-class find
+  // here — and neither may be masked by "Add a dog first".
+  const { services, error: servicesError } = await getActiveServices(
+    supabase,
+    id,
+  );
+  if (servicesError) {
+    return (
+      <BookShell name={trainer.profiles.display_name} trainerId={id}>
+        <ErrorState>
+          Services couldn&apos;t be loaded. Please refresh to try again.
+        </ErrorState>
+      </BookShell>
+    );
+  }
+  if (services.length === 0) {
+    return (
+      <BookShell name={trainer.profiles.display_name} trainerId={id}>
+        {/* The same object as the form's no-open-times state: EmptyState +
+            Message. Outside any form — MessageButton is its own <form>. */}
+        <EmptyState action={<MessageButton counterpartyId={id} />}>
+          {notTakingBookings(trainer.profiles.display_name)} — message them
+          to ask about training.
+        </EmptyState>
+      </BookShell>
+    );
+  }
+
   // The error field must be read (investigation bug-class fix): a failed
   // dogs read previously fell through to "Add a dog first" — a false
   // statement to an owner who HAS dogs, pointing at a page that would
@@ -146,11 +186,6 @@ export default async function BookPage({
       </main>
     );
   }
-
-  const { services, error: servicesError } = await getActiveServices(
-    supabase,
-    id,
-  );
 
   // Shared slot inputs, fetched once; one pure computation per service.
   // ERRORS ARE READ (the carried step-1 finding): computing slots from a
@@ -200,48 +235,61 @@ export default async function BookPage({
     TIMEZONE_LABELS[trainer.timezone as TrainerTimezone] ?? trainer.timezone;
 
   return (
+    <BookShell
+      name={trainer.profiles.display_name}
+      trainerId={id}
+      description="Your request goes to the trainer to confirm — nothing is charged yet."
+    >
+      {slotInputsError ? (
+        // A failed slot input must never masquerade as "no open times"
+        // (the carried step-1 finding).
+        <ErrorState>
+          Available times couldn&apos;t be loaded. Please refresh to try
+          again.
+        </ErrorState>
+      ) : (
+        <Card>
+          <CardContent className="pt-6">
+            <BookingForm
+              dogs={dogs}
+              services={services}
+              slotsByService={slotsByService}
+              preselectServiceId={preselect}
+              zoneLabel={zoneLabel}
+              trainerId={id}
+            />
+          </CardContent>
+        </Card>
+      )}
+    </BookShell>
+  );
+}
+
+/**
+ * The page's one frame — header, the state or the form, "Back to the
+ * trainer" — so the three post-floor states (failed read, zero services,
+ * the form) cannot drift in layout. The description is the form's
+ * "nothing is charged yet" line; the zero/failed states omit it (there is
+ * no request to make).
+ */
+function BookShell({
+  name,
+  trainerId,
+  description,
+  children,
+}: {
+  name: string;
+  trainerId: string;
+  description?: string;
+  children: React.ReactNode;
+}) {
+  return (
     <main className="bg-muted flex-1 px-6 py-12">
       <div className="mx-auto flex w-full max-w-2xl flex-col gap-6">
-        <PageHeader title={`Book with ${trainer.profiles.display_name}`}>
-          Your request goes to the trainer to confirm — nothing is charged
-          yet.
-        </PageHeader>
-
-        {servicesError ? (
-          // Failed read ≠ zero services — the false "hasn't listed any"
-          // statement was the investigation's bug-class find here.
-          <ErrorState>
-            Services couldn&apos;t be loaded. Please refresh to try again.
-          </ErrorState>
-        ) : services.length === 0 ? (
-          <p className="text-muted-foreground text-sm">
-            This trainer hasn&apos;t listed any bookable services yet.
-          </p>
-        ) : slotInputsError ? (
-          // A failed slot input must never masquerade as "no open times"
-          // (the carried step-1 finding) — but a truthful zero-services
-          // state outranks it (review: precedence).
-          <ErrorState>
-            Available times couldn&apos;t be loaded. Please refresh to try
-            again.
-          </ErrorState>
-        ) : (
-          <Card>
-            <CardContent className="pt-6">
-              <BookingForm
-                dogs={dogs}
-                services={services}
-                slotsByService={slotsByService}
-                preselectServiceId={preselect}
-                zoneLabel={zoneLabel}
-                trainerId={id}
-              />
-            </CardContent>
-          </Card>
-        )}
-
+        <PageHeader title={`Book with ${name}`}>{description}</PageHeader>
+        {children}
         <Button asChild variant="outline" className="w-full">
-          <Link href={`/trainers/${id}`}>Back to the trainer</Link>
+          <Link href={`/trainers/${trainerId}`}>Back to the trainer</Link>
         </Button>
       </div>
     </main>
