@@ -8,6 +8,7 @@ import {
 } from "@/components/trainer/listing-form";
 import { Card, CardContent } from "@/components/ui/card";
 import { getOnboardingState } from "@/lib/trainer/onboarding";
+import { hrefWithNext } from "@/lib/auth/safe-internal-path";
 import { createClient } from "@/lib/supabase/server";
 import type {
   ServiceRadiusMiles,
@@ -35,7 +36,7 @@ export default async function TrainerOnboardingPage() {
   const { data } = await supabase.auth.getClaims();
   const claims = data?.claims;
   if (!claims) {
-    redirect("/login");
+    redirect(hrefWithNext("/login", "/trainer/onboarding"));
   }
 
   const { data: profile } = await supabase

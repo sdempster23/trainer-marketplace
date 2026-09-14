@@ -2,7 +2,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 
 import { createDog } from "@/app/(owner)/actions";
-import { safeInternalPath } from "@/lib/auth/safe-internal-path";
+import { hrefWithNext, safeInternalPath } from "@/lib/auth/safe-internal-path";
 import { Button } from "@/components/ui/button";
 import { PageHeader } from "@/components/shared/page-header";
 import { EmptyState, ErrorState } from "@/components/shared/states";
@@ -49,7 +49,7 @@ export default async function OwnerDogsPage({
   const { data } = await supabase.auth.getClaims();
   const claims = data?.claims;
   if (!claims) {
-    redirect("/login");
+    redirect(hrefWithNext("/login", "/owner/dogs"));
   }
 
   const { data: profile } = await supabase

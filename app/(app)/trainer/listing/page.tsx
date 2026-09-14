@@ -12,6 +12,7 @@ import {
 } from "@/components/ui/card";
 import { EmptyState, ErrorState } from "@/components/shared/states";
 import { geistMono } from "@/lib/fonts";
+import { hrefWithNext } from "@/lib/auth/safe-internal-path";
 import { createClient } from "@/lib/supabase/server";
 import { GalleryManager } from "@/components/trainer/gallery-manager";
 import { GALLERY_MAX_PHOTOS } from "@/lib/images/gallery";
@@ -41,7 +42,7 @@ export default async function TrainerListingPage() {
   const { data } = await supabase.auth.getClaims();
   const claims = data?.claims;
   if (!claims) {
-    redirect("/login");
+    redirect(hrefWithNext("/login", "/trainer/listing"));
   }
 
   const { data: profile } = await supabase

@@ -12,6 +12,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { geistMono } from "@/lib/fonts";
+import { hrefWithNext } from "@/lib/auth/safe-internal-path";
 import { createClient } from "@/lib/supabase/server";
 import {
   getTrainerBookings,
@@ -57,7 +58,7 @@ export default async function TrainerBookingsPage() {
   const { data } = await supabase.auth.getClaims();
   const claims = data?.claims;
   if (!claims) {
-    redirect("/login");
+    redirect(hrefWithNext("/login", "/trainer/bookings"));
   }
   const { data: profile } = await supabase
     .from("profiles")

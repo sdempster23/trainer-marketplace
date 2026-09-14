@@ -20,6 +20,7 @@ import {
 } from "@/components/ui/card";
 import { EmptyState, ErrorState } from "@/components/shared/states";
 import { geistMono } from "@/lib/fonts";
+import { hrefWithNext } from "@/lib/auth/safe-internal-path";
 import { createClient } from "@/lib/supabase/server";
 import {
   getExceptions,
@@ -53,7 +54,7 @@ export default async function TrainerAvailabilityPage() {
   const { data } = await supabase.auth.getClaims();
   const claims = data?.claims;
   if (!claims) {
-    redirect("/login");
+    redirect(hrefWithNext("/login", "/trainer/availability"));
   }
 
   const { data: profile } = await supabase

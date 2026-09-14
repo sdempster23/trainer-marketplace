@@ -24,6 +24,9 @@ export default async function WelcomePage() {
   const { data } = await supabase.auth.getClaims();
   const userId = data?.claims?.sub;
   if (!userId) {
+    // Bare on purpose: /welcome is a gate, not a destination — after login
+    // the middleware routes a nameless user here regardless, and a named
+    // one is bounced straight to /account.
     redirect("/login");
   }
 

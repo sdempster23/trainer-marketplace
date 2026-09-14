@@ -6,6 +6,7 @@ import { EmptyState, ErrorState } from "@/components/shared/states";
 import { ServicesManager } from "@/components/trainer/services-manager";
 import { Button } from "@/components/ui/button";
 import { geistMono } from "@/lib/fonts";
+import { hrefWithNext } from "@/lib/auth/safe-internal-path";
 import { createClient } from "@/lib/supabase/server";
 import { getOnboardingState } from "@/lib/trainer/onboarding";
 import { getActiveServices } from "@/lib/trainer/services";
@@ -31,7 +32,7 @@ export default async function TrainerServicesPage() {
   const { data } = await supabase.auth.getClaims();
   const claims = data?.claims;
   if (!claims) {
-    redirect("/login");
+    redirect(hrefWithNext("/login", "/trainer/services"));
   }
 
   const { data: profile } = await supabase
