@@ -600,3 +600,112 @@ services listed yet." became "No services listed." Every line is
 neutral on history: services soft-delete, so a trainer who removed all
 services reads identically to one who never added any, and "yet"
 asserted something the page cannot know.
+
+## PARKED — a service's price, duration, and description can contradict each other (2026-09-14, decision pending)
+
+Trigger: an external audit found a live trainer listing with three
+services priced at $1 for 30 minutes, each described as a four- or
+eight-week Board and Train program, with a working Book button beneath
+them. Cause unknown and NOT assumed (placeholder, test entry, or
+misunderstanding of the form are all plausible); the trainer is being
+contacted. Recorded because it exposes a product gap, not because the
+cause is known. No code, no migration.
+
+### 1. What the service form validates today — and what it does not
+
+`serviceSchema` (lib/validators/trainer.ts) checks each field on its
+own, and the DB CHECKs mirror the numeric bounds exactly
+(supabase/migrations/20260507143000_trainer_services_availability.sql):
+- name: 2–80 characters.
+- description: optional, ≤500 characters, free text.
+- price: a dollar string like `85` or `62.50`; ≥ $0.01, ≤ $1,000,000.
+- duration: whole minutes, 15–480.
+- session type: one of `in_home` | `at_trainer_location` | `virtual`
+  — WHERE a session happens, not WHAT it is.
+
+Nothing checks that price, duration, and description describe the same
+offering: "$1 · 30 min · Virtual" beneath "8-week Board and Train" is
+valid at every layer. And nothing distinguishes a short bookable
+session from a multi-week program — the only shape the model has is
+ONE session of N minutes at one price, and the booking flow assumes
+that shape (slots are computed from `duration_minutes`; the booking
+row snapshots `price_cents` and `duration_minutes` from the service,
+G3). The form's only guidance is the placeholders ("Private obedience
+session", "What the session covers and who it's for.", "85 or 62.50",
+"60") and the duration hint "15 min – 8 hours."
+
+### 2. The public consequence
+
+The homepage claims real prices in two places:
+- Section 6 (the old-way-vs-PawMatch ledger, dark act),
+  `components/marketing/comparison.tsx`: "Bio, credentials, and
+  services with real prices". The section's own header comment says
+  PawMatch-side claims are shipped features only.
+- The profile UI-shot caption, `lib/marketing/ui-shots.ts`: "…then
+  specialties and services with real prices. What you see is what you
+  book."
+
+What renders: the directory card shows NO services or prices (name,
+specialties, radius only — checked, components/trainer/trainer-card.tsx),
+so the directory is not the exposure. The profile's Services section
+renders every active service verbatim — name, formatted price,
+"{N} min · {location}", then the description — and at ≥1 service the
+sticky bar carries a working "Book a session" (ruled 2026-09-11).
+The book page offers the same services in its select and computes
+slots from each one's duration. So an owner can create a booking
+request against a service whose displayed terms ($1, 30 min) do not
+match its description (an 8-week program); the trainer receives a
+request for a 30-minute slot at $1, with `serviceName` in the email.
+"What you see is what you book" is literally true — and that is the
+problem: what they see is contradictory.
+
+### 3. Options — sized, not designed
+
+- Guidance text on the service form. Copy-only. One or two lines
+  beside price/duration: "Price and length are for ONE session — a
+  multi-week program should be listed as its per-session terms, or
+  described in your bio and arranged by message." Cheapest; catches
+  the honest misunderstanding; catches nothing entered on purpose.
+- A service "type" (consultation / session / program). SCHEMA change:
+  a new enum column on `trainer_services`, a form field, a label on
+  the profile, and a decision about what "program" means for booking
+  (bookable as a first session? message-only? — the dual-capacity
+  entry's lesson: a new value forces the flow question). Not copy.
+- Validation or warnings on implausible price/duration combinations.
+  Zod-only if a soft warning (e.g. price under $10, or a description
+  mentioning "week"/"program" with a duration ≤ 60 min, surfaced as a
+  confirm step, not a block); a hard block would need a DB CHECK to be
+  honest and is unruled — a $1 "meet and greet" may be a real offer.
+  Text heuristics on the description are brittle; note before building.
+- A review step before a listing goes public. Today a listing is
+  public the moment the trainers row has a name, a service point, and
+  ≥1 specialty (the listable floor; services are not part of it). A
+  review step is a state machine (pending/approved), an admin surface,
+  and a wait for every honest trainer — the largest option, and the
+  only one that catches intent. Schema + product.
+
+### 4. Where evidence would show up
+
+- Whether any booking has been made against such a service:
+  `bookings.service_id` joined to `trainer_services`; a snapshot row
+  with `price_cents` = 100 and `duration_minutes` = 30 against a
+  description mentioning "week" or "program" is the direct signature.
+  The hosted dump (`supabase db dump --linked --data-only`, read-only)
+  or a saved Supabase query. Zero bookings to date is the expected
+  finding and still worth recording.
+- Whether the M20 events would reveal owners bouncing off the profile:
+  NOT directly. There is no profile-view event — the five north-star
+  names are `trainer_signup`, `complete_profile`, `search`,
+  `conversation`, `booking_request` — so a `search` with
+  `result_count` ≥ 1 followed by neither `conversation` nor
+  `booking_request` is the only bounce shape visible, and it cannot
+  attribute the bounce to this trainer or this reason. Vercel
+  Analytics pageviews on `/trainers/[id]` give volume, not intent. If
+  this is revisited, a profile view (or a Book-bar click) is the first
+  event worth adding — the same conclusion the dual-capacity entry
+  reached for the trainers-can't-book card.
+
+Decision pending. REVISIT TRIGGER: a second trainer listing services
+whose stated price or duration conflicts with their description. Until
+then nothing is built; the trainer contact may close this one as a
+data-entry error, and one instance is not a pattern.
