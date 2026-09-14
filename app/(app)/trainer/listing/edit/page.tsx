@@ -5,6 +5,7 @@ import { PageHeader } from "@/components/shared/page-header";
 import { ListingForm } from "@/components/trainer/listing-form";
 import { Card, CardContent } from "@/components/ui/card";
 import { ErrorState } from "@/components/shared/states";
+import { hrefWithNext } from "@/lib/auth/safe-internal-path";
 import { createClient } from "@/lib/supabase/server";
 import {
   METERS_PER_MILE,
@@ -28,7 +29,7 @@ export default async function EditListingPage() {
   const { data } = await supabase.auth.getClaims();
   const claims = data?.claims;
   if (!claims) {
-    redirect("/login");
+    redirect(hrefWithNext("/login", "/trainer/listing/edit"));
   }
   const { data: profile } = await supabase
     .from("profiles")

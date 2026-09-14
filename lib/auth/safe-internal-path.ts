@@ -24,10 +24,12 @@ export function safeInternalPath(
 /**
  * Build an auth-flow href that carries a return destination — ONLY when
  * that destination passes safeInternalPath. Used for the login ⇄ sign-up
- * links and the check-email "Log in" link, so a visitor who bounced from
- * "Log in to message" can switch between the two forms without losing
- * where they were going. An invalid or absent `next` yields the bare href;
- * the value is never trusted, only forwarded.
+ * links, the check-email "Log in" link, AND every authed page's own
+ * logged-out guard (redirect(hrefWithNext("/login", <its path>))), so a
+ * visitor who bounced from "Log in to message" — or opened an authed page
+ * directly — reaches where they were going after logging in. An invalid
+ * or absent `next` yields the bare href; the value is never trusted, only
+ * forwarded.
  */
 export function hrefWithNext(
   href: string,

@@ -72,6 +72,8 @@ export default async function AccountPage() {
   const claims = data?.claims;
 
   if (!claims) {
+    // Bare on purpose: /account IS the post-login default (signIn falls
+    // back to it), so carrying it as ?next= would be noise.
     redirect("/login");
   }
 

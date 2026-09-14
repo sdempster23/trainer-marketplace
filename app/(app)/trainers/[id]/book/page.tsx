@@ -14,6 +14,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import { hrefWithNext } from "@/lib/auth/safe-internal-path";
 import { createClient } from "@/lib/supabase/server";
 import { getBusyRanges } from "@/lib/trainer/busy";
 import { ensureExternalCalendarFresh } from "@/lib/trainer/external-sync";
@@ -73,7 +74,13 @@ export default async function BookPage({
   const { data } = await supabase.auth.getClaims();
   const claims = data?.claims;
   if (!claims) {
-    redirect("/login");
+    // Carry THIS page as the post-login destination — the same ?next=
+    // convention the profile's "Book a session" link already uses, so a
+    // saved link or an expired session lands back here, not on /account.
+    // Serves a RETURNING user who logs in directly. A brand-new user's
+    // destination still dies at the confirmation email, which hardcodes
+    // next=/account (docs/design/arc-notes.md, KNOWN GAP — not solved here).
+    redirect(hrefWithNext("/login", `/trainers/${id}/book`));
   }
   const { data: profile } = await supabase
     .from("profiles")

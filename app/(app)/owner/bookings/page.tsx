@@ -10,6 +10,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { geistMono } from "@/lib/fonts";
+import { hrefWithNext } from "@/lib/auth/safe-internal-path";
 import { createClient } from "@/lib/supabase/server";
 import { getOwnerBookings } from "@/lib/owner/bookings";
 import {
@@ -48,7 +49,7 @@ export default async function OwnerBookingsPage({
   const { data } = await supabase.auth.getClaims();
   const claims = data?.claims;
   if (!claims) {
-    redirect("/login");
+    redirect(hrefWithNext("/login", "/owner/bookings"));
   }
   const { data: profile } = await supabase
     .from("profiles")

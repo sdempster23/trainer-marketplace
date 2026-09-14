@@ -9,6 +9,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { EmptyState, ErrorState } from "@/components/shared/states";
 import { geistMono } from "@/lib/fonts";
 import { getThreads } from "@/lib/messages/threads";
+import { hrefWithNext } from "@/lib/auth/safe-internal-path";
 import { createClient } from "@/lib/supabase/server";
 import { truncatePreview } from "@/lib/utils";
 
@@ -37,7 +38,7 @@ export default async function MessagesPage() {
   const { data } = await supabase.auth.getClaims();
   const claims = data?.claims;
   if (!claims) {
-    redirect("/login");
+    redirect(hrefWithNext("/login", "/messages"));
   }
   const { data: profile, error: profileError } = await supabase
     .from("profiles")

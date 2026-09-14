@@ -9,6 +9,7 @@ import { ScrollToLatest } from "@/components/messages/scroll-to-latest";
 import { ThreadAutoRefresh } from "@/components/messages/thread-auto-refresh";
 import { geistMono } from "@/lib/fonts";
 import { getThread } from "@/lib/messages/threads";
+import { hrefWithNext } from "@/lib/auth/safe-internal-path";
 import { createClient } from "@/lib/supabase/server";
 import { dbIdSchema } from "@/lib/validators/id";
 
@@ -41,7 +42,7 @@ export default async function ThreadPage({
   const { data } = await supabase.auth.getClaims();
   const claims = data?.claims;
   if (!claims) {
-    redirect("/login");
+    redirect(hrefWithNext("/login", `/messages/${threadId}`));
   }
 
   const { thread, error } = await getThread(supabase, claims.sub, threadId);
