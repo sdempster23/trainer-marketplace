@@ -6,6 +6,18 @@ import {
 } from "./directory-search";
 
 describe("parseDirectorySearch", () => {
+  test("preserves Barn Hunt in a shareable search while dropping unknown specialties", () => {
+    const parsed = parseDirectorySearch({
+      zip: "37203",
+      radius: "25",
+      specialties: ["barn_hunt", "not-a-real-specialty"],
+    });
+    expect(parsed.specialties).toEqual(["barn_hunt"]);
+    expect(directorySearchQuery(parsed)).toBe(
+      "zip=37203&radius=25&specialties=barn_hunt",
+    );
+  });
+
   test("empty input is browse mode at the default radius", () => {
     expect(parseDirectorySearch({})).toEqual({
       zip: "",

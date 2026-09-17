@@ -79,7 +79,7 @@ export function DirectoryFilters({
           near-empty most multi-selects. The page's queries implement this
           with contains-any (`ov` on the RPC's array, `in` on assignments).
 
-          COLLAPSED by default (ruling 9's cheap IA version): the 17-item
+          COLLAPSED by default (ruling 9's cheap IA version): the specialty
           grid was ~700px of taxonomy before the first result on mobile.
           A zero-JS <details> keeps this a Server Component GET form —
           closed content stays in the DOM, so checked boxes still submit.

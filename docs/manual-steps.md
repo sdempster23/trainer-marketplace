@@ -209,6 +209,21 @@ The mechanism behind them changed on 2026-09-04; the addresses did not.
   is pushed, the emit path will log `[ANALYTICS] DB insert failed` and
   the Vercel mirror may still fire.
 
+## Barn Hunt specialty release (M21, 2026-09-17)
+
+- **Hosted database updated on 2026-09-17**, following Shane's authorization
+  to publish. The deployed site's Supabase host matched the linked project
+  `iomaiasjqozunjbvsdsk`; M21 was the only pending migration. Hosted schema
+  read-back confirmed the specialty options match the app, including Barn Hunt.
+  For another environment, apply `20260917120000_barn_hunt_specialty.sql`
+  before releasing the app that offers it.
+- Then deploy the app change. Trainers can add **Barn Hunt** from their
+  listing's edit form; it is also available during onboarding and in the
+  public directory filters. Existing specialties remain selected.
+- Verify saving and filtering in the agreed release test scope. Local saving
+  was checked with a temporary account. Production verification should use
+  public browsing unless live account writes are separately agreed.
+
 ## Account deletion runbook (manual — the privacy page promises this)
 
 The privacy policy says deletion via privacy@ "includes your uploaded

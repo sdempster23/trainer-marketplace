@@ -4,7 +4,7 @@ import { displayNameSchema } from "@/lib/validators/profile";
 import { Constants } from "@/types/supabase";
 
 /**
- * The 17 trainer specialties, in canonical (declaration) order — DERIVED from
+ * The trainer specialties, in canonical (declaration) order — DERIVED from
  * the generated Database enum, so regenerating types regenerates this list. It
  * cannot drift from the DB `trainer_specialty` enum, unlike a hand-copied array.
  *
@@ -139,6 +139,7 @@ export const SPECIALTY_LABELS: Record<Specialty, string> = {
   decoy_work: "Decoy Work",
   agility: "Agility",
   scent_work: "Scent Work",
+  barn_hunt: "Barn Hunt",
   tracking: "Tracking",
   gun_dog: "Gun Dog",
 };
