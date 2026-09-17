@@ -873,6 +873,7 @@ export type Database = {
         | "decoy_work"
         | "agility"
         | "scent_work"
+        | "barn_hunt"
         | "tracking"
         | "gun_dog"
       user_role: "owner" | "trainer" | "admin"
@@ -1025,6 +1026,7 @@ export const Constants = {
         "decoy_work",
         "agility",
         "scent_work",
+        "barn_hunt",
         "tracking",
         "gun_dog",
       ],

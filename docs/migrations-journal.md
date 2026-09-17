@@ -1732,3 +1732,47 @@ booking_request may repeat.
 **ON DELETE SET NULL** on `user_id`: account deletion unlinks the
 person and keeps the anonymous count. Logged-out search is NULL from
 the start (the directory is public).
+
+---
+
+## M21 — Barn Hunt specialty (2026-09-17)
+
+`20260917120000_barn_hunt_specialty.sql` adds `barn_hunt` to
+`public.trainer_specialty` after `scent_work`. A trainer requested this
+discipline; it is an optional specialty for both new and existing trainer
+listings and for public discovery. No existing assignments change.
+
+The regenerated `types/supabase.ts` supplies the shared option list and
+validation; `SPECIALTY_LABELS` displays **Barn Hunt**. The existing
+assignment table, public browse query, and `nearby_trainers` RPC accept
+the enum addition without new tables, policies, grants, or RPC changes.
+
+Apply the migration to the target database **before** releasing the app
+that offers Barn Hunt. The previous app can run against the expanded enum.
+PostgreSQL enum additions cannot be removed with `DROP VALUE`;
+an app rollback can leave the added value in the database.
+
+Regression coverage includes onboarding/edit validation and search URL
+parsing. `tests/e2e/barn-hunt.spec.ts` exercises authenticated listing
+creation, adding/removing the specialty while preserving another, profile
+display, and anonymous discovery with and without ZIP/distance filtering.
+It uses a dedicated local test account and deletes it afterward; it does
+not reset the local seed data.
+
+**Local verification (2026-09-17):** typecheck, lint, production build,
+and 212 unit/integration tests passed (2 existing tests skipped). The
+in-app browser walk confirmed create/save/reopen, adding and removing
+Barn Hunt while retaining Puppy, public profile display, and signed-out
+browse/proximity searches, including the empty result after removal.
+The standalone Playwright run (Barn Hunt plus directory-filter specs)
+could not launch Chromium because macOS denied its process permission;
+those automated browser specs are not recorded as passed. The temporary
+trainer account was removed after the in-app walk.
+
+**Hosted application (2026-09-17):** Shane authorized publishing and making
+the feature live. The deployed site's Supabase host matched linked project
+`iomaiasjqozunjbvsdsk`. A dry run found only M21 pending; it was applied
+without seeds or role changes. Hosted type generation then confirmed the
+specialty enum matches the app, including `barn_hunt`. Vercel's production
+branch is `main`; the website release follows the required CI gate and PR
+merge. The PR/deployment records hold the final release status.

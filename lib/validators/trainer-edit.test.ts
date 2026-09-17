@@ -1,6 +1,6 @@
 import { describe, expect, test } from "vitest";
 
-import { editListingSchema } from "@/lib/validators/trainer";
+import { editListingSchema, onboardingSchema } from "@/lib/validators/trainer";
 
 /** The edit path must not become a side door around onboarding's rules. */
 const VALID = {
@@ -12,6 +12,15 @@ const VALID = {
 };
 
 describe("editListingSchema (flow ruling #1)", () => {
+  test("a trainer can add Barn Hunt while keeping an existing specialty", () => {
+    const r = editListingSchema.safeParse({
+      ...VALID,
+      specialties: ["puppy", "barn_hunt"],
+    });
+    expect(r.success).toBe(true);
+    if (r.success) expect(r.data.specialties).toEqual(["puppy", "barn_hunt"]);
+  });
+
   test("blank ZIP means keep the current service area", () => {
     const r = editListingSchema.safeParse(VALID);
     expect(r.success).toBe(true);
@@ -41,4 +50,15 @@ describe("editListingSchema (flow ruling #1)", () => {
     expect(r.success).toBe(true);
     if (r.success) expect("displayName" in r.data).toBe(false);
   });
+});
+
+test("a new trainer can create a listing specializing in Barn Hunt", () => {
+  const r = onboardingSchema.safeParse({
+    ...VALID,
+    displayName: "Barn Hunt Trainer",
+    zip: "37203",
+    specialties: ["barn_hunt"],
+  });
+  expect(r.success).toBe(true);
+  if (r.success) expect(r.data.specialties).toEqual(["barn_hunt"]);
 });
