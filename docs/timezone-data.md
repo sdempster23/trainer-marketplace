@@ -61,6 +61,14 @@ version, offsets, and three synthetic calendar recurrences; it refuses to
 serve the app with stale timezone rules.
 This is deliberate: a deployment must not silently accept incorrect bookings.
 
+Both build commands also execute the emitted `.next/server/instrumentation.js`
+through `scripts/check-built-timezones.mjs`. This catches dependency packaging
+errors that compilation and native-module unit tests cannot detect. The
+calendar parser remains external to Webpack so Node resolves its CommonJS
+Temporal/JSBI dependencies correctly. An isolated Next production build
+reproduced the initial hosted `BigInt is not a function` error, then passed
+with this correction; stale timezone data still refuses startup.
+
 Local production-build evidence on 2026-09-18: all 27 emitted app traces
 contained all four resources, and each traced path resolved to an existing file.
 The production server started successfully through the wrapper. This proves

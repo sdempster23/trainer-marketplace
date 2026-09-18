@@ -23,6 +23,10 @@ const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
 
 const nextConfig: NextConfig = {
   reactStrictMode: true,
+  // Preserve Node's CommonJS resolution for the calendar parser and its
+  // Temporal/JSBI dependencies. Bundling them breaks the startup hook with
+  // `BigInt is not a function`, despite passing native-node unit tests.
+  serverExternalPackages: ["node-ical"],
   // ICU opens these resources natively, so JS import tracing cannot infer
   // them. The deployment also needs ICU_TIMEZONE_FILES_DIR set to their
   // actual absolute runtime directory BEFORE Node starts (see runbook).

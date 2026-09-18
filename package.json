@@ -9,8 +9,8 @@
   },
   "scripts": {
     "dev": "node scripts/with-timezone-data.mjs next dev",
-    "build": "node scripts/with-timezone-data.mjs next build",
-    "build:vercel": "node scripts/with-timezone-data.mjs --bundled next build",
+    "build": "node scripts/with-timezone-data.mjs next build && node scripts/with-timezone-data.mjs node scripts/check-built-timezones.mjs",
+    "build:vercel": "node scripts/with-timezone-data.mjs --bundled next build && node scripts/with-timezone-data.mjs --bundled node scripts/check-built-timezones.mjs",
     "start": "node scripts/with-timezone-data.mjs next start",
     "lint": "eslint .",
     "typecheck": "tsc --noEmit",

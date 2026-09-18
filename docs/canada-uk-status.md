@@ -38,7 +38,10 @@ their saved points or amounts.
 | Timezone packaging | All 27 app traces contain all four existing timezone resources |
 | Public browser walkthrough | Passed: US browse/profile/USD price, CA km search, Northern Ireland search, full-code shortening, invalid suffix error, login links |
 | Authenticated Canadian/UK listing and booking browser flows | Both Chromium tests passed in 40.5 seconds, including fixture cleanup |
-| CI, hosted migration, deployment, live walkthrough | Not performed |
+| CI | Initial commit `5948e2c` passed all gates in PR #63; packaging correction still needs its own CI run |
+| Compiled startup regression | Isolated Next production build reproduced the hosted error; native calendar-package loading fixes it and the new post-build check passes |
+| Hosted preview | Initial build passed on Node 22.23.2; corrected dynamic startup still requires a new preview |
+| Hosted migration, production deployment, live walkthrough | Not performed |
 
 Shane supplied the complete successful local runner output: legacy backfill
 rehearsal rolled back, M22 applied through the local migration ledger, all M22
@@ -102,6 +105,21 @@ verify the hosted timezone resource path and actual function behavior in
 [the timezone runbook](timezone-data.md), then follow the guarded
 [M22 production procedure](m22-production-release.md) before releasing the app.
 Current production remains unchanged.
+
+Release branch commit `5948e2c` was uploaded from Shane's Terminal, and
+[draft PR #63](https://github.com/sdempster23/trainer-marketplace/pull/63) is open.
+The initial Vercel preview built with Node 22.23.2, ICU 78.2, and bundled
+IANA 2026d, but dynamic requests fail before the readiness report with
+`g.BigInt is not a function` while loading the calendar dependency from
+compiled instrumentation. An isolated Next production build reproduced the
+exact error. `serverExternalPackages: ["node-ical"]` preserves native CommonJS
+resolution for its Temporal/JSBI dependencies and fixes the compiled hook.
+Both build commands now run `scripts/check-built-timezones.mjs` against the
+actual emitted instrumentation. The corrected build command passes with an
+intentionally nonexistent hosting ICU path, while stale 2026a data still
+refuses startup. All 62 scheduling/import/startup regressions pass.
+Successful local checks do not replace verification of the corrected hosted
+preview. M22 and production remain unchanged.
 
 Fresh Vercel dashboard inspection confirms `main` is the production branch;
 other branches use Preview. The dashboard selects Node 24, while this release
