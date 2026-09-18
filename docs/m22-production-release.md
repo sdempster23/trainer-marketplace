@@ -11,8 +11,11 @@ name includes “dev”; verify the reference against the actual deployed app an
 current hosting configuration, rather than relying on that name.
 
 1. Confirm the current production site/hosting settings target that project.
-   The publication script also checks the Supabase host embedded in the live
-   site's public JavaScript immediately before its dry run.
+   The publication script also checks the Supabase host in the live directory's
+   canonical avatar image URLs immediately before its dry run. PawMatch rebuilds
+   these URLs from its deployed `NEXT_PUBLIC_SUPABASE_URL`; it never accepts a
+   host from a trainer's saved avatar field. The home/login JavaScript is not a
+   reliable source because those pages access Supabase on the server.
 2. In that project's SQL editor, run `docs/sql/m22-production-before.sql`.
    Keep the migration list, row counts, and fingerprints in the release notes.
    The script reads data in a read-only transaction and returns no personal rows.
@@ -59,6 +62,14 @@ Use public browsing for production smoke checks unless live account writes
 have separately agreed scope. A website rollback can leave M22 installed:
 the old RPC remains, and old US service/booking inserts still default to USD.
 Do not try to reverse the migration by deleting live columns or records.
+
+To diagnose the live-site check independently, run
+`node scripts/verify-production-database.mjs`. This only reads the public
+`/trainers` page and reports the project reference and avatar count. It does not
+sign in, read keys, or connect to the database. It stops if there is no canonical
+avatar evidence, if avatars refer to another/multiple projects, or if the page
+redirects outside the verified website. Inspect the hosting configuration if it
+stops; do not bypass the check. Empty directories may legitimately lack evidence.
 
 The runner's shell syntax and refusal paths were checked with mocked commands.
 Those checks do not mean the production migration or SQL read-back has run.

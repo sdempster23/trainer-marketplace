@@ -43,47 +43,10 @@ NODE
 }
 check_release_files
 
-# Independently verify the database host embedded in the current live app.
-# Only same-site public pages/scripts are read; script contents are not executed
-# and public keys or page bodies are never printed or saved.
-node --input-type=module <<'NODE'
-const expectedRef = 'iomaiasjqozunjbvsdsk';
-const allowedHosts = new Set(['joinpawmatch.com', 'www.joinpawmatch.com']);
-async function readSite(url, hops = 0) {
-  if (url.protocol !== 'https:' || !allowedHosts.has(url.hostname) || hops > 4) {
-    throw new Error('Unexpected live-site address; stop and verify production configuration.');
-  }
-  const response = await fetch(url, { redirect: 'manual', signal: AbortSignal.timeout(15000) });
-  if (response.status >= 300 && response.status < 400) {
-    const location = response.headers.get('location');
-    if (!location) throw new Error('Live-site redirect has no destination.');
-    return readSite(new URL(location, url), hops + 1);
-  }
-  if (!response.ok) throw new Error(`Live-site verification failed (${response.status}).`);
-  return { url, body: await response.text() };
-}
-const scripts = new Set();
-for (const path of ['/', '/login']) {
-  const page = await readSite(new URL(path, 'https://joinpawmatch.com'));
-  for (const match of page.body.matchAll(/<script\b[^>]*\bsrc=["']([^"']+)["']/g)) {
-    const url = new URL(match[1].replaceAll('&amp;', '&'), page.url);
-    if (allowedHosts.has(url.hostname) && url.pathname.startsWith('/_next/static/')) scripts.add(url.href);
-  }
-}
-if (!scripts.size || scripts.size > 80) throw new Error('Could not identify a bounded set of live application scripts.');
-const refs = new Set();
-const addresses = [...scripts];
-for (let start = 0; start < addresses.length; start += 4) {
-  const pages = await Promise.all(addresses.slice(start, start + 4).map((address) => readSite(new URL(address))));
-  for (const { body } of pages) {
-    for (const match of body.matchAll(/https:\/\/([a-z0-9]{20})\.supabase\.co/g)) refs.add(match[1]);
-  }
-}
-if (refs.size !== 1 || !refs.has(expectedRef)) {
-  throw new Error('The live application database could not be matched to the linked project. No migration was applied.');
-}
-console.log(`Verified current joinpawmatch.com database: ${expectedRef}.`);
-NODE
+# Independently verify the live database host from canonical directory avatars.
+# This read-only helper also runs separately for diagnosis; it does not read keys
+# or credentials, execute downloaded scripts, or change the database.
+node scripts/verify-production-database.mjs
 
 pawmatch_tmp=$(mktemp -d "${TMPDIR:-/tmp}/pawmatch-m22-release.XXXXXX")
 trap 'rm -rf "$pawmatch_tmp"' EXIT

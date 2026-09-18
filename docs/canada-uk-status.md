@@ -1,6 +1,6 @@
 # Canada and UK implementation status
 
-Updated 2026-09-18. **Implemented and verified locally; not live.**
+Release preparation record, 2026-09-18. **Local checks and hosted timezone preview passed; production release pending.**
 
 ## What changed
 
@@ -27,7 +27,7 @@ their saved points or amounts.
 | --- | --- |
 | TypeScript | Passed on pinned Node 22.23.2 |
 | ESLint | Passed |
-| Complete unit/component suite | 316 passed; 2 existing tests skipped after release preparation |
+| Complete unit/component suite | 339 passed; 2 existing tests skipped after the live-database verification repair |
 | Independent review | Country-switch timezone defect found and fixed; regression passed |
 | Scheduling/import/startup suite | 62 tests passed under UTC and Chicago |
 | Bundled timezone data | 5,434 comparisons against independently compiled official rules matched |
@@ -38,9 +38,9 @@ their saved points or amounts.
 | Timezone packaging | All 27 app traces contain all four existing timezone resources |
 | Public browser walkthrough | Passed: US browse/profile/USD price, CA km search, Northern Ireland search, full-code shortening, invalid suffix error, login links |
 | Authenticated Canadian/UK listing and booking browser flows | Both Chromium tests passed in 40.5 seconds, including fixture cleanup |
-| CI | Initial commit `5948e2c` passed all gates in PR #63; packaging correction still needs its own CI run |
+| CI | All gates passed on `c563b13`, run 35390620003, including compiled startup |
 | Compiled startup regression | Isolated Next production build reproduced the hosted error; native calendar-package loading fixes it and the new post-build check passes |
-| Hosted preview | Initial build passed on Node 22.23.2; corrected dynamic startup still requires a new preview |
+| Hosted preview | `CZVm4R8YqBBRKvn9WaoaXwNrzoR7` passed actual function startup: Node 22.23.2, IANA 2026d, four resource hashes, 11 clock checks, 3 calendar checks; login rendered successfully |
 | Hosted migration, production deployment, live walkthrough | Not performed |
 
 Shane supplied the complete successful local runner output: legacy backfill
@@ -104,12 +104,14 @@ Shane authorized publishing on 2026-09-18. Release preparation is in progress:
 verify the hosted timezone resource path and actual function behavior in
 [the timezone runbook](timezone-data.md), then follow the guarded
 [M22 production procedure](m22-production-release.md) before releasing the app.
-Current production remains unchanged.
+The production website and database remain unchanged at this preparation checkpoint.
+The startup environment setting is saved for Preview and Production and takes
+effect only in new deployments.
 
 Release branch commit `5948e2c` was uploaded from Shane's Terminal, and
-[draft PR #63](https://github.com/sdempster23/trainer-marketplace/pull/63) is open.
+[PR #63](https://github.com/sdempster23/trainer-marketplace/pull/63) is open and ready for review.
 The initial Vercel preview built with Node 22.23.2, ICU 78.2, and bundled
-IANA 2026d, but dynamic requests fail before the readiness report with
+IANA 2026d, but its dynamic requests failed before the readiness report with
 `g.BigInt is not a function` while loading the calendar dependency from
 compiled instrumentation. An isolated Next production build reproduced the
 exact error. `serverExternalPackages: ["node-ical"]` preserves native CommonJS
@@ -118,8 +120,22 @@ Both build commands now run `scripts/check-built-timezones.mjs` against the
 actual emitted instrumentation. The corrected build command passes with an
 intentionally nonexistent hosting ICU path, while stale 2026a data still
 refuses startup. All 62 scheduling/import/startup regressions pass.
-Successful local checks do not replace verification of the corrected hosted
-preview. M22 and production remain unchanged.
+Correction `c563b13` passed CI and the corrected hosted preview. Its actual
+function report verified `/var/task/data/timezones/2026d/le`; setting
+`ICU_TIMEZONE_FILES_DIR` to that directory activated IANA 2026d. The fresh
+preview report at 21:55:48 UTC passed all startup checks, and public login
+returned 200. The same setting is saved for Production; its own runtime
+report must still be checked after release. No hosted booking/account writes
+were used for these checks.
+
+The first production migration attempt stopped before the dry run because the
+live-site check expected a database address in public login JavaScript. Login
+uses a server action, so those public chunks do not contain the address. The
+live directory's canonical avatar URLs independently confirmed the expected
+project. The corrected check passed against the five actual rendered directory
+avatars, 23 regression/refusal tests, and five complete mocked publisher runs.
+It still refuses missing or conflicting evidence and unrelated migrations.
+M22 has not been applied remotely.
 
 Fresh Vercel dashboard inspection confirms `main` is the production branch;
 other branches use Preview. The dashboard selects Node 24, while this release

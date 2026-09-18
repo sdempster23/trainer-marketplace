@@ -5,7 +5,7 @@ templates, deploy settings — that a code deploy alone won't apply. Keep this
 current as features that need external config land (see CLAUDE.md "Definition of
 done" item 8).
 
-## Canada/UK release: hosted timezone setup (pending, 2026-09-18)
+## Canada/UK release: hosted timezone setup (preview verified, 2026-09-18)
 
 First complete the local database gate from the implementation checkout with
 `bash scripts/verify-international-db.sh`. It checks local targeting and log-only
@@ -16,7 +16,8 @@ See `supabase/tests/m22_international/_README.md` for prerequisites.
 
 M22 must be applied to the intended database before releasing the new app.
 The old RPC is retained so the current app can continue during that schema-first
-rollout. No hosted migration or release was performed for this feature.
+rollout. At this preparation checkpoint, the hosted migration and production
+application release are still pending.
 
 Local development/test/build commands now load the bundled official IANA
 2026d resources automatically; `pnpm check:timezones` verifies the result.
@@ -29,9 +30,13 @@ the deployed resource path and four file hashes before setting
 `ICU_TIMEZONE_FILES_DIR` to that absolute path **before Node starts**.
 Redeploy and require passing clock/calendar checks, then repeat verification
 for Production. The Node startup guard rejects stale timezone rules.
-Follow [the timezone data runbook](timezone-data.md) for packaging and actual
-function verification. No hosted environment change or deployment has been
-performed, and no Vercel runtime path is assumed.
+Preview `CZVm4R8YqBBRKvn9WaoaXwNrzoR7` passed those actual function checks on
+2026-09-18: Node 22.23.2, IANA 2026d, four matching resource hashes, 11 clock
+cases and three calendar recurrences. `ICU_TIMEZONE_FILES_DIR` is saved as
+`/var/task/data/timezones/2026d/le` in Preview and Production, excluding local
+Development. This path came from the preview function report. Production's
+own runtime report remains a required check after deployment. Follow
+[the timezone data runbook](timezone-data.md) for packaging and verification.
 
 ---
 

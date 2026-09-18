@@ -52,9 +52,9 @@ Viewer-local message and calendar-status timestamps still use the user's
 browser timezone data. A server update cannot refresh an older browser.
 Booking slot labels and booking/email dates are formatted on the server.
 
-## Release boundary: hosting still needs configuration
+## Hosted verification — preview passed, production pending
 
-**This has not been deployed.** Vercel can start a function without running
+**The preview has been verified; production release is pending.** Vercel can start a function without running
 the package `start` script, so local wrapper success does not configure it.
 The Node-only `instrumentation.ts` startup guard checks the actual loaded
 version, offsets, and three synthetic calendar recurrences; it refuses to
@@ -94,7 +94,7 @@ Before an authorized preview/production release:
    absolute runtime directory** when setting `ICU_TIMEZONE_FILES_DIR` in the
    Preview startup environment. Then redeploy. Do not copy a build-machine
    path, assume `/var/task`, or use shell expressions such as `$PWD`; dashboard
-   values are not shell-expanded. No hosted path has been verified here.
+   values are not shell-expanded. The first verified preview path is recorded below.
 4. On the fresh preview, request a dynamic page again and require a function
    report with Node 22, IANA 2026d or newer, `ready: true`, passing clock and
    calendar checks, and verified bundled resources. Confirm the configured
@@ -105,6 +105,17 @@ Before an authorized preview/production release:
    and Production settings or paths match. Do not put the variable in
    Next-loaded `.env.local`, Next configuration, or instrumentation: ICU
    initializes earlier, and application code cannot repair a loaded process.
+
+Actual hosted evidence on 2026-09-18: Preview deployment
+`CZVm4R8YqBBRKvn9WaoaXwNrzoR7` from `c563b13` reported Node 22.23.2,
+ICU 78.2, IANA 2026d, `ready: true`, all 11 clock checks and all three calendar
+recurrences passing, and all four resource hashes matching. Its function logs
+at 21:55:48 UTC confirmed both the configured and bundled directory as
+`/var/task/data/timezones/2026d/le`. Public login rendered with HTTP 200.
+`ICU_TIMEZONE_FILES_DIR` is saved with that value for Preview and Production
+(not Development). Production has not yet been deployed with it; verify its
+own function report before declaring the release complete. The synthetic
+runtime checks created no accounts, bookings, or emails.
 
 The startup log deliberately contains only these runtime facts and synthetic
 failures. It is not exposed by a public endpoint and does not print arbitrary
