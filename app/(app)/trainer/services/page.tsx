@@ -10,6 +10,7 @@ import { hrefWithNext } from "@/lib/auth/safe-internal-path";
 import { createClient } from "@/lib/supabase/server";
 import { getOnboardingState } from "@/lib/trainer/onboarding";
 import { getActiveServices } from "@/lib/trainer/services";
+import { currencyForCountry } from "@/lib/money";
 
 export const metadata = {
   title: "Your services — PawMatch",
@@ -49,7 +50,11 @@ export default async function TrainerServicesPage() {
     redirect("/trainer/onboarding");
   }
 
-  const { services, error } = await getActiveServices(supabase, claims.sub);
+  const [{ services, error }, { data: trainer, error: countryError }] = await Promise.all([
+    getActiveServices(supabase, claims.sub),
+    supabase.from("trainers").select("country_code").eq("id", claims.sub).maybeSingle(),
+  ]);
+  const newServiceCurrency = trainer ? currencyForCountry(trainer.country_code) : null;
 
   return (
     <main className={`bg-muted flex-1 px-6 py-12 ${geistMono.variable}`}>
@@ -59,7 +64,7 @@ export default async function TrainerServicesPage() {
             where it happens.
         </PageHeader>
 
-        {error ? (
+        {error || countryError || !newServiceCurrency ? (
           <ErrorState>
             Your services couldn&apos;t be loaded. Please refresh to try again.
           </ErrorState>
@@ -67,7 +72,9 @@ export default async function TrainerServicesPage() {
           <EmptyState>No services yet — add your first below.</EmptyState>
         ) : null}
 
-        <ServicesManager services={error ? [] : services} />
+        {!countryError && newServiceCurrency ? (
+          <ServicesManager services={error ? [] : services} newServiceCurrency={newServiceCurrency} />
+        ) : null}
 
         {/* Lateral nav replaces the Back-to chain (shell carries Account). */}
         <div className="grid gap-2 sm:grid-cols-2">

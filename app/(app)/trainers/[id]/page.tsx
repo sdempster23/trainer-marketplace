@@ -16,9 +16,9 @@ import { bookBarState, notTakingBookings } from "@/lib/trainer/book-bar-state";
 import { getActiveServices } from "@/lib/trainer/services";
 import { getGalleryPhotos } from "@/lib/trainer/gallery";
 import { dbIdSchema } from "@/lib/validators/id";
+import { COUNTRY_LABELS, distanceLabel, isCountry } from "@/lib/location/countries";
 import {
   formatPrice,
-  METERS_PER_MILE,
   SESSION_TYPE_LABELS,
   SPECIALTY_LABELS,
 } from "@/lib/validators/trainer";
@@ -58,7 +58,7 @@ const getListableTrainer = cache(async (id: string) => {
   const { data } = await supabase
     .from("trainers")
     .select(
-      "id, bio, years_experience, service_radius_meters, profiles!inner(display_name, avatar_url), pills:trainer_specialty_assignments(specialty)",
+      "id, bio, years_experience, service_radius_meters, country_code, postal_area, profiles!inner(display_name, avatar_url), pills:trainer_specialty_assignments(specialty)",
     )
     .eq("id", id)
     // The listable floor, both predicates explicit (see header).
@@ -166,9 +166,9 @@ export default async function TrainerDetailPage({
     viewer,
   });
 
-  const radiusMiles =
+  const radiusDisplay =
     trainer.service_radius_meters !== null
-      ? Math.round(trainer.service_radius_meters / METERS_PER_MILE)
+      ? distanceLabel(trainer.service_radius_meters, trainer.country_code)
       : null;
 
   return (
@@ -193,10 +193,14 @@ export default async function TrainerDetailPage({
             {trainer.years_experience !== null
               ? `${trainer.years_experience} years experience`
               : null}
-            {trainer.years_experience !== null && radiusMiles !== null
+            {trainer.years_experience !== null && radiusDisplay !== null
               ? " · "
               : null}
-            {radiusMiles !== null ? `Travels up to ${radiusMiles} miles` : null}
+            {radiusDisplay !== null ? `Travels up to ${radiusDisplay}` : null}
+          </p>
+          <p className="text-muted-foreground text-sm">
+            {isCountry(trainer.country_code) ? COUNTRY_LABELS[trainer.country_code] : ""}
+            {trainer.postal_area ? ` · ${trainer.postal_area}` : ""}
           </p>
           {viewer.isOwner ? (
             <div className="mt-1">
@@ -276,7 +280,7 @@ export default async function TrainerDetailPage({
                   <div className="flex items-baseline justify-between gap-2">
                     <span className="font-medium">{service.name}</span>
                     <span className="shrink-0 font-mono text-sm font-medium">
-                      {formatPrice(service.price_cents)}
+                      {formatPrice(service.price_cents, service.currency)}
                     </span>
                   </div>
                   <span className="text-muted-foreground text-sm">

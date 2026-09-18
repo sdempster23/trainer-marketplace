@@ -1776,3 +1776,43 @@ without seeds or role changes. Hosted type generation then confirmed the
 specialty enum matches the app, including `barn_hunt`. Vercel's production
 branch is `main`; the website release follows the required CI gate and PR
 merge. The PR/deployment records hold the final release status.
+
+---
+
+## M22 — Canada/UK listings and currencies (applied locally 2026-09-18)
+
+`20260918120000_international_listings.sql` adds country and coarse postal-area
+fields to trainers, USD/CAD/GBP currency to services and bookings, and an
+INVOKER `nearby_trainers_v2` query that filters country before the 50-result
+limit. The original query remains callable during rollout. Existing trainers
+default to US and existing monetary records to USD; points, prices, and old
+booking fields are not rewritten.
+
+Service creation must match the trainer's saved country. Service currency is
+immutable after creation, including across a country move. Booking insertion
+validates the currency together with the service's price/duration snapshot;
+later updates preserve it. The latest booking transition guard is retained.
+No table grants or RLS policies change; new functions have explicit privileges.
+
+`supabase/tests/m22_international` contains rollback-only checks and a pre-M22
+backfill rehearsal comparing every original row field. It also exercises
+cross-border result limiting, Northern Ireland, currency integrity, repricing,
+retirement, and country moves. Catalog assertions cover denied EXECUTE access.
+
+The guarded `scripts/verify-international-db.sh` runs that rehearsal, verifies
+only M22 is pending, uses the Supabase CLI's local migration ledger, then runs
+M22/M14 and regenerates types atomically. Its syntax and refusal paths were
+checked with mocked tools. Because Codex could not access the Docker socket,
+Shane ran it from Terminal and supplied its complete successful output. The
+backfill rehearsal rolled back, M22 was applied through the local migration
+ledger, all M22 checks passed, and M14 matched all 18 tables. Actual regenerated
+schema types were inspected in the working copy and typecheck passed again.
+No hosted application of M22 is claimed.
+
+Both CA/GB browser regressions subsequently passed against the local production
+build, exercising actual service creation, owner bookings, and preserved
+CAD/GBP booking snapshots after repricing. Test fixture cleanup also completed.
+
+Before any authorized release: apply M22
+to the target database before the new application; separately verify the hosted
+timezone resource configuration described in `docs/timezone-data.md`.

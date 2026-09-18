@@ -18,9 +18,9 @@ import { GalleryManager } from "@/components/trainer/gallery-manager";
 import { GALLERY_MAX_PHOTOS } from "@/lib/images/gallery";
 import { getActiveServices } from "@/lib/trainer/services";
 import { getGalleryPhotos } from "@/lib/trainer/gallery";
+import { COUNTRY_LABELS, distanceLabel, isCountry } from "@/lib/location/countries";
 import {
   formatPrice,
-  METERS_PER_MILE,
   SESSION_TYPE_LABELS,
   SPECIALTY_LABELS,
   TIMEZONE_LABELS,
@@ -56,7 +56,7 @@ export default async function TrainerListingPage() {
 
   const { data: trainer, error: trainerError } = await supabase
     .from("trainers")
-    .select("bio, service_radius_meters, timezone")
+    .select("bio, service_radius_meters, timezone, country_code, postal_area")
     .eq("id", claims.sub)
     .maybeSingle();
   const { data: assignments, error: assignmentsError } = await supabase
@@ -93,8 +93,8 @@ export default async function TrainerListingPage() {
     getGalleryPhotos(supabase, claims.sub),
   ]);
 
-  const radiusMiles = trainer.service_radius_meters
-    ? Math.round(trainer.service_radius_meters / METERS_PER_MILE)
+  const radiusDisplay = trainer.service_radius_meters
+    ? distanceLabel(trainer.service_radius_meters, trainer.country_code)
     : null;
 
   return (
@@ -156,10 +156,20 @@ export default async function TrainerListingPage() {
 
             <div className="grid gap-1">
               <span className="text-muted-foreground text-xs font-medium">
+                Location
+              </span>
+              <p className="text-sm">
+                {isCountry(trainer.country_code) ? COUNTRY_LABELS[trainer.country_code] : "Not set"}
+                {trainer.postal_area ? ` · ${trainer.postal_area}` : ""}
+              </p>
+            </div>
+
+            <div className="grid gap-1">
+              <span className="text-muted-foreground text-xs font-medium">
                 Service radius
               </span>
               <p className="text-sm">
-                {radiusMiles !== null ? `${radiusMiles} miles` : "Not set"}
+                {radiusDisplay ?? "Not set"}
               </p>
             </div>
 
@@ -190,7 +200,7 @@ export default async function TrainerListingPage() {
                     <li key={service.id}>
                       <span className="font-medium">{service.name}</span>{" "}
                       <span className="text-muted-foreground font-mono text-xs">
-                        {formatPrice(service.price_cents)} ·{" "}
+                        {formatPrice(service.price_cents, service.currency)} ·{" "}
                         {service.duration_minutes} min ·{" "}
                         {SESSION_TYPE_LABELS[service.session_type]}
                       </span>

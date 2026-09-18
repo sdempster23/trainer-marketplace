@@ -5,6 +5,34 @@ templates, deploy settings — that a code deploy alone won't apply. Keep this
 current as features that need external config land (see CLAUDE.md "Definition of
 done" item 8).
 
+## Canada/UK release: hosted timezone setup (pending, 2026-09-18)
+
+First complete the local database gate from the implementation checkout with
+`bash scripts/verify-international-db.sh`. It checks local targeting and log-only
+email, rehearses and applies only M22, runs the rollback-only M22/M14 checks,
+and regenerates schema types. It does not reset the database or touch hosted
+data. Run the regular application checks and US/CA/GB browser flows afterward.
+See `supabase/tests/m22_international/_README.md` for prerequisites.
+
+M22 must be applied to the intended database before releasing the new app.
+The old RPC is retained so the current app can continue during that schema-first
+rollout. No hosted migration or release was performed for this feature.
+
+Local development/test/build commands now load the bundled official IANA
+2026d resources automatically; `pnpm check:timezones` verifies the result.
+Vercel builds use `build:vercel` to resolve the bundle on the build machine
+independently of the function's startup setting. The versioned Node 22 engine
+pin overrides the dashboard's previously observed 24.x selection; verify the
+actual build/runtime versions in the release.
+In a protected preview, inspect the `[TIMEZONE_STARTUP]` function log to verify
+the deployed resource path and four file hashes before setting
+`ICU_TIMEZONE_FILES_DIR` to that absolute path **before Node starts**.
+Redeploy and require passing clock/calendar checks, then repeat verification
+for Production. The Node startup guard rejects stale timezone rules.
+Follow [the timezone data runbook](timezone-data.md) for packaging and actual
+function verification. No hosted environment change or deployment has been
+performed, and no Vercel runtime path is assumed.
+
 ---
 
 ## Auth

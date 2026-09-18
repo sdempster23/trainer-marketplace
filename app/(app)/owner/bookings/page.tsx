@@ -147,7 +147,7 @@ export default async function OwnerBookingsPage({
                       booking.trainers?.timezone ?? "UTC",
                     )}{" "}
                     · {booking.duration_minutes} min ·{" "}
-                    {formatPrice(booking.price_cents)}
+                    {formatPrice(booking.price_cents, booking.currency)}
                   </span>
                   {/* Payment shows once the trainer has CONFIRMED (M17): now
                       there's a payee relationship, and RLS returned the row. */}

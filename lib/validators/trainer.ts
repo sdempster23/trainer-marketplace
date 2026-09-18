@@ -1,6 +1,8 @@
 import { z } from "zod";
 
+import type { Currency } from "@/lib/money";
 import { displayNameSchema } from "@/lib/validators/profile";
+import { COUNTRIES, postalArea, postalError, type Country } from "@/lib/location/countries";
 import { Constants } from "@/types/supabase";
 
 /**
@@ -25,12 +27,12 @@ export const BIO_MAX_LENGTH = 2000;
 // the /account name section); onboardingSchema composes displayNameSchema.
 
 /**
- * The 7 US IANA timezones offered at onboarding. `timezone` interprets the
+ * Supported IANA timezones offered at onboarding. `timezone` interprets the
  * trainer's availability hours, so a wrong zone breaks booking times — hence a
- * fixed, always-correct dropdown rather than a ZIP→tz guess (zipcodes exposes no
- * tz field anyway). Anchorage/Honolulu/Phoenix cover AK/HI and no-DST Arizona.
+ * country-specific choices that trainers confirm, rather than a postal-code
+ * guess. Correct clock rules also depend on the bundled runtime timezone data.
  */
-export const TRAINER_TIMEZONES = [
+const US_TIMEZONES = [
   "America/New_York",
   "America/Chicago",
   "America/Denver",
@@ -40,7 +42,46 @@ export const TRAINER_TIMEZONES = [
   "America/Phoenix",
 ] as const;
 
+const CA_TIMEZONES = [
+  "America/St_Johns",
+  "America/Halifax",
+  "America/Moncton",
+  "America/Goose_Bay",
+  "America/Blanc-Sablon",
+  "America/Toronto",
+  "America/Iqaluit",
+  "America/Atikokan",
+  "America/Winnipeg",
+  "America/Rankin_Inlet",
+  "America/Resolute",
+  "America/Regina",
+  "America/Swift_Current",
+  "America/Edmonton",
+  "America/Cambridge_Bay",
+  "America/Inuvik",
+  "America/Vancouver",
+  "America/Dawson_Creek",
+  "America/Fort_Nelson",
+  "America/Creston",
+  "America/Whitehorse",
+  "America/Dawson",
+] as const;
+
+export const TRAINER_TIMEZONES = [
+  ...US_TIMEZONES,
+  ...CA_TIMEZONES,
+  "Europe/London",
+] as const;
+
 export type TrainerTimezone = (typeof TRAINER_TIMEZONES)[number];
+
+export function timezonesForCountry(country: Country): readonly TrainerTimezone[] {
+  return country === "US" ? US_TIMEZONES : country === "CA" ? CA_TIMEZONES : ["Europe/London"];
+}
+
+export function defaultTimezoneForCountry(country: Country): TrainerTimezone {
+  return country === "US" ? "America/Chicago" : country === "CA" ? "America/Toronto" : "Europe/London";
+}
 
 /** Meters per statute mile — THE conversion constant for the trainer domain
  * (the DB stores meters; forms and display speak miles). Single definition;
@@ -67,12 +108,11 @@ export type DirectoryRadiusMiles = (typeof DIRECTORY_RADIUS_MILES)[number];
 export const DEFAULT_DIRECTORY_RADIUS: DirectoryRadiusMiles = 25;
 
 /**
- * Onboarding input. The zip is validated for FORMAT only (5 digits) — whether
- * it's a real, resolvable US ZIP is decided in the action by the zipcodes
- * lookup (undefined → the action's own inline error), because the schema has no
- * access to the lookup table.
+ * Onboarding input. Validate the entire country-specific postal format before
+ * reducing it to a coarse area. The action's offline resolver then checks
+ * whether that area exists in our supported location data.
  */
-export const onboardingSchema = z.object({
+const listingFields = z.object({
   displayName: displayNameSchema,
   bio: z
     .string()
@@ -82,7 +122,8 @@ export const onboardingSchema = z.object({
   specialties: z
     .array(z.enum(SPECIALTIES))
     .min(1, "Pick at least one specialty."),
-  zip: z.string().regex(/^\d{5}$/, "Enter a 5-digit ZIP."),
+  country: z.enum(COUNTRIES).default("US"),
+  zip: z.string().trim().max(12, "Check your postal code."),
   serviceRadiusMiles: z.coerce
     .number()
     .refine(
@@ -93,24 +134,32 @@ export const onboardingSchema = z.object({
   timezone: z.enum(TRAINER_TIMEZONES, "Choose your timezone."),
 });
 
+export const onboardingSchema = listingFields.transform((value, context) => {
+  const area = postalArea(value.zip, value.country);
+  if (!area) {
+    context.addIssue({ code: "custom", path: ["zip"], message: postalError(value.country) });
+    return z.NEVER;
+  }
+  return { ...value, zip: area };
+});
+
 /**
  * Listing EDIT (interior-polish flow ruling #1 — the flow that makes
  * onboarding's "You can edit it later." true). Same fields minus the
- * display name (edited on /account) — and ZIP is OPTIONAL: blank keeps
- * the current service area (only the derived geo point is stored, so a
- * ZIP can't be prefilled; requiring a re-type to change a bio would be
- * hostile). '' → undefined via the transform.
+ * display name (edited on /account). Blank postal input keeps the current
+ * service area, unless the country changes (checked in the action). Legacy
+ * rows have no saved postal area to prefill. '' → undefined via the transform.
  */
-export const editListingSchema = onboardingSchema
-  .omit({ displayName: true, zip: true })
-  .extend({
-    zip: z
-      .string()
-      .trim()
-      .transform((v) => (v === "" ? undefined : v))
-      .pipe(
-        z.string().regex(/^\d{5}$/, "Enter a 5-digit ZIP.").optional(),
-      ),
+export const editListingSchema = listingFields
+  .omit({ displayName: true })
+  .transform((value, context) => {
+    if (!value.zip) return { ...value, zip: undefined };
+    const area = postalArea(value.zip, value.country);
+    if (!area) {
+      context.addIssue({ code: "custom", path: ["zip"], message: postalError(value.country) });
+      return z.NEVER;
+    }
+    return { ...value, zip: area };
   });
 
 export type EditListingInput = z.infer<typeof editListingSchema>;
@@ -152,6 +201,29 @@ export const TIMEZONE_LABELS: Record<TrainerTimezone, string> = {
   "America/Anchorage": "Alaska (Anchorage)",
   "Pacific/Honolulu": "Hawaii (Honolulu)",
   "America/Phoenix": "Arizona (Phoenix, no DST)",
+  "America/St_Johns": "Newfoundland (St. John's)",
+  "America/Halifax": "Atlantic (Halifax)",
+  "America/Moncton": "New Brunswick (Moncton)",
+  "America/Goose_Bay": "Labrador (Goose Bay)",
+  "America/Blanc-Sablon": "Lower North Shore (Blanc-Sablon)",
+  "America/Toronto": "Eastern (Toronto / Montréal)",
+  "America/Iqaluit": "Eastern Nunavut (Iqaluit)",
+  "America/Atikokan": "Atikokan (no DST)",
+  "America/Winnipeg": "Central (Winnipeg)",
+  "America/Rankin_Inlet": "Central Nunavut (Rankin Inlet)",
+  "America/Resolute": "Resolute",
+  "America/Regina": "Saskatchewan (Regina)",
+  "America/Swift_Current": "Saskatchewan (Swift Current)",
+  "America/Edmonton": "Alberta (Edmonton)",
+  "America/Cambridge_Bay": "Western Nunavut (Cambridge Bay)",
+  "America/Inuvik": "Northwest Territories (Inuvik)",
+  "America/Vancouver": "British Columbia (Vancouver)",
+  "America/Dawson_Creek": "British Columbia (Dawson Creek)",
+  "America/Fort_Nelson": "British Columbia (Fort Nelson)",
+  "America/Creston": "British Columbia (Creston)",
+  "America/Whitehorse": "Yukon (Whitehorse)",
+  "America/Dawson": "Yukon (Dawson)",
+  "Europe/London": "United Kingdom (London)",
 };
 
 /** Sensible default zone for the Nashville-area core market (Central). The
@@ -192,10 +264,11 @@ export const SERVICE_PRICE_MAX_CENTS = 100_000_000;
 export const SERVICE_DURATION_MIN_MINUTES = 15;
 export const SERVICE_DURATION_MAX_MINUTES = 480;
 
-const CENTS_PER_DOLLAR = 100;
+const MINOR_UNITS_PER_UNIT = 100;
 
 /**
- * Dollars-string → integer cents WITHOUT float arithmetic. The classic trap
+ * Major-unit string → integer minor units WITHOUT float arithmetic. All
+ * supported currencies have two decimal places. The classic trap
  * is `parseFloat("62.50") * 100` (float multiplication can land on
  * 6249.999…); splitting the validated string and doing integer math cannot.
  * Only called on input the price regex has already accepted.
@@ -203,13 +276,14 @@ const CENTS_PER_DOLLAR = 100;
 const dollarsToCents = (input: string): number => {
   const [dollars = "0", fraction = ""] = input.split(".");
   return (
-    Number(dollars) * CENTS_PER_DOLLAR + Number(fraction.padEnd(2, "0") || "0")
+    Number(dollars) * MINOR_UNITS_PER_UNIT + Number(fraction.padEnd(2, "0") || "0")
   );
 };
 
 /**
- * Service input. The form speaks DOLLARS (what a person types); the DB speaks
- * cents-integer — the conversion happens here, at the boundary, float-safe.
+ * Service input. The historical priceDollars field holds a major-unit amount
+ * in the service's displayed currency; the DB stores integer minor units.
+ * Conversion happens here, at the boundary, without float arithmetic.
  * `description` is optional in the form; empty submits normalize to null
  * (the column is nullable — store the absence, not "").
  */
@@ -238,7 +312,7 @@ export const serviceSchema = z.object({
     .refine((cents) => cents >= SERVICE_PRICE_MIN_CENTS, "Enter a price.")
     .refine(
       (cents) => cents <= SERVICE_PRICE_MAX_CENTS,
-      "Price can't exceed $1,000,000.",
+      "Price can't exceed 1,000,000 in the service's currency.",
     ),
   durationMinutes: z.coerce
     .number()
@@ -260,29 +334,25 @@ export type ServiceInput = z.infer<typeof serviceSchema>;
  * field and is validated like any other input. */
 export const serviceIdSchema = z.uuid("Invalid service.");
 
-/**
- * Cents → display string. "$85", not "$85.00" — whole-dollar prices drop the
- * cents; "$62.50" keeps them. The division by 100 happens only here, at the
- * display edge (storage and arithmetic stay integer). This formatter is the
- * single place the no-currency-column = USD assumption lives.
- */
-/** Cents → the dollars STRING the price input speaks — the inverse boundary
+/** Minor units → the major-unit STRING the price input speaks — the inverse boundary
  * conversion (edit-form prefill). Integer math, mirroring dollarsToCents:
  * "8500 → 85", "6250 → 62.50". */
 export function centsToDollarsInput(cents: number): string {
-  const dollars = Math.floor(cents / CENTS_PER_DOLLAR);
-  const rem = cents % CENTS_PER_DOLLAR;
+  const dollars = Math.floor(cents / MINOR_UNITS_PER_UNIT);
+  const rem = cents % MINOR_UNITS_PER_UNIT;
   return rem === 0
     ? String(dollars)
     : `${dollars}.${String(rem).padStart(2, "0")}`;
 }
 
-export function formatPrice(cents: number): string {
-  const isWholeDollars = cents % CENTS_PER_DOLLAR === 0;
+/** Always state the stored currency; neither country nor locale converts it. */
+export function formatPrice(cents: number, currency: Currency): string {
+  const isWholeAmount = cents % MINOR_UNITS_PER_UNIT === 0;
   return new Intl.NumberFormat("en-US", {
     style: "currency",
-    currency: "USD",
-    minimumFractionDigits: isWholeDollars ? 0 : 2,
-    maximumFractionDigits: isWholeDollars ? 0 : 2,
-  }).format(cents / CENTS_PER_DOLLAR);
+    currency,
+    currencyDisplay: "code",
+    minimumFractionDigits: isWholeAmount ? 0 : 2,
+    maximumFractionDigits: isWholeAmount ? 0 : 2,
+  }).format(cents / MINOR_UNITS_PER_UNIT);
 }

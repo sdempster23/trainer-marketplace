@@ -709,3 +709,33 @@ Decision pending. REVISIT TRIGGER: a second trainer listing services
 whose stated price or duration conflicts with their description. Until
 then nothing is built; the trainer contact may close this one as a
 data-entry error, and one instance is not a pattern.
+
+## Canada and UK support — implementation requested (2026-09-18)
+
+Shane reopened the parked international expansion and explicitly requested
+implementation after confirming Canadian/UK profiles and local-currency
+services. The working implementation uses approximate postal areas: Canadian
+FSAs and UK outward codes, including Northern Ireland. Owners can browse and
+switch countries without an account; owner signup does not require a postal
+code. Messaging and booking keep their current login requirements.
+
+New trainer services use the listing country's USD/CAD/GBP currency. Existing
+services and booking snapshots retain their original currency when a trainer
+moves. All prices label currency explicitly; payments remain directly between
+owner and trainer. The form explains how to create a newly priced service.
+
+Country filtering applies to browse and proximity search before the result
+limit. Canada displays kilometres; the US/UK display miles. Existing US data
+is preserved. Postal-area precision limits and GeoNames attribution appear in
+the interface. No new provider account or paid dependency is needed.
+
+Current official timezone rules are bundled for correct Canadian scheduling
+and calendar imports. Hosted startup configuration remains a release gate.
+The implementation is in an isolated working copy and is not deployed. Shane
+ran the guarded local migration/SQL checks and schema type generation
+successfully from Terminal, then built and served the production output.
+Public US/CA/GB search/profile/login-link flows passed. Both authenticated
+international listing and booking regressions passed in Chromium, including
+CAD/GBP service creation and unchanged booking snapshots after repricing.
+See `docs/superpowers/specs/2026-09-18-canada-uk-design.md` and
+`docs/canada-uk-status.md` for the concrete scope and verification state.

@@ -85,7 +85,7 @@ export function BookingForm({
           >
             {services.map((service) => (
               <option key={service.id} value={service.id}>
-                {service.name} — {formatPrice(service.price_cents)} ·{" "}
+                {service.name} — {formatPrice(service.price_cents, service.currency)} ·{" "}
                 {service.duration_minutes} min ·{" "}
                 {SESSION_TYPE_LABELS[service.session_type]}
               </option>

@@ -1,11 +1,8 @@
 import { recordTrainerSearch } from "@/app/(app)/trainers/actions";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { NativeSelect } from "@/components/ui/native-select";
+import { DirectoryLocationFields } from "@/components/trainer/directory-location-fields";
+import type { Country } from "@/lib/location/countries";
 import {
-  DEFAULT_DIRECTORY_RADIUS,
-  DIRECTORY_RADIUS_MILES,
   SPECIALTIES,
   SPECIALTY_LABELS,
   type Specialty,
@@ -26,10 +23,12 @@ import {
  * (tests/e2e/directory-filters.spec.ts pins all five shapes).
  */
 export function DirectoryFilters({
+  country,
   zip,
   radiusMiles,
   specialties,
 }: {
+  country: Country;
   zip: string;
   radiusMiles: number;
   specialties: Specialty[];
@@ -39,37 +38,8 @@ export function DirectoryFilters({
       action={recordTrainerSearch}
       className="border-border bg-card flex flex-col gap-4 rounded-lg border p-4"
     >
-      <div className="grid gap-4 sm:grid-cols-[1fr_1fr_auto] sm:items-end">
-        {/* ZIP — empty = browse mode; filled = proximity mode */}
-        <div className="grid gap-2">
-          <Label htmlFor="zip">Near ZIP code</Label>
-          <Input
-            id="zip"
-            name="zip"
-            inputMode="numeric"
-            pattern="\d{5}"
-            maxLength={5}
-            placeholder="37203"
-            defaultValue={zip}
-          />
-        </div>
-
-        {/* Radius — only meaningful with a ZIP; harmless without one */}
-        <div className="grid gap-2">
-          <Label htmlFor="radius">Within</Label>
-          <NativeSelect
-            id="radius"
-            name="radius"
-            defaultValue={radiusMiles || DEFAULT_DIRECTORY_RADIUS}
-          >
-            {DIRECTORY_RADIUS_MILES.map((miles) => (
-              <option key={miles} value={miles}>
-                {miles} miles
-              </option>
-            ))}
-          </NativeSelect>
-        </div>
-
+      <div className="grid gap-4 sm:grid-cols-2 sm:items-end lg:grid-cols-[1fr_1fr_1fr_auto]">
+        <DirectoryLocationFields country={country} zip={zip} radiusMiles={radiusMiles} />
         <Button type="submit" variant="action">Search</Button>
       </div>
 
@@ -81,7 +51,7 @@ export function DirectoryFilters({
 
           COLLAPSED by default (ruling 9's cheap IA version): the specialty
           grid was ~700px of taxonomy before the first result on mobile.
-          A zero-JS <details> keeps this a Server Component GET form —
+          The specialty disclosure is a zero-JS <details> —
           closed content stays in the DOM, so checked boxes still submit.
           The at-a-glance visibility of ACTIVE filters lives in the page's
           chips summary, not in this disclosure. */}

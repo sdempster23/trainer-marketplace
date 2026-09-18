@@ -104,7 +104,7 @@ async function sendTransitionMail(
     const { data: b } = await supabase
       .from("bookings")
       .select(
-        "owner_id, trainer_id, starts_at, price_cents, dogs(name), trainer_services(name), trainers(timezone, profiles(display_name)), profiles(display_name)",
+        "owner_id, trainer_id, starts_at, price_cents, currency, dogs(name), trainer_services(name), trainers(timezone, profiles(display_name)), profiles(display_name)",
       )
       .eq("id", bookingId)
       .maybeSingle();
@@ -126,6 +126,7 @@ async function sendTransitionMail(
       startsAtIso: b.starts_at,
       trainerTimezone: b.trainers?.timezone ?? "UTC",
       priceCents: b.price_cents,
+      currency: b.currency,
     };
     const render = { confirmed, completed, cancelledByOwner, declinedByTrainer }[kind];
     await sendMail({ to: email, ...render(context) });

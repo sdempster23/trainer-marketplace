@@ -16,6 +16,7 @@ import type {
   Specialty,
 } from "@/lib/validators/trainer";
 import { METERS_PER_MILE } from "@/lib/validators/trainer";
+import { isCountry } from "@/lib/location/countries";
 
 /**
  * Trainer onboarding — the guard runs server-side, THEN renders the form.
@@ -27,8 +28,7 @@ import { METERS_PER_MILE } from "@/lib/validators/trainer";
  *
  * A `partial` re-entry PREFILLS from the saved row (investigation flag: the
  * blank form silently discarded a trainer's saved bio/radius/timezone —
- * only the ZIP genuinely can't prefill, since just the derived geo point is
- * stored) and says so honestly.
+ * only legacy postal areas cannot prefill because they were not stored).
  */
 export default async function TrainerOnboardingPage() {
   const supabase = await createClient();
@@ -59,11 +59,13 @@ export default async function TrainerOnboardingPage() {
   if (state === "partial") {
     const { data: trainer } = await supabase
       .from("trainers")
-      .select("bio, service_radius_meters, timezone")
+      .select("bio, service_radius_meters, timezone, country_code, postal_area")
       .eq("id", claims.sub)
       .maybeSingle();
     if (trainer) {
       initial = {
+        country: isCountry(trainer.country_code) ? trainer.country_code : undefined,
+        postalArea: trainer.postal_area,
         displayName: profile.display_name,
         bio: trainer.bio,
         serviceRadiusMiles: trainer.service_radius_meters
@@ -88,7 +90,7 @@ export default async function TrainerOnboardingPage() {
         {initial ? (
           <p className="text-muted-foreground text-sm">
             Welcome back — your earlier answers are filled in below. Pick your
-            specialties and re-enter your ZIP to go live.
+            specialties and confirm your location to go live.
           </p>
         ) : null}
 

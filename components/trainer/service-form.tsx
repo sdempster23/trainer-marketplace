@@ -3,6 +3,7 @@
 import { useActionState, useEffect, useRef } from "react";
 
 import type { ServiceActionState } from "@/app/(trainer)/actions";
+import type { Currency } from "@/lib/money";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -37,6 +38,7 @@ export function ServiceForm({
   submitVariant = "action",
   action,
   submitLabel,
+  currency,
   serviceId,
   initial,
   onSuccess,
@@ -50,6 +52,7 @@ export function ServiceForm({
     formData: FormData,
   ) => Promise<ServiceActionState>;
   submitLabel: string;
+  currency: Currency;
   serviceId?: string;
   initial?: ServiceFormInitial;
   onSuccess?: () => void;
@@ -70,6 +73,7 @@ export function ServiceForm({
 
   return (
     <form ref={formRef} action={formAction} className="flex flex-col gap-4">
+      <input type="hidden" name="currency" value={currency} />
       {serviceId ? (
         <input type="hidden" name="serviceId" value={serviceId} />
       ) : null}
@@ -102,7 +106,7 @@ export function ServiceForm({
 
       <div className="grid gap-4 sm:grid-cols-3">
         <div className="grid gap-2">
-          <Label htmlFor={`price-${serviceId ?? "new"}`}>Price (USD)</Label>
+          <Label htmlFor={`price-${serviceId ?? "new"}`}>Price ({currency})</Label>
           <Input
             id={`price-${serviceId ?? "new"}`}
             name="priceDollars"

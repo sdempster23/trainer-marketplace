@@ -1,5 +1,6 @@
 import Link from "next/link";
-import { lookup } from "zipcodes";
+import { COUNTRY_LABELS, POSTAL_LABELS, distanceLabel } from "@/lib/location/countries";
+import { resolvePostalArea } from "@/lib/location/postal";
 
 import { PageHeader } from "@/components/shared/page-header";
 import { EmptyState, ErrorState } from "@/components/shared/states";
@@ -18,6 +19,7 @@ import {
 import { createClient } from "@/lib/supabase/server";
 import {
   DIRECTORY_RADIUS_MILES,
+  METERS_PER_MILE,
   SPECIALTY_LABELS,
   type Specialty,
 } from "@/lib/validators/trainer";
@@ -25,7 +27,7 @@ import {
 export const metadata = {
   title: "Find a dog trainer — PawMatch",
   description:
-    "Browse dog trainers by specialty, or search near your ZIP code.",
+    "Browse dog trainers by country and specialty, or search near your postal area.",
 };
 
 /**
@@ -39,7 +41,7 @@ export const metadata = {
  * POSTs to recordTrainerSearch, which emits then redirects here):
  *   BROWSE     (no zip): PostgREST over trainers + profiles + assignments,
  *               newest first — deterministic and honest before location enters.
- *   PROXIMITY  (zip present): server-side zipcodes lookup → nearby_trainers
+ *   PROXIMITY  (zip present): server-side postal lookup → nearby_trainers_v2
  *               RPC, nearest first, with a distance badge per card.
  *
  * THE LISTABLE FLOOR — applied uniformly at the QUERY layer in both modes:
@@ -63,6 +65,7 @@ type SearchParams = Record<string, string | string[] | undefined>;
  * carries an extra `match` embed the mapper ignores). */
 type BrowseRow = {
   id: string;
+  country_code: string;
   bio: string | null;
   service_radius_meters: number | null;
   profiles: { display_name: string | null; avatar_url: string | null };
@@ -75,7 +78,8 @@ export default async function TrainersPage({
   searchParams: Promise<SearchParams>;
 }) {
   const params = await searchParams;
-  const { zip, radiusMiles, specialties } = parseDirectorySearch({
+  const { country, zip, radiusMiles, specialties } = parseDirectorySearch({
+    country: params.country,
     zip: params.zip,
     radius: params.radius,
     specialties: params.specialties,
@@ -84,21 +88,22 @@ export default async function TrainersPage({
 
   const isProximity = zip !== "";
   let trainers: TrainerCardData[] = [];
-  let zipInvalid = false;
+  let locationInvalid = false;
 
   if (isProximity) {
-    // Resolve the ZIP server-side (the same local-lookup seam onboarding
-    // uses — no external call). Format junk and unknown ZIPs take the same
-    // inline-message path: either way the user must fix the ZIP.
-    const place = /^\d{5}$/.test(zip) ? lookup(zip) : undefined;
+    // Resolve the entire input with the same country-aware offline lookup
+    // used by listings. An unexpected lookup failure propagates as an error;
+    // it must not become an invalid postcode or an empty result.
+    const place = await resolvePostalArea(country, zip);
     if (!place) {
-      zipInvalid = true;
+      locationInvalid = true;
     } else {
       // TYPES CAVEAT (load-bearing): the generated Functions return type marks
       // display_name (and friends) NON-NULLABLE, which is only true BECAUSE of
       // the floor chained below — the RPC itself can return a NULL name. Never
       // call this RPC unfloored and trust the generated type.
       const { data, error } = await nearbyTrainersQuery(supabase, {
+        country,
         lat: place.latitude,
         lng: place.longitude,
         radiusMiles,
@@ -139,6 +144,7 @@ export default async function TrainersPage({
       // chained filters preserve that order — no re-sort here.
       trainers = data.map((row) => ({
         id: row.id,
+        countryCode: row.country_code,
         displayName: row.display_name,
         avatarPath: avatarById.get(row.id) ?? null,
         bio: row.bio,
@@ -167,8 +173,9 @@ export default async function TrainersPage({
       const { data, error } = await supabase
         .from("trainers")
         .select(
-          "id, bio, service_radius_meters, profiles!inner(display_name, avatar_url), pills:trainer_specialty_assignments(specialty), match:trainer_specialty_assignments!inner(specialty)",
+          "id, country_code, bio, service_radius_meters, profiles!inner(display_name, avatar_url), pills:trainer_specialty_assignments(specialty), match:trainer_specialty_assignments!inner(specialty)",
         )
+        .eq("country_code", country)
         // OR-semantics — any selected specialty qualifies (see above).
         .in("match.specialty", specialties)
         .not("profiles.display_name", "is", null)
@@ -183,8 +190,9 @@ export default async function TrainersPage({
       const { data, error } = await supabase
         .from("trainers")
         .select(
-          "id, bio, service_radius_meters, profiles!inner(display_name, avatar_url), pills:trainer_specialty_assignments(specialty)",
+          "id, country_code, bio, service_radius_meters, profiles!inner(display_name, avatar_url), pills:trainer_specialty_assignments(specialty)",
         )
+        .eq("country_code", country)
         .not("profiles.display_name", "is", null)
         .not("service_point", "is", null)
         .order("created_at", { ascending: false })
@@ -203,6 +211,7 @@ export default async function TrainersPage({
         : [
             {
               id: row.id,
+              countryCode: row.country_code,
               displayName: row.profiles.display_name,
               avatarPath: row.profiles.avatar_url,
               bio: row.bio,
@@ -226,6 +235,7 @@ export default async function TrainersPage({
     newSpecialties?: Specialty[];
   }) => {
     const qs = directorySearchQuery({
+      country,
       zip: newZip,
       radiusMiles: newRadius,
       specialties: newSpecialties,
@@ -240,7 +250,7 @@ export default async function TrainersPage({
     <main className="bg-muted flex-1 px-6 py-12">
       <div className="mx-auto flex w-full max-w-3xl flex-col gap-6">
         <PageHeader title="Find a dog trainer">
-            Browse everyone, filter by specialty, or search near a ZIP code.
+            Choose a country, browse by specialty, or search near your postal area.
         </PageHeader>
 
         {/* KEYED ON THE CANONICAL SEARCH: the form's controls are
@@ -256,6 +266,7 @@ export default async function TrainersPage({
             boxes, the open disclosure — are discarded on any commit. */}
         <DirectoryFilters
           key={directoryUrl({})}
+          country={country}
           zip={zip}
           radiusMiles={radiusMiles}
           specialties={specialties}
@@ -286,9 +297,9 @@ export default async function TrainersPage({
           </div>
         ) : null}
 
-        {zipInvalid ? (
+        {locationInvalid ? (
           <ErrorState>
-            We couldn&apos;t find that ZIP — please check it and search again.
+            We couldn&apos;t find that {POSTAL_LABELS[country].toLowerCase()} in {COUNTRY_LABELS[country]} — please check it and search again.
           </ErrorState>
         ) : trainers.length === 0 ? (
           isProximity || specialties.length > 0 ? (
@@ -301,7 +312,7 @@ export default async function TrainersPage({
                     {isProximity && widerRadius ? (
                       <Button asChild variant="outline" size="sm">
                         <Link href={directoryUrl({ newRadius: widerRadius })}>
-                          Search within {widerRadius} miles
+                          Search within {distanceLabel(widerRadius * METERS_PER_MILE, country)}
                         </Link>
                       </Button>
                     ) : null}
@@ -317,25 +328,25 @@ export default async function TrainersPage({
               }
             >
               {isProximity
-                ? `No trainers within ${radiusMiles} miles of ${zip}${
+                ? `No trainers within ${distanceLabel(radiusMiles * METERS_PER_MILE, country)} of ${zip} in ${COUNTRY_LABELS[country]}${
                     specialties.length > 0 ? " matching those specialties" : ""
                   }.`
-                : "No trainers match those specialties yet."}
+                : `No trainers in ${COUNTRY_LABELS[country]} match those specialties yet.`}
             </EmptyState>
           ) : (
             /* The launch-day state, re-drafted from the gate's cold dead
                end ("check back soon"). Action is OUTLINE, not amber — the
                view's one amber is Search (map ruling). */
             <EmptyState
-              title="No trainers listed yet"
+              title={`No trainers listed in ${COUNTRY_LABELS[country]} yet`}
               action={
                 <Button asChild variant="outline">
                   <Link href="/sign-up?role=trainer">Join as a trainer</Link>
                 </Button>
               }
             >
-              PawMatch is just opening its doors — if you train dogs, owners
-              will find you here.
+              If you train dogs in {COUNTRY_LABELS[country]}, create a listing
+              so owners can find you here.
             </EmptyState>
           )
         ) : (
@@ -344,8 +355,8 @@ export default async function TrainersPage({
               {trainers.length}{" "}
               {trainers.length === 1 ? "trainer" : "trainers"}
               {isProximity
-                ? ` within ${radiusMiles} miles of ${zip}, nearest first`
-                : ", newest first"}
+                ? ` within ${distanceLabel(radiusMiles * METERS_PER_MILE, country)} of ${zip} in ${COUNTRY_LABELS[country]}, nearest first`
+                : ` in ${COUNTRY_LABELS[country]}, newest first`}
             </p>
             <div className="flex flex-col gap-4">
               {trainers.map((trainer) => (

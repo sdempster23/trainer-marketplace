@@ -18,6 +18,12 @@ export function SiteFooter() {
           Privacy Policy
         </Link>
       </p>
+      <p className="mt-3 text-xs">
+        UK postcode data adapted from{" "}
+        <a href="https://www.geonames.org/" className="underline underline-offset-4">GeoNames</a>
+        {" "}under{" "}
+        <a href="https://creativecommons.org/licenses/by/4.0/" className="underline underline-offset-4">CC BY 4.0</a>.
+      </p>
     </footer>
   );
 }

@@ -4,15 +4,20 @@
   "private": true,
   "//": "packageManager is pinned to pnpm@10.33.2 (Shane's local version as of 2026-04-24). Keeping local, CI, and Vercel on the exact same pnpm avoids lockfile drift and 'works on my machine' surprises. Bump deliberately when you upgrade locally — don't let a newer version sneak in through auto-updates.",
   "packageManager": "pnpm@10.33.2",
+  "engines": {
+    "node": "22.x"
+  },
   "scripts": {
-    "dev": "next dev",
-    "build": "next build",
-    "start": "next start",
+    "dev": "node scripts/with-timezone-data.mjs next dev",
+    "build": "node scripts/with-timezone-data.mjs next build",
+    "build:vercel": "node scripts/with-timezone-data.mjs --bundled next build",
+    "start": "node scripts/with-timezone-data.mjs next start",
     "lint": "eslint .",
     "typecheck": "tsc --noEmit",
-    "test": "vitest run",
-    "test:watch": "vitest",
-    "test:e2e": "playwright test"
+    "test": "node scripts/with-timezone-data.mjs vitest run",
+    "test:watch": "node scripts/with-timezone-data.mjs vitest",
+    "test:e2e": "node scripts/with-timezone-data.mjs playwright test",
+    "check:timezones": "node scripts/with-timezone-data.mjs check"
   },
   "dependencies": {
     "@gsap/react": "^2.1.2",

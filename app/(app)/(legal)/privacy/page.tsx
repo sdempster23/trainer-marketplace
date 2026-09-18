@@ -11,7 +11,7 @@ export const metadata = {
   description: "How PawMatch collects, uses, and protects your information.",
 };
 
-const EFFECTIVE_DATE = "September 5, 2026";
+const EFFECTIVE_DATE = "September 18, 2026";
 
 export default function PrivacyPolicyPage() {
   return (
@@ -60,13 +60,13 @@ export default function PrivacyPolicyPage() {
         </li>
         <li>
           <strong>Bookings:</strong> who booked whom, the service, the time,
-          the price at the time of booking, and status history (confirmed,
+          the price and currency at the time of booking, and status history (confirmed,
           cancelled, completed).
         </li>
         <li>
           <strong>Trainer business information (trainers):</strong> your bio,
           experience, certifications, specialties, services and prices, weekly
-          availability, an approximate service location with a service
+          availability, your country and approximate postal area with a service
           radius, and any training photos you publish to your profile
           gallery (the same photo rules above apply: metadata stripped by
           the app&apos;s uploader, public storage, published as submitted).
@@ -126,11 +126,13 @@ export default function PrivacyPolicyPage() {
           <strong>Product funnel events:</strong> when a marketplace step
           succeeds, we record a named event in our own database (hosted with
           the rest of the app on Supabase): trainer account created, trainer
-          profile completed, a ZIP search on /trainers, the first conversation
+          profile completed, a location search on /trainers, the first conversation
           between an owner and a trainer, and a booking request. If you are
           signed in we store your account id with the event; a logged-out
-          search stores no account id. Search events include the ZIP, radius,
-          specialties, how many trainers matched, and whether the ZIP is in
+          search stores no account id. Search events include the country,
+          approximate postal area (US ZIP, Canadian first three characters,
+          or UK outward code), search radius, specialties, how many trainers
+          matched, and whether a US ZIP is in
           our Nashville launch market. We do not store message bodies,
           calendar URLs, emails, or payment details in these events. The same
           event names may also be sent to Vercel as custom analytics events

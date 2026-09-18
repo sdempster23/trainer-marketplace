@@ -1,6 +1,7 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 
 import type { Database } from "@/types/supabase";
+import type { Currency } from "@/lib/money";
 
 /**
  * The owner's bookings-list read (Arc C: the read-only list; transitions are
@@ -15,7 +16,7 @@ import type { Database } from "@/types/supabase";
  *
  * NOTE service name CAN be null after the fact: if the trainer later
  * soft-deletes the service, the public SELECT policy hides it and the embed
- * returns null — the booking row itself is untouched (price/duration are
+ * returns null — the booking row itself is untouched (price/duration/currency are
  * SNAPSHOTS on the booking). Renderers cope with a fallback label.
  *
  * NO deleted_at concept on bookings — the deviation from the services/dogs
@@ -36,6 +37,7 @@ export type OwnerBooking = {
   ends_at: string | null; // GENERATED column — non-null in practice
   duration_minutes: number;
   price_cents: number;
+  currency: Currency;
   trainer_services: { name: string } | null;
     /** timezone rides along for display: booking times render in the
    *  TRAINER's zone (consistency with the picker). */
@@ -53,7 +55,7 @@ export async function getOwnerBookings(
   const { data, error } = await supabase
     .from("bookings")
     .select(
-      "id, trainer_id, status, cancelled_by, starts_at, ends_at, duration_minutes, price_cents, trainer_services(name), trainers(timezone, profiles(display_name)), dogs(name)",
+      "id, trainer_id, status, cancelled_by, starts_at, ends_at, duration_minutes, price_cents, currency, trainer_services(name), trainers(timezone, profiles(display_name)), dogs(name)",
     )
     .eq("owner_id", ownerId)
     .order("starts_at", { ascending: true });
