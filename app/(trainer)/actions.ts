@@ -3,10 +3,11 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { after } from "next/server";
-import { lookup } from "zipcodes";
 import { z } from "zod";
 
 import { maybeEmitCompleteProfile } from "@/lib/analytics/events";
+import { resolvePostalArea } from "@/lib/location/postal";
+import { currencyForCountry } from "@/lib/money";
 
 import {
   GALLERY_BUCKET,
@@ -62,6 +63,7 @@ export async function completeOnboarding(
     bio: formData.get("bio"),
     specialties: formData.getAll("specialties"), // multi-select → array
     zip: formData.get("zip"),
+    country: formData.get("country") ?? "US",
     serviceRadiusMiles: formData.get("serviceRadiusMiles"),
     timezone: formData.get("timezone"),
   });
@@ -90,11 +92,10 @@ export async function completeOnboarding(
     return { error: "Only trainer accounts can create a trainer listing." };
   }
 
-  // Geocode locally (no external call, no key). undefined = valid 5-digit format
-  // but not a real US ZIP in the table.
-  const place = lookup(parsed.data.zip);
+  // Resolve the coarse postal area locally; unknown areas are not guessed.
+  const place = resolvePostalArea(parsed.data.country, parsed.data.zip);
   if (!place) {
-    return { error: "We couldn't find that ZIP — please check and re-enter." };
+    return { error: "We couldn't find that postal area. Check the country and code, then try again." };
   }
 
   // WRITE 0 — the trainer's display name, on their profiles row. NAME FIRST,
@@ -130,6 +131,8 @@ export async function completeOnboarding(
     const { error } = await supabase.from("trainers").upsert({
       id: userId,
       bio: parsed.data.bio,
+      country_code: parsed.data.country,
+      postal_area: place.postalArea,
       service_point: `SRID=4326;POINT(${place.longitude} ${place.latitude})`,
       service_radius_meters: milesToMeters(parsed.data.serviceRadiusMiles),
       timezone: parsed.data.timezone,
@@ -172,7 +175,7 @@ export async function completeOnboarding(
 // ---------------------------------------------------------------------------
 // Listing edit (interior-polish flow ruling #1) — the action that makes
 // onboarding's "You can edit it later." TRUE. Bio/radius/timezone update the
-// trainers row; a provided ZIP moves the service point (blank keeps it);
+// trainers row; a provided postal area moves the point (blank keeps it);
 // specialties reconcile by diff — INSERT the added (the add-only upsert
 // pattern from onboarding), DELETE the removed (the M3 policy comment's
 // intended path: "drop a specialty by removing the assignment row").
@@ -188,6 +191,7 @@ export async function updateTrainerListing(
     bio: formData.get("bio"),
     specialties: formData.getAll("specialties"),
     zip: formData.get("zip") ?? "",
+    country: formData.get("country") ?? "US",
     serviceRadiusMiles: formData.get("serviceRadiusMiles"),
     timezone: formData.get("timezone"),
   });
@@ -217,14 +221,25 @@ export async function updateTrainerListing(
     return { error: "Create your trainer listing first — then edit it here." };
   }
 
-  // A new ZIP geocodes exactly like onboarding; blank keeps the point.
-  let servicePoint: string | null = null;
+  const { data: savedTrainer, error: savedError } = await supabase
+    .from("trainers").select("country_code").eq("id", userId).maybeSingle();
+  if (savedError || !savedTrainer) return { error: GENERIC_ERROR };
+  if (parsed.data.country !== savedTrainer.country_code && !parsed.data.zip) {
+    return { error: "Enter a postal code when changing your country." };
+  }
+
+  // Location fields travel together; blank input preserves the entire location.
+  let locationUpdate = {};
   if (parsed.data.zip) {
-    const place = lookup(parsed.data.zip);
+    const place = resolvePostalArea(parsed.data.country, parsed.data.zip);
     if (!place) {
-      return { error: "We couldn't find that ZIP — please check and re-enter." };
+      return { error: "We couldn't find that postal area. Check the country and code, then try again." };
     }
-    servicePoint = `SRID=4326;POINT(${place.longitude} ${place.latitude})`;
+    locationUpdate = {
+      country_code: parsed.data.country,
+      postal_area: place.postalArea,
+      service_point: `SRID=4326;POINT(${place.longitude} ${place.latitude})`,
+    };
   }
 
   let writeError: string | null = null;
@@ -235,7 +250,7 @@ export async function updateTrainerListing(
         bio: parsed.data.bio,
         service_radius_meters: milesToMeters(parsed.data.serviceRadiusMiles),
         timezone: parsed.data.timezone,
-        ...(servicePoint ? { service_point: servicePoint } : {}),
+        ...locationUpdate,
       })
       .eq("id", userId);
     writeError = error?.message ?? null;
@@ -389,14 +404,29 @@ export async function createService(
     return ctx;
   }
 
-  // Services attach to the trainers ROW (the FK target), not to onboarding
-  // completeness — 'partial' is fine (services and specialties can arrive in
-  // any order); only 'none' (no trainers row at all) must be turned away, or
-  // the INSERT would die on the FK instead of a helpful message.
-  const state = await getOnboardingState(ctx.supabase, ctx.userId);
-  if (state === "none") {
+  // A partial listing can offer services. The saved country, not a submitted
+  // field or browser locale, determines the currency of a new service.
+  const { data: trainer, error: countryError } = await ctx.supabase
+    .from("trainers")
+    .select("country_code")
+    .eq("id", ctx.userId)
+    .maybeSingle();
+  if (countryError) {
+    return { error: GENERIC_ERROR };
+  }
+  if (!trainer) {
     return {
       error: "Create your trainer listing first — then add your services.",
+    };
+  }
+  const currency = currencyForCountry(trainer.country_code);
+  if (!currency) return { error: GENERIC_ERROR };
+  // A country change in another tab must not reinterpret the amount in an
+  // already-open form. This field checks the displayed label; it cannot
+  // choose a currency. The database independently checks the saved country.
+  if (formData.get("currency") !== currency) {
+    return {
+      error: "Your listing country changed. Refresh this page to see the currency for new services.",
     };
   }
 
@@ -409,6 +439,7 @@ export async function createService(
       session_type: parsed.data.sessionType,
       // priceDollars is CENTS post-transform (schema converts at the boundary)
       price_cents: parsed.data.priceDollars,
+      currency,
       duration_minutes: parsed.data.durationMinutes,
     });
     writeError = error?.message ?? null;
@@ -461,6 +492,8 @@ export async function updateService(
     const { data, error } = await ctx.supabase
       .from("trainer_services")
       .update({
+        // Currency belongs to the existing service and cannot change when
+        // its trainer moves. A new currency requires a newly priced service.
         name: parsed.data.name,
         description: parsed.data.description,
         session_type: parsed.data.sessionType,

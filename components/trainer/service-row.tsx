@@ -39,6 +39,7 @@ export function ServiceRow({
             action={updateService}
             submitLabel="Save changes"
             serviceId={service.id}
+            currency={service.currency}
             initial={{
               name: service.name,
               description: service.description ?? "",
@@ -62,7 +63,7 @@ export function ServiceRow({
           <div className="flex min-w-0 flex-col gap-1">
             <span className="truncate font-medium">{service.name}</span>
             <span className="text-muted-foreground font-mono text-xs">
-              {formatPrice(service.price_cents)} · {service.duration_minutes}{" "}
+              {formatPrice(service.price_cents, service.currency)} · {service.duration_minutes}{" "}
               min · {SESSION_TYPE_LABELS[service.session_type]}
             </span>
           </div>

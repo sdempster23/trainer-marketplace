@@ -13,6 +13,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import type { ActiveService } from "@/lib/trainer/services";
+import type { Currency } from "@/lib/money";
 
 /**
  * The lifted editing state the save-swap ruling needs: while any row is
@@ -21,7 +22,10 @@ import type { ActiveService } from "@/lib/trainer/services";
  * primary. Opening one editor closes any other (two open editors were
  * the investigation's "indistinguishable from the Add card" flag).
  */
-export function ServicesManager({ services }: { services: ActiveService[] }) {
+export function ServicesManager({ services, newServiceCurrency }: {
+  services: ActiveService[];
+  newServiceCurrency: Currency;
+}) {
   const [editingId, setEditingId] = useState<string | null>(null);
 
   return (
@@ -45,12 +49,15 @@ export function ServicesManager({ services }: { services: ActiveService[] }) {
           <CardTitle>Add a service</CardTitle>
           <CardDescription>
             Name it the way an owner would look for it.
+            {" "}New services use {newServiceCurrency}. Existing services keep their currency;
+            create a new service to offer a different currency after moving.
           </CardDescription>
         </CardHeader>
         <CardContent>
           <ServiceForm
             action={createService}
             submitLabel="Add service"
+            currency={newServiceCurrency}
             submitVariant={editingId !== null ? "default" : "action"}
           />
         </CardContent>

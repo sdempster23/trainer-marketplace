@@ -3,8 +3,8 @@ import Link from "next/link";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Avatar } from "@/components/shared/avatar";
+import { distanceLabel } from "@/lib/location/countries";
 import {
-  METERS_PER_MILE,
   SPECIALTY_LABELS,
   type Specialty,
 } from "@/lib/validators/trainer";
@@ -24,6 +24,7 @@ import {
  */
 export type TrainerCardData = {
   id: string;
+  countryCode: string;
   displayName: string;
   /** The stored profiles.avatar_url value, or null → initials tile. */
   avatarPath: string | null;
@@ -35,9 +36,9 @@ export type TrainerCardData = {
 };
 
 export function TrainerCard({ trainer }: { trainer: TrainerCardData }) {
-  const radiusMiles =
+  const serviceRadius =
     trainer.serviceRadiusMeters !== null
-      ? Math.round(trainer.serviceRadiusMeters / METERS_PER_MILE)
+      ? distanceLabel(trainer.serviceRadiusMeters, trainer.countryCode)
       : null;
 
   return (
@@ -65,7 +66,7 @@ export function TrainerCard({ trainer }: { trainer: TrainerCardData }) {
         </div>
         {trainer.distanceMeters !== undefined ? (
           <Badge className="shrink-0">
-            {(trainer.distanceMeters / METERS_PER_MILE).toFixed(1)} mi away
+            {distanceLabel(trainer.distanceMeters, trainer.countryCode, 1)} away
           </Badge>
         ) : null}
       </CardHeader>
@@ -89,9 +90,9 @@ export function TrainerCard({ trainer }: { trainer: TrainerCardData }) {
           </div>
         ) : null}
 
-        {radiusMiles !== null ? (
+        {serviceRadius !== null ? (
           <p className="text-muted-foreground text-xs">
-            Travels up to {radiusMiles} miles
+            Travels up to {serviceRadius}
           </p>
         ) : null}
       </CardContent>

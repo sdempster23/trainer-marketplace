@@ -1,0 +1,296 @@
+{
+  "ianaVersion": "2026d",
+  "ianaRepository": "eggert/tz",
+  "ianaCommit": "d633fe7ed3de8e00ce7cac991376a064a1373bb1",
+  "ianaTag": "2026d",
+  "ianaTagSha": "bac9223f4b125629da479852d2f4ef04b17491bb",
+  "ianaTagGithubVerification": "valid",
+  "icuRepository": "unicode-org/icu",
+  "icuCommit": "7e7a3ce48016b5ca3862628c785651278c46e7d7",
+  "compiler": "ICU genrb 78.3, --formatVersion 2",
+  "endianness": "little",
+  "sources": [
+    {
+      "repo": "unicode-org/icu",
+      "ref": "7e7a3ce48016b5ca3862628c785651278c46e7d7",
+      "path": "icu4c/source/tools/tzcode/Makefile.in",
+      "local": "icu/Makefile.in",
+      "gitBlobSha": "966f80e18bddd3057848f1e751e58631098b34ac",
+      "url": "https://github.com/unicode-org/icu/blob/7e7a3ce48016b5ca3862628c785651278c46e7d7/icu4c/source/tools/tzcode/Makefile.in"
+    },
+    {
+      "repo": "unicode-org/icu",
+      "ref": "7e7a3ce48016b5ca3862628c785651278c46e7d7",
+      "path": "icu4c/source/tools/tzcode/readme.txt",
+      "local": "icu/readme.txt",
+      "gitBlobSha": "f46f1716d782f8183f1491a0717f096e5782b99a",
+      "url": "https://github.com/unicode-org/icu/blob/7e7a3ce48016b5ca3862628c785651278c46e7d7/icu4c/source/tools/tzcode/readme.txt"
+    },
+    {
+      "repo": "unicode-org/icu",
+      "ref": "7e7a3ce48016b5ca3862628c785651278c46e7d7",
+      "path": "icu4c/source/tools/tzcode/zic.c",
+      "local": "icu/zic.c",
+      "gitBlobSha": "54576780d5f64bbf4c4174c2276ffd48484f3780",
+      "url": "https://github.com/unicode-org/icu/blob/7e7a3ce48016b5ca3862628c785651278c46e7d7/icu4c/source/tools/tzcode/zic.c"
+    },
+    {
+      "repo": "unicode-org/icu",
+      "ref": "7e7a3ce48016b5ca3862628c785651278c46e7d7",
+      "path": "icu4c/source/tools/tzcode/private.h",
+      "local": "icu/private.h",
+      "gitBlobSha": "1f35483dc48a067fc8adc2ea135ed4c95e86e8f4",
+      "url": "https://github.com/unicode-org/icu/blob/7e7a3ce48016b5ca3862628c785651278c46e7d7/icu4c/source/tools/tzcode/private.h"
+    },
+    {
+      "repo": "unicode-org/icu",
+      "ref": "7e7a3ce48016b5ca3862628c785651278c46e7d7",
+      "path": "icu4c/source/tools/tzcode/tzfile.h",
+      "local": "icu/tzfile.h",
+      "gitBlobSha": "8fa197529e2740c603164e26c240331b3c6a4362",
+      "url": "https://github.com/unicode-org/icu/blob/7e7a3ce48016b5ca3862628c785651278c46e7d7/icu4c/source/tools/tzcode/tzfile.h"
+    },
+    {
+      "repo": "unicode-org/icu",
+      "ref": "7e7a3ce48016b5ca3862628c785651278c46e7d7",
+      "path": "icu4c/source/tools/tzcode/localtime.c",
+      "local": "icu/localtime.c",
+      "gitBlobSha": "d6dd5bef241708469079efc33fe89632b5ea3f69",
+      "url": "https://github.com/unicode-org/icu/blob/7e7a3ce48016b5ca3862628c785651278c46e7d7/icu4c/source/tools/tzcode/localtime.c"
+    },
+    {
+      "repo": "unicode-org/icu",
+      "ref": "7e7a3ce48016b5ca3862628c785651278c46e7d7",
+      "path": "icu4c/source/tools/tzcode/asctime.c",
+      "local": "icu/asctime.c",
+      "gitBlobSha": "152b0db4e593e5f7fdd1c2205bfa38cc327c9f8a",
+      "url": "https://github.com/unicode-org/icu/blob/7e7a3ce48016b5ca3862628c785651278c46e7d7/icu4c/source/tools/tzcode/asctime.c"
+    },
+    {
+      "repo": "unicode-org/icu",
+      "ref": "7e7a3ce48016b5ca3862628c785651278c46e7d7",
+      "path": "icu4c/source/tools/tzcode/scheck.c",
+      "local": "icu/scheck.c",
+      "gitBlobSha": "8bd01a858f05e3a629ec578092ca0b414cf5ab3f",
+      "url": "https://github.com/unicode-org/icu/blob/7e7a3ce48016b5ca3862628c785651278c46e7d7/icu4c/source/tools/tzcode/scheck.c"
+    },
+    {
+      "repo": "unicode-org/icu",
+      "ref": "7e7a3ce48016b5ca3862628c785651278c46e7d7",
+      "path": "icu4c/source/tools/tzcode/ialloc.c",
+      "local": "icu/ialloc.c",
+      "gitBlobSha": "b6f018897b42fae10a040189ff93c478a3f7a7f5",
+      "url": "https://github.com/unicode-org/icu/blob/7e7a3ce48016b5ca3862628c785651278c46e7d7/icu4c/source/tools/tzcode/ialloc.c"
+    },
+    {
+      "repo": "unicode-org/icu",
+      "ref": "7e7a3ce48016b5ca3862628c785651278c46e7d7",
+      "path": "icu4c/source/tools/tzcode/tz2icu.cpp",
+      "local": "icu/tz2icu.cpp",
+      "gitBlobSha": "061d32172822362e58c3e7cbedc03f3991b0d746",
+      "url": "https://github.com/unicode-org/icu/blob/7e7a3ce48016b5ca3862628c785651278c46e7d7/icu4c/source/tools/tzcode/tz2icu.cpp"
+    },
+    {
+      "repo": "unicode-org/icu",
+      "ref": "7e7a3ce48016b5ca3862628c785651278c46e7d7",
+      "path": "icu4c/source/tools/tzcode/tz2icu.h",
+      "local": "icu/tz2icu.h",
+      "gitBlobSha": "4ba67e375c7edce9af7ef16d5d5181f1bcbb703a",
+      "url": "https://github.com/unicode-org/icu/blob/7e7a3ce48016b5ca3862628c785651278c46e7d7/icu4c/source/tools/tzcode/tz2icu.h"
+    },
+    {
+      "repo": "unicode-org/icu",
+      "ref": "7e7a3ce48016b5ca3862628c785651278c46e7d7",
+      "path": "icu4c/source/tools/tzcode/icuzones",
+      "local": "icu/icuzones",
+      "gitBlobSha": "940b0557acc3e27774a1d1b850211978c14ce771",
+      "url": "https://github.com/unicode-org/icu/blob/7e7a3ce48016b5ca3862628c785651278c46e7d7/icu4c/source/tools/tzcode/icuzones"
+    },
+    {
+      "repo": "unicode-org/icu",
+      "ref": "7e7a3ce48016b5ca3862628c785651278c46e7d7",
+      "path": "icu4c/source/tools/tzcode/icuregions",
+      "local": "icu/icuregions",
+      "gitBlobSha": "2cf5d2f701501f7aca71e61a8b10533f282fb5b1",
+      "url": "https://github.com/unicode-org/icu/blob/7e7a3ce48016b5ca3862628c785651278c46e7d7/icu4c/source/tools/tzcode/icuregions"
+    },
+    {
+      "repo": "unicode-org/icu",
+      "ref": "7e7a3ce48016b5ca3862628c785651278c46e7d7",
+      "path": "icu4c/source/tools/tzcode/icuzdump.cpp",
+      "local": "icu/icuzdump.cpp",
+      "gitBlobSha": "7c5d1c901735b95f4cb6fe2de97c64bb138d683e",
+      "url": "https://github.com/unicode-org/icu/blob/7e7a3ce48016b5ca3862628c785651278c46e7d7/icu4c/source/tools/tzcode/icuzdump.cpp"
+    },
+    {
+      "repo": "unicode-org/icu",
+      "ref": "7e7a3ce48016b5ca3862628c785651278c46e7d7",
+      "path": "icu4c/source/tools/tzcode/zdump.c",
+      "local": "icu/zdump.c",
+      "gitBlobSha": "b9cab22c021fc740c3e8368afe7036ae1fb92dfc",
+      "url": "https://github.com/unicode-org/icu/blob/7e7a3ce48016b5ca3862628c785651278c46e7d7/icu4c/source/tools/tzcode/zdump.c"
+    },
+    {
+      "repo": "unicode-org/icu",
+      "ref": "7e7a3ce48016b5ca3862628c785651278c46e7d7",
+      "path": "icu4c/source/data/tzdata/metazoneOffsets.txt",
+      "local": "icu/metazoneOffsets.txt",
+      "gitBlobSha": "442b8770b41b3706c2e80270621c8fe348574fae",
+      "url": "https://github.com/unicode-org/icu/blob/7e7a3ce48016b5ca3862628c785651278c46e7d7/icu4c/source/data/tzdata/metazoneOffsets.txt"
+    },
+    {
+      "repo": "unicode-org/icu",
+      "ref": "7e7a3ce48016b5ca3862628c785651278c46e7d7",
+      "path": "LICENSE",
+      "local": "icu/LICENSE",
+      "gitBlobSha": "fec99457b941a38283b6b2f6e128470182c73dc0",
+      "url": "https://github.com/unicode-org/icu/blob/7e7a3ce48016b5ca3862628c785651278c46e7d7/LICENSE"
+    },
+    {
+      "repo": "eggert/tz",
+      "ref": "d633fe7ed3de8e00ce7cac991376a064a1373bb1",
+      "path": "africa",
+      "local": "tz/africa",
+      "gitBlobSha": "2965736a0b0ea9e31f9d7118924ce29fdff75d47",
+      "url": "https://github.com/eggert/tz/blob/d633fe7ed3de8e00ce7cac991376a064a1373bb1/africa"
+    },
+    {
+      "repo": "eggert/tz",
+      "ref": "d633fe7ed3de8e00ce7cac991376a064a1373bb1",
+      "path": "antarctica",
+      "local": "tz/antarctica",
+      "gitBlobSha": "f46ac479cbd4c03611957d4f4bce8e459a6f5f31",
+      "url": "https://github.com/eggert/tz/blob/d633fe7ed3de8e00ce7cac991376a064a1373bb1/antarctica"
+    },
+    {
+      "repo": "eggert/tz",
+      "ref": "d633fe7ed3de8e00ce7cac991376a064a1373bb1",
+      "path": "asia",
+      "local": "tz/asia",
+      "gitBlobSha": "294eee0095a06f1d2a5c4a7646bd3ed9aa14ebd1",
+      "url": "https://github.com/eggert/tz/blob/d633fe7ed3de8e00ce7cac991376a064a1373bb1/asia"
+    },
+    {
+      "repo": "eggert/tz",
+      "ref": "d633fe7ed3de8e00ce7cac991376a064a1373bb1",
+      "path": "australasia",
+      "local": "tz/australasia",
+      "gitBlobSha": "45ac6460391c66779903fef07959358b6c04dfe7",
+      "url": "https://github.com/eggert/tz/blob/d633fe7ed3de8e00ce7cac991376a064a1373bb1/australasia"
+    },
+    {
+      "repo": "eggert/tz",
+      "ref": "d633fe7ed3de8e00ce7cac991376a064a1373bb1",
+      "path": "europe",
+      "local": "tz/europe",
+      "gitBlobSha": "0dc31d9d85e62bd252aabf8a1ff4b7a67de39dca",
+      "url": "https://github.com/eggert/tz/blob/d633fe7ed3de8e00ce7cac991376a064a1373bb1/europe"
+    },
+    {
+      "repo": "eggert/tz",
+      "ref": "d633fe7ed3de8e00ce7cac991376a064a1373bb1",
+      "path": "northamerica",
+      "local": "tz/northamerica",
+      "gitBlobSha": "e5f858272c8b9a9faa0953b7fe01252c140f54fb",
+      "url": "https://github.com/eggert/tz/blob/d633fe7ed3de8e00ce7cac991376a064a1373bb1/northamerica"
+    },
+    {
+      "repo": "eggert/tz",
+      "ref": "d633fe7ed3de8e00ce7cac991376a064a1373bb1",
+      "path": "southamerica",
+      "local": "tz/southamerica",
+      "gitBlobSha": "2a9d60a02c9ebe06ac3f89e55dd04df3386274d5",
+      "url": "https://github.com/eggert/tz/blob/d633fe7ed3de8e00ce7cac991376a064a1373bb1/southamerica"
+    },
+    {
+      "repo": "eggert/tz",
+      "ref": "d633fe7ed3de8e00ce7cac991376a064a1373bb1",
+      "path": "etcetera",
+      "local": "tz/etcetera",
+      "gitBlobSha": "d78f04133c36b9075b99b688e31b4634d233397c",
+      "url": "https://github.com/eggert/tz/blob/d633fe7ed3de8e00ce7cac991376a064a1373bb1/etcetera"
+    },
+    {
+      "repo": "eggert/tz",
+      "ref": "d633fe7ed3de8e00ce7cac991376a064a1373bb1",
+      "path": "factory",
+      "local": "tz/factory",
+      "gitBlobSha": "433a672130ee1039bb2db23db55a56f4d7bff974",
+      "url": "https://github.com/eggert/tz/blob/d633fe7ed3de8e00ce7cac991376a064a1373bb1/factory"
+    },
+    {
+      "repo": "eggert/tz",
+      "ref": "d633fe7ed3de8e00ce7cac991376a064a1373bb1",
+      "path": "backward",
+      "local": "tz/backward",
+      "gitBlobSha": "2971d038b9e615111c5ce077acd005315c222d07",
+      "url": "https://github.com/eggert/tz/blob/d633fe7ed3de8e00ce7cac991376a064a1373bb1/backward"
+    },
+    {
+      "repo": "eggert/tz",
+      "ref": "d633fe7ed3de8e00ce7cac991376a064a1373bb1",
+      "path": "zone.tab",
+      "local": "tz/zone.tab",
+      "gitBlobSha": "8ff275a2497862dc6b017a0c8480e3d16307e8f6",
+      "url": "https://github.com/eggert/tz/blob/d633fe7ed3de8e00ce7cac991376a064a1373bb1/zone.tab"
+    },
+    {
+      "repo": "eggert/tz",
+      "ref": "d633fe7ed3de8e00ce7cac991376a064a1373bb1",
+      "path": "ziguard.awk",
+      "local": "tz/ziguard.awk",
+      "gitBlobSha": "ba3a13405d7558bdc601b2c988fddd0b10a0ea7b",
+      "url": "https://github.com/eggert/tz/blob/d633fe7ed3de8e00ce7cac991376a064a1373bb1/ziguard.awk"
+    },
+    {
+      "repo": "eggert/tz",
+      "ref": "d633fe7ed3de8e00ce7cac991376a064a1373bb1",
+      "path": "LICENSE",
+      "local": "tz/LICENSE",
+      "gitBlobSha": "8ba4399c622d3a1a3175865c39c3469e82539795",
+      "url": "https://github.com/eggert/tz/blob/d633fe7ed3de8e00ce7cac991376a064a1373bb1/LICENSE"
+    },
+    {
+      "repo": "unicode-org/icu",
+      "ref": "7e7a3ce48016b5ca3862628c785651278c46e7d7",
+      "path": "icu4c/source/data/misc/metaZones.txt",
+      "local": "icu/metaZones.txt",
+      "gitBlobSha": "13e6ff878eed448bb61cbbcfa1b3986c5e080ed2",
+      "url": "https://github.com/unicode-org/icu/blob/7e7a3ce48016b5ca3862628c785651278c46e7d7/icu4c/source/data/misc/metaZones.txt"
+    },
+    {
+      "repo": "unicode-org/icu",
+      "ref": "7e7a3ce48016b5ca3862628c785651278c46e7d7",
+      "path": "icu4c/source/data/misc/timezoneTypes.txt",
+      "local": "icu/timezoneTypes.txt",
+      "gitBlobSha": "03724013d6a2bd88cd90694fcf729a840bfcbcc7",
+      "url": "https://github.com/unicode-org/icu/blob/7e7a3ce48016b5ca3862628c785651278c46e7d7/icu4c/source/data/misc/timezoneTypes.txt"
+    },
+    {
+      "repo": "unicode-org/icu",
+      "ref": "7e7a3ce48016b5ca3862628c785651278c46e7d7",
+      "path": "icu4c/source/data/misc/windowsZones.txt",
+      "local": "icu/windowsZones.txt",
+      "gitBlobSha": "34c0baa36a47cf5f8494e08cc4cb731cd2ece511",
+      "url": "https://github.com/unicode-org/icu/blob/7e7a3ce48016b5ca3862628c785651278c46e7d7/icu4c/source/data/misc/windowsZones.txt"
+    }
+  ],
+  "resources": {
+    "metaZones.res": {
+      "bytes": 41308,
+      "sha256": "60d053d7deb4ecb7b3050b8a43e1abe4f6e93d5869e6929eadc1b12894261b3a"
+    },
+    "timezoneTypes.res": {
+      "bytes": 21244,
+      "sha256": "cf83389a2631f07deb3ad11bee2d678be2abe10dd03548ab841c3a7eb5a560e4"
+    },
+    "windowsZones.res": {
+      "bytes": 22052,
+      "sha256": "1224c0c8db13529ab008baa3f844ce188abcca781180829fba9141f2815f6217"
+    },
+    "zoneinfo64.res": {
+      "bytes": 149396,
+      "sha256": "8ad1a1d19f19d4feecd1c0d9b02c50c6d78ed3ed6bd5a39df9979d26f740ea6c"
+    }
+  }
+}

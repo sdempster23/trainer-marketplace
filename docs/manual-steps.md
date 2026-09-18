@@ -5,6 +5,39 @@ templates, deploy settings — that a code deploy alone won't apply. Keep this
 current as features that need external config land (see CLAUDE.md "Definition of
 done" item 8).
 
+## Canada/UK release: hosted timezone setup (preview verified, 2026-09-18)
+
+First complete the local database gate from the implementation checkout with
+`bash scripts/verify-international-db.sh`. It checks local targeting and log-only
+email, rehearses and applies only M22, runs the rollback-only M22/M14 checks,
+and regenerates schema types. It does not reset the database or touch hosted
+data. Run the regular application checks and US/CA/GB browser flows afterward.
+See `supabase/tests/m22_international/_README.md` for prerequisites.
+
+M22 must be applied to the intended database before releasing the new app.
+The old RPC is retained so the current app can continue during that schema-first
+rollout. At this preparation checkpoint, the hosted migration and production
+application release are still pending.
+
+Local development/test/build commands now load the bundled official IANA
+2026d resources automatically; `pnpm check:timezones` verifies the result.
+Vercel builds use `build:vercel` to resolve the bundle on the build machine
+independently of the function's startup setting. The versioned Node 22 engine
+pin overrides the dashboard's previously observed 24.x selection; verify the
+actual build/runtime versions in the release.
+In a protected preview, inspect the `[TIMEZONE_STARTUP]` function log to verify
+the deployed resource path and four file hashes before setting
+`ICU_TIMEZONE_FILES_DIR` to that absolute path **before Node starts**.
+Redeploy and require passing clock/calendar checks, then repeat verification
+for Production. The Node startup guard rejects stale timezone rules.
+Preview `CZVm4R8YqBBRKvn9WaoaXwNrzoR7` passed those actual function checks on
+2026-09-18: Node 22.23.2, IANA 2026d, four matching resource hashes, 11 clock
+cases and three calendar recurrences. `ICU_TIMEZONE_FILES_DIR` is saved as
+`/var/task/data/timezones/2026d/le` in Preview and Production, excluding local
+Development. This path came from the preview function report. Production's
+own runtime report remains a required check after deployment. Follow
+[the timezone data runbook](timezone-data.md) for packaging and verification.
+
 ---
 
 ## Auth

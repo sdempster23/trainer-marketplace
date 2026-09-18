@@ -1,4 +1,5 @@
 import { siteOrigin } from "@/lib/site-url";
+import type { Currency } from "@/lib/money";
 import { truncatePreview } from "@/lib/utils";
 import { formatBookingStart } from "@/lib/validators/booking";
 import {
@@ -28,6 +29,7 @@ export type BookingMailContext = {
   startsAtIso: string;
   trainerTimezone: string;
   priceCents: number;
+  currency: Currency;
 };
 
 export type RenderedMail = { subject: string; text: string };
@@ -50,7 +52,7 @@ export function requestReceived(c: BookingMailContext): RenderedMail {
     text: `${owner} requested ${c.serviceName} for ${c.dogName}.
 
 When: ${when(c)}
-Price: ${formatPrice(c.priceCents)}
+Price: ${formatPrice(c.priceCents, c.currency)}
 
 Confirm or decline: ${origin()}/trainer/bookings`,
   };
@@ -64,7 +66,7 @@ export function confirmed(c: BookingMailContext): RenderedMail {
     text: `${trainer} confirmed your ${c.serviceName} for ${c.dogName}.
 
 When: ${when(c)}
-Price: ${formatPrice(c.priceCents)}
+Price: ${formatPrice(c.priceCents, c.currency)}
 
 Your bookings: ${origin()}/owner/bookings`,
   };
@@ -132,7 +134,7 @@ export function completed(c: BookingMailContext): RenderedMail {
     text: `${trainer} marked your ${c.serviceName} with ${c.dogName} complete.
 
 When: ${when(c)}
-Price: ${formatPrice(c.priceCents)}
+Price: ${formatPrice(c.priceCents, c.currency)}
 
 Your bookings: ${origin()}/owner/bookings`,
   };

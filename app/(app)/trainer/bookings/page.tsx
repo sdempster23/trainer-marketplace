@@ -117,7 +117,7 @@ export default async function TrainerBookingsPage() {
       {/* The truthful-numbers line — Geist Mono per the identity. */}
       <span className="text-muted-foreground font-mono text-xs">
         {formatBookingStart(b.starts_at, tz)} · {b.duration_minutes} min ·{" "}
-        {formatPrice(b.price_cents)}
+        {formatPrice(b.price_cents, b.currency)}
       </span>
     </div>
   );

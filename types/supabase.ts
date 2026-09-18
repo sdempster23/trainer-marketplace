@@ -72,6 +72,7 @@ export type Database = {
           cancelled_by: Database["public"]["Enums"]["cancelled_by"] | null
           completed_at: string | null
           created_at: string
+          currency: Database["public"]["Enums"]["currency_code"]
           dog_id: string
           duration_minutes: number
           ends_at: string | null
@@ -90,6 +91,7 @@ export type Database = {
           cancelled_by?: Database["public"]["Enums"]["cancelled_by"] | null
           completed_at?: string | null
           created_at?: string
+          currency?: Database["public"]["Enums"]["currency_code"]
           dog_id: string
           duration_minutes: number
           ends_at?: string | null
@@ -108,6 +110,7 @@ export type Database = {
           cancelled_by?: Database["public"]["Enums"]["cancelled_by"] | null
           completed_at?: string | null
           created_at?: string
+          currency?: Database["public"]["Enums"]["currency_code"]
           dog_id?: string
           duration_minutes?: number
           ends_at?: string | null
@@ -615,6 +618,7 @@ export type Database = {
       trainer_services: {
         Row: {
           created_at: string
+          currency: Database["public"]["Enums"]["currency_code"]
           deleted_at: string | null
           description: string | null
           duration_minutes: number
@@ -627,6 +631,7 @@ export type Database = {
         }
         Insert: {
           created_at?: string
+          currency?: Database["public"]["Enums"]["currency_code"]
           deleted_at?: string | null
           description?: string | null
           duration_minutes: number
@@ -639,6 +644,7 @@ export type Database = {
         }
         Update: {
           created_at?: string
+          currency?: Database["public"]["Enums"]["currency_code"]
           deleted_at?: string | null
           description?: string | null
           duration_minutes?: number
@@ -744,8 +750,10 @@ export type Database = {
       trainers: {
         Row: {
           bio: string | null
+          country_code: string
           created_at: string
           id: string
+          postal_area: string | null
           service_point: unknown
           service_radius_meters: number | null
           timezone: string
@@ -754,8 +762,10 @@ export type Database = {
         }
         Insert: {
           bio?: string | null
+          country_code?: string
           created_at?: string
           id: string
+          postal_area?: string | null
           service_point?: unknown
           service_radius_meters?: number | null
           timezone?: string
@@ -764,8 +774,10 @@ export type Database = {
         }
         Update: {
           bio?: string | null
+          country_code?: string
           created_at?: string
           id?: string
+          postal_area?: string | null
           service_point?: unknown
           service_radius_meters?: number | null
           timezone?: string
@@ -826,6 +838,28 @@ export type Database = {
           years_experience: number
         }[]
       }
+      nearby_trainers_v2: {
+        Args: {
+          radius_meters: number
+          search_country?: string
+          search_lat: number
+          search_lng: number
+        }
+        Returns: {
+          bio: string
+          country_code: string
+          display_name: string
+          distance_meters: number
+          id: string
+          lat: number
+          lng: number
+          postal_area: string
+          service_radius_meters: number
+          specialties: Database["public"]["Enums"]["trainer_specialty"][]
+          timezone: string
+          years_experience: number
+        }[]
+      }
       refresh_external_blocks: {
         Args: { blocks: Json; fetch_ok: boolean; t_id: string }
         Returns: undefined
@@ -856,6 +890,7 @@ export type Database = {
     Enums: {
       booking_status: "PENDING" | "CONFIRMED" | "COMPLETED" | "CANCELLED"
       cancelled_by: "owner" | "trainer" | "system"
+      currency_code: "USD" | "CAD" | "GBP"
       session_type: "in_home" | "at_trainer_location" | "virtual"
       trainer_specialty:
         | "puppy"
@@ -1009,6 +1044,7 @@ export const Constants = {
     Enums: {
       booking_status: ["PENDING", "CONFIRMED", "COMPLETED", "CANCELLED"],
       cancelled_by: ["owner", "trainer", "system"],
+      currency_code: ["USD", "CAD", "GBP"],
       session_type: ["in_home", "at_trainer_location", "virtual"],
       trainer_specialty: [
         "puppy",

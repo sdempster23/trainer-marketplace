@@ -235,7 +235,7 @@ export async function createBooking(
     return { error: "Only dog-owner accounts can book." };
   }
 
-  // (c) The service is the G2/G3 source: trainer_id + the price/duration
+  // (c) The service is the G2/G3 source: trainer_id + price/duration/currency
   // snapshots come from THIS row — the trigger audits the copy. The dog is
   // G1's precondition, friendly-checked before the trigger would reject.
   const { service } = await getActiveService(ctx.supabase, parsed.data.serviceId);
@@ -322,6 +322,7 @@ export async function createBooking(
         starts_at: parsed.data.slotStartUtc,
         duration_minutes: service.duration_minutes, // G3 snapshots — server-copied
         price_cents: service.price_cents,
+        currency: service.currency,
       })
       .select("id")
       .maybeSingle();
@@ -390,6 +391,7 @@ export async function createBooking(
         startsAtIso: slotStartUtc,
         trainerTimezone: trainer.timezone,
         priceCents: service.price_cents,
+        currency: service.currency,
       });
       await sendMail({ to: email, ...mail });
     } catch (e) {

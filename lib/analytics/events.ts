@@ -6,6 +6,7 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import { isProfileComplete } from "@/lib/analytics/complete-profile";
 import { insertAnalyticsEvent } from "@/lib/supabase/admin";
 import type { Database, Json } from "@/types/supabase";
+import type { Country } from "@/lib/location/countries";
 
 export { isProfileComplete } from "@/lib/analytics/complete-profile";
 
@@ -30,6 +31,9 @@ const ONCE_PER_USER = new Set<AnalyticsEventName>([
 ]);
 
 export type AnalyticsProps = {
+  country?: Country;
+  postal_area?: string;
+  radius_meters?: number;
   zip?: string;
   radius?: number;
   specialties?: string[];
@@ -47,6 +51,9 @@ function isAnalyticsEventName(name: string): name is AnalyticsEventName {
 
 function toJsonProps(props: AnalyticsProps): Json {
   const out: { [key: string]: Json | undefined } = {};
+  if (props.country !== undefined) out.country = props.country;
+  if (props.postal_area !== undefined) out.postal_area = props.postal_area;
+  if (props.radius_meters !== undefined) out.radius_meters = props.radius_meters;
   if (props.zip !== undefined) out.zip = props.zip;
   if (props.radius !== undefined) out.radius = props.radius;
   if (props.specialties !== undefined) out.specialties = props.specialties;
@@ -66,6 +73,9 @@ function toVercelProps(
   props: AnalyticsProps,
 ): Record<string, string | number | boolean | null> {
   const out: Record<string, string | number | boolean | null> = {};
+  if (props.country !== undefined) out.country = props.country;
+  if (props.postal_area !== undefined) out.postal_area = props.postal_area;
+  if (props.radius_meters !== undefined) out.radius_meters = props.radius_meters;
   if (props.zip !== undefined) out.zip = props.zip;
   if (props.radius !== undefined) out.radius = props.radius;
   if (props.specialties !== undefined) {

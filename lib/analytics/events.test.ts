@@ -63,6 +63,13 @@ describe("emitAnalyticsEvent", () => {
     expect(track).not.toHaveBeenCalled();
   });
 
+  test("keeps international country, coarse area, and explicit distance units", async () => {
+    const props = { country: "CA" as const, postal_area: "M5V", radius_meters: 40234, result_count: 2 };
+    await emitAnalyticsEvent({ eventName: "search", props });
+    expect(insertAnalyticsEvent).toHaveBeenCalledWith({ event_name: "search", user_id: null, props });
+    expect(track).toHaveBeenCalledWith("search", props);
+  });
+
   test("a DB failure does not throw and still attempts the Vercel mirror", async () => {
     insertAnalyticsEvent.mockRejectedValue(new Error("db down"));
     await expect(

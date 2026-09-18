@@ -62,3 +62,27 @@ test("a new trainer can create a listing specializing in Barn Hunt", () => {
   expect(r.success).toBe(true);
   if (r.success) expect(r.data.specialties).toEqual(["barn_hunt"]);
 });
+
+describe("international listing locations", () => {
+  test.each([
+    ["CA", "m5v 3a8", "America/Toronto", "M5V"],
+    ["GB", "sw1a 1aa", "Europe/London", "SW1A"],
+    ["GB", "BT1 5GS", "Europe/London", "BT1"],
+  ])("accepts and normalizes a %s listing's postal area", (country, zip, timezone, area) => {
+    const result = onboardingSchema.safeParse({
+      ...VALID, displayName: "Local Trainer", country, zip, timezone,
+    });
+    expect(result.success).toBe(true);
+    if (result.success) expect(result.data.zip).toBe(area);
+  });
+
+  test("rejects a valid postal prefix followed by junk", () => {
+    expect(onboardingSchema.safeParse({ ...VALID, displayName: "Local Trainer",
+      country: "CA", zip: "M5V nonsense", timezone: "America/Toronto" }).success).toBe(false);
+  });
+
+  test("does not accept a US ZIP as a Canadian location", () => {
+    expect(onboardingSchema.safeParse({ ...VALID, displayName: "Local Trainer",
+      country: "CA", zip: "37203", timezone: "America/Toronto" }).success).toBe(false);
+  });
+});

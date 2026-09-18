@@ -26,6 +26,7 @@ const FULL: BookingMailContext = {
   startsAtIso: "2026-07-06T14:00:00Z", // 9:00 AM Central
   trainerTimezone: "America/Chicago",
   priceCents: 8000,
+  currency: "USD",
 };
 
 const templates: Array<{
@@ -39,6 +40,17 @@ const templates: Array<{
   { name: "cancelledByOwner", render: cancelledByOwner, nullFallback: "A dog owner" },
   { name: "completed", render: completed, nullFallback: "Your trainer" },
 ];
+
+describe.each([
+  { name: "requestReceived", render: requestReceived },
+  { name: "confirmed", render: confirmed },
+  { name: "completed", render: completed },
+])("$name currency", ({ render }) => {
+  test.each(["USD", "CAD", "GBP"] as const)("keeps the booking's %s amount explicit", (currency) => {
+    const { text } = render({ ...FULL, priceCents: 6250, currency });
+    expect(text.replace(/\s/g, " ")).toContain(`Price: ${currency} 62.50`);
+  });
+});
 
 describe.each(templates)("$name", ({ render, nullFallback }) => {
   test("renders full context — name, dog, service, zone; no 'undefined'", () => {

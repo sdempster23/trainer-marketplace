@@ -7,6 +7,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { ErrorState } from "@/components/shared/states";
 import { hrefWithNext } from "@/lib/auth/safe-internal-path";
 import { createClient } from "@/lib/supabase/server";
+import { isCountry } from "@/lib/location/countries";
 import {
   METERS_PER_MILE,
   type ServiceRadiusMiles,
@@ -20,8 +21,8 @@ export const metadata = { title: "Edit your listing — PawMatch" };
  * Listing edit (flow ruling #1) — the page that makes onboarding's
  * "You can edit it later." true: bio, specialties, radius, and timezone
  * are all reachable here after onboarding. The display name is edited on
- * /account (one field, one home); ZIP is optional — blank keeps the
- * current service area.
+ * /account (one field, one home); a blank postal field keeps the current
+ * service area as long as the country has not changed.
  */
 export default async function EditListingPage() {
   const supabase = await createClient();
@@ -42,7 +43,7 @@ export default async function EditListingPage() {
 
   const { data: trainer, error: trainerError } = await supabase
     .from("trainers")
-    .select("bio, service_radius_meters, timezone")
+    .select("bio, service_radius_meters, timezone, country_code, postal_area")
     .eq("id", claims.sub)
     .maybeSingle();
   const { data: assignments, error: assignmentsError } = await supabase
@@ -51,7 +52,7 @@ export default async function EditListingPage() {
     .eq("trainer_id", claims.sub);
 
   // Failed read ≠ not onboarded — same discipline as the listing page.
-  if (trainerError || assignmentsError) {
+  if (trainerError || assignmentsError || (trainer && !isCountry(trainer.country_code))) {
     return (
       <main className="bg-muted flex-1 px-6 py-12">
         <div className="mx-auto w-full max-w-2xl">
@@ -82,6 +83,8 @@ export default async function EditListingPage() {
               pendingLabel="Saving…"
               zipOptional
               initial={{
+                country: isCountry(trainer.country_code) ? trainer.country_code : undefined,
+                postalArea: trainer.postal_area,
                 bio: trainer.bio,
                 specialties: (assignments ?? []).map(
                   (a) => a.specialty as Specialty,

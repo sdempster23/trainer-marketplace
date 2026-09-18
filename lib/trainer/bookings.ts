@@ -3,6 +3,7 @@ import { cache } from "react";
 import type { SupabaseClient } from "@supabase/supabase-js";
 
 import type { Database } from "@/types/supabase";
+import type { Currency } from "@/lib/money";
 
 /**
  * The trainer's bookings-list read — the surface M11's counterparty policy
@@ -30,6 +31,7 @@ export type TrainerBooking = {
   ends_at: string | null;
   duration_minutes: number;
   price_cents: number;
+  currency: Currency;
   trainer_services: { name: string } | null;
   profiles: { display_name: string | null } | null;
   dogs: { name: string } | null;
@@ -42,7 +44,7 @@ export async function getTrainerBookings(
   const { data, error } = await supabase
     .from("bookings")
     .select(
-      "id, owner_id, status, cancelled_by, starts_at, ends_at, duration_minutes, price_cents, trainer_services(name), profiles(display_name), dogs(name)",
+      "id, owner_id, status, cancelled_by, starts_at, ends_at, duration_minutes, price_cents, currency, trainer_services(name), profiles(display_name), dogs(name)",
     )
     .eq("trainer_id", trainerId)
     .order("starts_at", { ascending: true });

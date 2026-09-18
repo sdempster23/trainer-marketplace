@@ -1,6 +1,7 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 
 import type { Database } from "@/types/supabase";
+import type { Currency } from "@/lib/money";
 
 /**
  * A trainer's ACTIVE services — THE one read path for both surfaces (the
@@ -26,12 +27,13 @@ export type ActiveService = {
   description: string | null;
   session_type: Database["public"]["Enums"]["session_type"];
   price_cents: number;
+  currency: Currency;
   duration_minutes: number;
 };
 
 /**
  * One ACTIVE service by id — the booking flow's G2/G3 source (trainer_id +
- * price/duration snapshots come from THIS row, never the client). Lives here
+ * price/duration/currency snapshots come from THIS row, never the client). Lives here
  * beside getActiveServices so the deleted_at view-spec rule still has exactly
  * one home file; a soft-deleted or unknown id returns null ("no longer
  * offered"), which is precisely the booking-time answer.
@@ -45,7 +47,7 @@ export async function getActiveService(
   const { data, error } = await supabase
     .from("trainer_services")
     .select(
-      "id, trainer_id, name, description, session_type, price_cents, duration_minutes",
+      "id, trainer_id, name, description, session_type, price_cents, currency, duration_minutes",
     )
     .eq("id", serviceId)
     .is("deleted_at", null)
@@ -63,7 +65,7 @@ export async function getActiveServices(
 ): Promise<{ services: ActiveService[]; error: string | null }> {
   const { data, error } = await supabase
     .from("trainer_services")
-    .select("id, name, description, session_type, price_cents, duration_minutes")
+    .select("id, name, description, session_type, price_cents, currency, duration_minutes")
     .eq("trainer_id", trainerId)
     .is("deleted_at", null)
     .order("created_at", { ascending: true });

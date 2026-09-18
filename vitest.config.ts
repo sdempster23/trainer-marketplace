@@ -13,7 +13,9 @@ export default defineConfig({
     // (lib/utils/format-date.test.ts) fail deterministically on a
     // local-parsing regression — CI runners default to UTC, where that
     // regression is invisible.
-    env: { TZ: "America/Anchorage" },
+    // The focused timezone suite also runs under UTC/Chicago to prove
+    // scheduling and ICS parsing do not depend on the server's zone.
+    env: { TZ: process.env.PAWMATCH_TEST_TZ ?? "America/Anchorage" },
     setupFiles: ["./tests/setup.ts"],
     globals: true,
     include: ["**/*.{test,spec}.{ts,tsx}"],
